@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ISOSURE | Patient compounding catalog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #f4efe4;
+      --paper-strong: #fffdf8;
+      --ink: #1b241c;
+      --ink-soft: #4a5548;
+      --forest: #1d3c32;
+      --forest-deep: #12261f;
+      --leaf: #3d6b54;
+      --brass: #b68b3d;
+      --brass-soft: #e6d3a3;
+      --blush: #d9b7a3;
+      --line: #d8d0c0;
+      --danger: #8a2f2f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--paper); color: var(--ink); }
+    body { font-family: Outfit, system-ui, sans-serif; display: flex; flex-direction: column; }
+    h1, h2, h3, .serif { font-family: Fraunces, Georgia, serif; font-weight: 550; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--line); background: rgba(244,239,228,.92); backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 0.7rem; cursor: pointer; }
+    .mark { width: 36px; height: 36px; }
+    .brand-name { letter-spacing: .18em; font-size: 1.1rem; }
+    .brand-sub { display: block; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft); }
+    nav { display: flex; gap: 1.25rem; color: var(--ink-soft); font-size: .95rem; }
+    nav a:hover { color: var(--forest); }
+    .actions { display: flex; gap: .5rem; }
+    .btn {
+      border: 0; border-radius: 999px; padding: .55rem 1rem; cursor: pointer; background: var(--forest); color: var(--paper-strong);
+    }
+    .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+    .btn.line { background: transparent; border: 1px solid var(--forest); color: var(--ink); }
+    .cart-btn { position: relative; }
+    .badge {
+      position: absolute; top: -6px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
+      border-radius: 999px; background: var(--brass); color: var(--forest-deep); font-size: 11px; display: grid; place-items: center;
+    }
+    main { flex: 1; width: min(1100px, calc(100% - 2rem)); margin: 0 auto; padding: 2rem 0 3rem; }
+    footer { background: var(--forest-deep); color: var(--paper); padding: 2.5rem 1.25rem; }
+    .footer-inner { width: min(1100px, 100%); margin: 0 auto; display: grid; gap: 1.5rem; }
+    @media (min-width: 800px) { .footer-inner { grid-template-columns: 1fr 1fr 1.2fr; } nav { display: flex; } }
+    @media (max-width: 799px) { nav { display: none; } }
+    .kicker { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--brass); }
+    .hero { display: grid; gap: 1.5rem; }
+    @media (min-width: 800px) { .hero { grid-template-columns: 1.2fr .8fr; align-items: center; } }
+    .panel, .card { background: var(--paper-strong); border: 1px solid var(--line); border-radius: 1.1rem; }
+    .card { overflow: hidden; cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 18px 40px -24px rgba(18,38,31,.45); }
+    .card:hover h3 { color: var(--leaf); }
+    .grid { display: grid; gap: 1rem; }
+    .grid.cats { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .grid.products { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+    .tile, .cat { padding: 1rem 1.1rem; border-radius: 1rem; border: 1px solid var(--line); background: var(--paper-strong); cursor: pointer; }
+    .tile:hover, .cat:hover { border-color: var(--forest); }
+    .art {
+      height: 140px; position: relative; color: white;
+      background: linear-gradient(145deg, #1d3c32, #b68b3d);
+    }
+    .art span { position: absolute; top: 10px; left: 10px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; background: rgba(255,255,255,.16); padding: 2px 8px; border-radius: 999px; }
+    .pad { padding: 1rem; }
+    .muted { color: var(--ink-soft); }
+    .row { display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .dose {
+      border: 1px solid var(--line); border-radius: 1rem; padding: .8rem; cursor: pointer; background: var(--paper);
+    }
+    .dose.on { border-color: var(--forest); background: var(--paper-strong); }
+    .qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; }
+    .qty button { width: 36px; height: 36px; border: 0; background: none; cursor: pointer; font-size: 1.1rem; }
+    input, select, textarea {
+      width: 100%; border: 1px solid var(--line); background: var(--paper); border-radius: .8rem; padding: .65rem .75rem;
+    }
+    label { display: block; font-size: .92rem; margin-bottom: .7rem; }
+    .stack { display: grid; gap: .75rem; }
+    .danger { color: var(--danger); }
+    .chip { display: inline-flex; border-radius: 999px; padding: .2rem .7rem; font-size: 12px; background: rgba(217,183,163,.4); }
+    .hint { font-size: .85rem; color: var(--leaf); }
+    .split { display: grid; gap: 1.25rem; }
+    @media (min-width: 800px) { .split { grid-template-columns: 220px 1fr; } .split.checkout { grid-template-columns: 1.2fr .8fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand" onclick="go('home')">
+      <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <rect width="40" height="40" rx="10" fill="#12261f"/>
+        <path d="M12 26c4-10 12-10 16 0" stroke="#e6d3a3" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M20 9v9" stroke="#f4efe4" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="20" cy="20" r="3.2" fill="#b68b3d"/>
+      </svg>
+      <span>
+        <span class="serif brand-name">ISOSURE</span>
+        <span class="brand-sub">Compounding</span>
+      </span>
+    </div>
+    <nav>
+      <a href="#catalog">Catalog</a>
+      <a href="#catalog?category=Hormone%20Therapy">Hormones</a>
+      <a href="#catalog?category=Pain%20%26%20Inflammation">Pain</a>
+      <a href="#account">My refills</a>
+    </nav>
+    <div class="actions">
+      <button class="btn ghost" onclick="go(state.patient ? 'account' : 'login')" id="signBtn">Sign in</button>
+      <button class="btn cart-btn" onclick="go('cart')">Cart <span class="badge" id="cartBadge" hidden>0</span></button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <p class="serif" style="font-size:1.25rem;letter-spacing:.16em">ISOSURE</p>
+        <p class="muted" style="color:#d8d0c0">Precision compounding, made personal.</p>
+      </div>
+      <div>
+        <p>1200 Apothecary Lane, Suite 200</p>
+        <p>Portland, OR 97201</p>
+        <p>(800) 555-4767 · care@isosure.example</p>
+      </div>
+      <div>
+        <p>Prototype only. Open this file in any browser — no server required. Compounded medicines are not actually sold here.</p>
+      </div>
+    </div>
+  </footer>
+
+<script>
+const CATEGORIES = ["Hormone Therapy","Women's Health","Men's Health","Thyroid","Pain & Inflammation","Dermatology","Wellness","Pediatric"];
+const PRODUCTS = [
+  {id:"estradiol-cream",name:"IsoBalance Estradiol Cream",shortName:"Estradiol Cream",category:"Hormone Therapy",form:"Cream",featured:true,tags:["hrt","estrogen","women"],summary:"Bioidentical estradiol in a vanishing cream for transdermal hormone support.",description:"A pharmacist-compounded estradiol cream prepared to the strength your prescriber specifies.",howToUse:"Apply the measured dose to clean, dry skin. Rotate sites.",doses:[{id:"e2-025",label:"0.25 mg/g",price:48},{id:"e2-05",label:"0.5 mg/g",price:56},{id:"e2-1",label:"1 mg/g",price:64}],colors:["#1d3c32","#b68b3d"]},
+  {id:"progesterone-caps",name:"IsoCalm Progesterone Capsules",shortName:"Progesterone Capsules",category:"Women's Health",form:"Capsule",featured:true,tags:["hrt","progesterone","women","sleep"],summary:"Micronized progesterone in oil-filled capsules for evening hormone balance.",description:"Oral micronized progesterone compounded in a sunflower-oil vehicle.",howToUse:"Take at bedtime unless your prescriber directs otherwise.",doses:[{id:"p4-50",label:"50 mg",price:42},{id:"p4-100",label:"100 mg",price:52},{id:"p4-200",label:"200 mg",price:68}],colors:["#3d2a32","#d9b7a3"]},
+  {id:"testosterone-gel",name:"IsoVigor Testosterone Gel",shortName:"Testosterone Gel",category:"Men's Health",form:"Gel",featured:true,tags:["hrt","testosterone","men"],summary:"Clear, quick-dry testosterone gel compounded to a measured daily dose.",description:"A transdermal testosterone gel so your clinician can titrate precisely.",howToUse:"Apply to shoulders or upper arms. Allow to dry.",doses:[{id:"t-10",label:"10 mg/mL",price:62},{id:"t-20",label:"20 mg/mL",price:74},{id:"t-50",label:"50 mg/mL",price:88}],colors:["#1b2d3a","#8aa3b5"]},
+  {id:"thyroid-combo",name:"IsoThyroid T3/T4 Capsules",shortName:"T3/T4 Capsules",category:"Thyroid",form:"Capsule",featured:true,tags:["thyroid","energy"],summary:"Custom liothyronine and levothyroxine ratios in dye-free capsules.",description:"Immediate-release T3/T4 capsules compounded without common fillers.",howToUse:"Take on an empty stomach, 30–60 minutes before food or coffee.",doses:[{id:"th-5-25",label:"5 / 25 mcg",price:38},{id:"th-10-50",label:"10 / 50 mcg",price:44},{id:"th-15-75",label:"15 / 75 mcg",price:52}],colors:["#3a2d1b","#d4a24c"]},
+  {id:"ketoprofen-cream",name:"IsoEase Ketoprofen Cream",shortName:"Ketoprofen Cream",category:"Pain & Inflammation",form:"Cream",featured:true,tags:["pain","nsaid","joints"],summary:"High-strength topical NSAID cream for localized joint and muscle pain.",description:"Ketoprofen compounded in a penetrating cream base.",howToUse:"Massage a thin layer into the affected area up to three times daily.",doses:[{id:"keto-10",label:"10%",price:46},{id:"keto-15",label:"15%",price:54},{id:"keto-20",label:"20%",price:62}],colors:["#2c1d1d","#c47b6a"]},
+  {id:"gabapentin-topical",name:"IsoNerve Gabapentin Topical",shortName:"Gabapentin Topical",category:"Pain & Inflammation",form:"Topical",tags:["pain","nerve"],summary:"Targeted gabapentin gel for neuropathic burning and tingling.",description:"A topical that delivers gabapentin to peripheral nerve endings.",howToUse:"Apply to intact skin over the painful area.",doses:[{id:"gaba-6",label:"6%",price:58},{id:"gaba-10",label:"10%",price:68}],colors:["#2c1d1d","#c47b6a"]},
+  {id:"diclofenac-gel",name:"IsoFlex Diclofenac Gel",shortName:"Diclofenac Gel",category:"Pain & Inflammation",form:"Gel",tags:["pain","nsaid","joints"],summary:"Clear diclofenac gel in strengths above typical retail options.",description:"Compounded diclofenac sodium gel for osteoarthritis and overuse injuries.",howToUse:"Apply a ribbon of gel and rub until absorbed.",doses:[{id:"diclo-3",label:"3%",price:36},{id:"diclo-5",label:"5%",price:44},{id:"diclo-10",label:"10%",price:55}],colors:["#2c1d1d","#c47b6a"]},
+  {id:"ldn-caps",name:"IsoReset Low-Dose Naltrexone",shortName:"Low-Dose Naltrexone",category:"Wellness",form:"Capsule",featured:true,tags:["ldn","immune","wellness"],summary:"Precise low-dose naltrexone capsules, dye- and filler-conscious.",description:"Naltrexone compounded at low doses commonly used for immune modulation.",howToUse:"Typically taken at bedtime.",doses:[{id:"ldn-15",label:"1.5 mg",price:34},{id:"ldn-3",label:"3 mg",price:36},{id:"ldn-45",label:"4.5 mg",price:38}],colors:["#243326","#7ea36b"]},
+  {id:"hydroquinone",name:"IsoGlow Hydroquinone Cream",shortName:"Hydroquinone Cream",category:"Dermatology",form:"Cream",tags:["derm","pigment"],summary:"Prescription hydroquinone for stubborn discoloration and melasma.",description:"A fading cream compounded with antioxidants in a bland base.",howToUse:"Apply a pea-sized amount at night. Use daily sunscreen.",doses:[{id:"hq-4",label:"4%",price:41},{id:"hq-6",label:"6%",price:49},{id:"hq-8",label:"8%",price:58}],colors:["#24312c","#9ec3b0"]},
+  {id:"tretinoin",name:"IsoClear Tretinoin Cream",shortName:"Tretinoin Cream",category:"Dermatology",form:"Cream",tags:["derm","retinoid"],summary:"Classic tretinoin in a soothing cream for patients who find gels too drying.",description:"Tretinoin compounded into a ceramide-rich cream.",howToUse:"Start two to three nights a week on dry skin.",doses:[{id:"tret-025",label:"0.025%",price:39},{id:"tret-05",label:"0.05%",price:45},{id:"tret-1",label:"0.1%",price:52}],colors:["#24312c","#9ec3b0"]},
+  {id:"minoxidil",name:"IsoFollicle Minoxidil Compound",shortName:"Minoxidil Compound",category:"Dermatology",form:"Topical",tags:["derm","hair"],summary:"Higher-strength minoxidil scalp solution.",description:"A scalp solution compounded above typical 5% retail strengths.",howToUse:"Apply 1 mL to a dry scalp once daily.",doses:[{id:"mino-5",label:"5%",price:44},{id:"mino-7",label:"7%",price:54},{id:"mino-10",label:"10%",price:66}],colors:["#24312c","#9ec3b0"]},
+  {id:"omeprazole-susp",name:"IsoSoothe Pediatric Omeprazole",shortName:"Pediatric Omeprazole",category:"Pediatric",form:"Suspension",tags:["pediatric","gi"],summary:"Flavored omeprazole suspension when capsules are too large to swallow.",description:"A sugar-free oral suspension compounded for infants and children.",howToUse:"Shake well. Draw the prescribed milliliters.",doses:[{id:"ome-2",label:"2 mg/mL",price:48},{id:"ome-5",label:"5 mg/mL",price:56}],colors:["#2d3142","#9aa4d4"]},
+  {id:"melatonin-troche",name:"IsoRest Melatonin Troches",shortName:"Melatonin Troches",category:"Wellness",form:"Troche",tags:["sleep","wellness"],summary:"Slow-dissolve melatonin troches in low, titratable strengths.",description:"Sublingual melatonin for patients who want a smaller dose than retail gummies.",howToUse:"Place between cheek and gum 30 minutes before bed.",doses:[{id:"mel-1",label:"1 mg",price:22},{id:"mel-3",label:"3 mg",price:24},{id:"mel-5",label:"5 mg",price:26}],colors:["#243326","#7ea36b"]},
+  {id:"dhea-caps",name:"IsoPrime DHEA Capsules",shortName:"DHEA Capsules",category:"Hormone Therapy",form:"Capsule",tags:["hrt","dhea"],summary:"Micronized DHEA in conservative strengths for adrenal support protocols.",description:"Pharmaceutical-grade DHEA compounded into vegetarian capsules.",howToUse:"Take in the morning with food unless directed otherwise.",doses:[{id:"dhea-5",label:"5 mg",price:28},{id:"dhea-10",label:"10 mg",price:32},{id:"dhea-25",label:"25 mg",price:38}],colors:["#1d3c32","#b68b3d"]},
+  {id:"pregnenolone",name:"IsoBloom Pregnenolone Capsules",shortName:"Pregnenolone Capsules",category:"Hormone Therapy",form:"Capsule",tags:["hrt","pregnenolone"],summary:"Pregnenolone capsules for clinician-guided precursor hormone support.",description:"A foundational steroid hormone precursor, compounded so your prescriber can start low.",howToUse:"Usually taken in the morning.",doses:[{id:"preg-10",label:"10 mg",price:29},{id:"preg-25",label:"25 mg",price:34},{id:"preg-50",label:"50 mg",price:40}],colors:["#1d3c32","#b68b3d"]},
+  {id:"sildenafil-troche",name:"IsoLift Sildenafil Troches",shortName:"Sildenafil Troches",category:"Men's Health",form:"Troche",tags:["men","ed"],summary:"Fast-dissolve sildenafil troches when tablets are inconvenient.",description:"A buccal troche flavored lightly with mint.",howToUse:"Dissolve in the cheek 30–60 minutes before activity.",doses:[{id:"sild-25",label:"25 mg",price:48},{id:"sild-50",label:"50 mg",price:62},{id:"sild-100",label:"100 mg",price:78}],colors:["#1b2d3a","#8aa3b5"]},
+  {id:"glutathione",name:"IsoShield Glutathione Capsules",shortName:"Glutathione Capsules",category:"Wellness",form:"Capsule",tags:["wellness","antioxidant"],summary:"Reduced glutathione in acid-resistant capsules.",description:"A compounded antioxidant capsule for clinician-guided wellness plans.",howToUse:"Take on an empty stomach.",doses:[{id:"glu-250",label:"250 mg",price:36},{id:"glu-500",label:"500 mg",price:48}],colors:["#243326","#7ea36b"]},
+  {id:"nad-spray",name:"IsoPulse NAD+ Nasal Spray",shortName:"NAD+ Nasal Spray",category:"Wellness",form:"Nasal spray",tags:["wellness","longevity"],summary:"Metered NAD+ nasal spray for patients exploring cellular-energy support.",description:"A preserved aqueous nasal spray. Prototype illustration, not a clinical claim.",howToUse:"Prime the pump. Administer the prescribed sprays.",doses:[{id:"nad-50",label:"50 mg/mL",price:84},{id:"nad-100",label:"100 mg/mL",price:112}],colors:["#243326","#7ea36b"]}
+];
+const COMPLEMENTS = {
+  "estradiol-cream":["progesterone-caps","dhea-caps","pregnenolone"],
+  "progesterone-caps":["estradiol-cream","melatonin-troche","dhea-caps"],
+  "testosterone-gel":["dhea-caps","sildenafil-troche"],
+  "thyroid-combo":["ldn-caps","glutathione"],
+  "ketoprofen-cream":["gabapentin-topical","diclofenac-gel"],
+  "gabapentin-topical":["ketoprofen-cream","diclofenac-gel"],
+  "ldn-caps":["glutathione","nad-spray"],
+  "hydroquinone":["tretinoin"],
+  "tretinoin":["hydroquinone"],
+  "sildenafil-troche":["testosterone-gel"]
+};
+const KEY = "isosure.preview.v1";
+const money = (n) => n.toLocaleString("en-US",{style:"currency",currency:"USD"});
+const product = (id) => PRODUCTS.find(p => p.id === id);
+const doseOf = (p, id) => p.doses.find(d => d.id === id);
+
+function demoOrders() {
+  return [
+    {id:"demo-1",placedAt:Date.now()-46*864e5,status:"Delivered",total:120,items:[
+      {productId:"estradiol-cream",doseId:"e2-05",quantity:1,productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",unitPrice:56},
+      {productId:"progesterone-caps",doseId:"p4-100",quantity:1,productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",unitPrice:52}
+    ]},
+    {id:"demo-2",placedAt:Date.now()-18*864e5,status:"Shipped",total:46,items:[
+      {productId:"ldn-caps",doseId:"ldn-45",quantity:1,productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",unitPrice:38}
+    ]}
+  ];
+}
+
+let state = { patient:null, cart:[], orders:[] };
+try { state = Object.assign(state, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch {}
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); chrome(); }
+
+function go(name, params) {
+  const q = params ? "?" + new URLSearchParams(params) : "";
+  location.hash = name + q;
+}
+function route() {
+  const raw = location.hash.replace(/^#/, "") || "home";
+  const [name, qs] = raw.split("?");
+  const params = Object.fromEntries(new URLSearchParams(qs || ""));
+  chrome();
+  const view = {home, catalog, product:productView, cart, checkout, login, account, order}[name] || home;
+  document.getElementById("app").innerHTML = view(params);
+}
+function chrome() {
+  const count = state.cart.reduce((s,i)=>s+i.quantity,0);
+  const badge = document.getElementById("cartBadge");
+  badge.hidden = !count;
+  badge.textContent = count;
+  document.getElementById("signBtn").textContent = state.patient ? state.patient.firstName : "Sign in";
+}
+function addToCart(productId, doseId, qty=1) {
+  const existing = state.cart.find(i => i.productId===productId && i.doseId===doseId);
+  if (existing) existing.quantity += qty;
+  else state.cart.push({productId, doseId, quantity:qty});
+  save();
+}
+function cartTotal() {
+  return state.cart.reduce((sum,item) => {
+    const p = product(item.productId); const d = p && doseOf(p,item.doseId);
+    return sum + (d ? d.price * item.quantity : 0);
+  }, 0);
+}
+function suggest(orders, limit=4) {
+  const bought = new Set(orders.flatMap(o => o.items.map(i => i.productId)));
+  const scores = new Map();
+  if (!bought.size) return PRODUCTS.filter(p=>p.featured).slice(0,limit);
+  for (const id of bought) {
+    for (const c of (COMPLEMENTS[id]||[])) scores.set(c, (scores.get(c)||0)+5);
+    const p = product(id); if (!p) continue;
+    for (const other of PRODUCTS) {
+      if (bought.has(other.id)) continue;
+      let s = scores.get(other.id)||0;
+      if (other.category===p.category) s += 2;
+      if (other.tags.some(t => p.tags.includes(t))) s += 1;
+      if (s) scores.set(other.id, s);
+    }
+  }
+  return [...scores.entries()].sort((a,b)=>b[1]-a[1]).map(([id])=>product(id)).filter(p=>p && !bought.has(p.id)).slice(0,limit);
+}
+function cards(list) {
+  return `<div class="grid products">${list.map(p => `
+    <article class="card" onclick="go('product',{id:'${p.id}'})">
+      <div class="art" style="background:linear-gradient(145deg,${p.colors[0]},${p.colors[1]})"><span>${p.category}</span></div>
+      <div class="pad">
+        <p class="muted" style="font-size:.75rem;letter-spacing:.16em;text-transform:uppercase">${p.form}</p>
+        <h3>${p.name}</h3>
+        <p class="muted">${p.summary}</p>
+        <p>From ${money(p.doses[0].price)} · ${p.doses.length} strengths</p>
+      </div>
+    </article>`).join("")}</div>`;
+}
+function suggestions(orders, title) {
+  const list = suggest(orders);
+  if (!list.length) return "";
+  return `<section style="margin-top:2.5rem"><p class="kicker">Personal</p><h2>${title}</h2>${cards(list)}</section>`;
+}
+
+function home() {
+  return `
+    <p class="kicker">Patient portal prototype</p>
+    <div class="hero">
+      <div>
+        <h1 style="font-size:clamp(2.2rem,5vw,3.4rem);line-height:1.05">ISOSURE prepares the dose your clinician intended.</h1>
+        <p class="muted" style="font-size:1.1rem">Pick a compound, choose a strength, and keep every refill on your profile. This HTML file is the whole preview.</p>
+        <p style="margin-top:1.2rem">
+          <button class="btn" onclick="go('catalog')">Browse the catalog</button>
+          <button class="btn line" onclick="go('login')">Open a patient profile</button>
+        </p>
+      </div>
+      <aside class="panel pad">
+        <p class="kicker">On the bench today</p>
+        <p class="row"><span>Custom HRT creams</span><span class="muted">Same-week</span></p>
+        <p class="row"><span>Thyroid micro-doses</span><span class="muted">48 hours</span></p>
+        <p class="row"><span>Topical pain compounds</span><span class="muted">In stock bases</span></p>
+      </aside>
+    </div>
+    <section style="margin-top:2.5rem">
+      <p class="kicker">Therapy areas</p>
+      <h2>Shop by what you need compounded</h2>
+      <div class="grid cats">${CATEGORIES.map(c=>`<div class="cat" onclick="go('catalog',{category:'${c}'})">${c}</div>`).join("")}</div>
+    </section>
+    <section style="margin-top:2.5rem">
+      <p class="kicker">Featured</p>
+      <h2>Compounds patients refill most</h2>
+      ${cards(PRODUCTS.filter(p=>p.featured))}
+    </section>`;
+}
+function catalog(params) {
+  const q = (params.q||"").toLowerCase();
+  const category = params.category || "All";
+  const form = params.form || "All";
+  const list = PRODUCTS.filter(p =>
+    (category==="All"||p.category===category) &&
+    (form==="All"||p.form===form) &&
+    (!q || p.name.toLowerCase().includes(q) || p.summary.toLowerCase().includes(q) || p.tags.some(t=>t.includes(q)))
+  );
+  return `
+    <p class="kicker">Catalog</p>
+    <h1>Choose a compound and a strength</h1>
+    <div class="split" style="margin-top:1.5rem">
+      <aside class="panel pad">
+        <label>Search<input value="${params.q||""}" oninput="go('catalog',{category:'${category}',form:'${form}',q:this.value})" placeholder="estradiol, pain, thyroid…"></label>
+        <label>Therapy area
+          <select onchange="go('catalog',{category:this.value,form:'${form}',q:'${params.q||""}'})">
+            <option>All</option>${CATEGORIES.map(c=>`<option ${c===category?"selected":""}>${c}</option>`).join("")}
+          </select>
+        </label>
+      </aside>
+      <div>
+        <p class="muted">${list.length} compounds</p>
+        ${list.length ? cards(list) : `<p class="panel pad">No compounds match those filters.</p>`}
+      </div>
+    </div>`;
+}
+function productView(params) {
+  const p = product(params.id) || PRODUCTS[0];
+  const doseId = params.dose || p.doses[0].id;
+  const qty = Math.max(1, Number(params.qty||1));
+  const d = doseOf(p, doseId);
+  window._sel = {productId:p.id, doseId, qty};
+  return `
+    <p class="muted"><a href="#catalog">Catalog</a> / ${p.category}</p>
+    <div class="split checkout" style="margin-top:1rem">
+      <div class="art" style="height:280px;border-radius:1.4rem;background:linear-gradient(145deg,${p.colors[0]},${p.colors[1]})"><span>${p.form}</span></div>
+      <div>
+        <p class="kicker">${p.form}</p>
+        <h1>${p.name}</h1>
+        <p class="muted">${p.description}</p>
+        <p class="chip">Prototype listing · prescription required in a live pharmacy</p>
+        <p style="margin:1.2rem 0 .4rem"><strong>Choose a dose</strong></p>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+          ${p.doses.map(x=>`<div class="dose ${x.id===doseId?"on":""}" onclick="go('product',{id:'${p.id}',dose:'${x.id}',qty:${qty}})">
+            <strong>${x.label}</strong><div>${money(x.price)}</div>
+          </div>`).join("")}
+        </div>
+        <div class="row" style="margin:1rem 0">
+          <div class="qty">
+            <button onclick="go('product',{id:'${p.id}',dose:'${doseId}',qty:${qty-1}})">−</button>
+            <span style="min-width:1.5rem;text-align:center">${qty}</span>
+            <button onclick="go('product',{id:'${p.id}',dose:'${doseId}',qty:${qty+1}})">+</button>
+          </div>
+          <strong>${money(d.price*qty)}</strong>
+        </div>
+        <button class="btn" onclick="addToCart('${p.id}','${doseId}',${qty}); document.getElementById('added').hidden=false">Add to cart</button>
+        <button class="btn line" onclick="addToCart('${p.id}','${doseId}',${qty}); go('cart')">Add and view cart</button>
+        <p id="added" class="hint" hidden>Added ${d.label} to your cart.</p>
+        <div class="panel pad" style="margin-top:1rem"><strong>How to use</strong><p class="muted">${p.howToUse}</p></div>
+      </div>
+    </div>`;
+}
+function cart() {
+  const total = cartTotal();
+  const ship = total>=75 || total===0 ? 0 : 8;
+  if (!state.cart.length) return `<p class="kicker">Cart</p><h1>Your cart is empty</h1><p class="muted">Choose a compound and a dose to get started.</p><p><button class="btn" onclick="go('catalog')">Browse the catalog</button></p>`;
+  return `
+    <p class="kicker">Cart</p>
+    <h1>Review strengths before checkout</h1>
+    ${state.cart.map((item,idx)=>{
+      const p=product(item.productId); const d=doseOf(p,item.doseId);
+      return `<div class="panel pad row" style="margin:.7rem 0">
+        <div><a href="#product?id=${p.id}"><strong class="serif" style="font-size:1.2rem">${p.name}</strong></a><div class="muted">${d.label} · ${p.form}</div></div>
+        <div class="row">
+          <div class="qty">
+            <button onclick="state.cart[${idx}].quantity=Math.max(1,state.cart[${idx}].quantity-1);save();route()">−</button>
+            <span>${item.quantity}</span>
+            <button onclick="state.cart[${idx}].quantity++;save();route()">+</button>
+          </div>
+          <span>${money(d.price*item.quantity)}</span>
+          <button class="btn ghost" onclick="state.cart.splice(${idx},1);save();route()">Remove</button>
+        </div>
+      </div>`;
+    }).join("")}
+    <div class="panel pad">
+      <p class="row"><span>Subtotal</span><span>${money(total)}</span></p>
+      <p class="row"><span>Shipping</span><span>${ship?money(ship):"Complimentary"}</span></p>
+      <p class="row"><strong>Total</strong><strong>${money(total+ship)}</strong></p>
+      <button class="btn" style="width:100%;margin-top:.6rem" onclick="go('checkout')">Continue to checkout</button>
+    </div>`;
+}
+function checkout() {
+  if (!state.cart.length) return `<h1>Nothing to check out</h1><button class="btn" onclick="go('catalog')">Return to catalog</button>`;
+  const p = state.patient || {};
+  return `
+    <p class="kicker">Checkout</p>
+    <h1>Finalize this compound order</h1>
+    <p class="muted">Prototype checkout — no payment is collected. Completing the order writes it onto your patient profile in this browser.</p>
+    <form class="split checkout" onsubmit="return placeOrder(event)">
+      <div class="stack">
+        <div class="panel pad stack">
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            <input name="firstName" required placeholder="First name" value="${p.firstName||""}">
+            <input name="lastName" required placeholder="Last name" value="${p.lastName||""}">
+          </div>
+          <input name="email" type="email" required placeholder="Email" value="${p.email||""}">
+          <input name="phone" placeholder="Phone" value="${p.phone||""}">
+        </div>
+        <div class="panel pad stack">
+          <input name="line1" required placeholder="Street address">
+          <div class="grid" style="grid-template-columns:1fr 80px 100px">
+            <input name="city" required placeholder="City">
+            <input name="st" required placeholder="State">
+            <input name="zip" required placeholder="ZIP">
+          </div>
+        </div>
+        <textarea name="notes" rows="3" placeholder="Notes for the pharmacist"></textarea>
+        <p id="err" class="danger"></p>
+        <button class="btn" type="submit">Place prototype order</button>
+      </div>
+      <aside class="panel pad">
+        <h2>Order summary</h2>
+        ${state.cart.map(item=>{const pr=product(item.productId);const d=doseOf(pr,item.doseId);return `<p class="row"><span>${pr.shortName}<br><span class="muted">${d.label} × ${item.quantity}</span></span><span>${money(d.price*item.quantity)}</span></p>`;}).join("")}
+        <p class="row"><strong>Total</strong><strong>${money(cartTotal()+(cartTotal()>=75?0:8))}</strong></p>
+      </aside>
+    </form>`;
+}
+function placeOrder(e) {
+  e.preventDefault();
+  const f = e.target;
+  state.patient = {
+    firstName:f.firstName.value, lastName:f.lastName.value, email:f.email.value, phone:f.phone.value,
+    createdAt: state.patient?.createdAt || Date.now()
+  };
+  const items = state.cart.map(item => {
+    const p = product(item.productId); const d = doseOf(p,item.doseId);
+    return {...item, productName:p.name, doseLabel:d.label, unitPrice:d.price};
+  });
+  const subtotal = items.reduce((s,i)=>s+i.unitPrice*i.quantity,0);
+  const order = {id:crypto.randomUUID(), placedAt:Date.now(), status:"Received", items, total:subtotal+(subtotal>=75?0:8), notes:f.notes.value, address:`${f.line1.value}, ${f.city.value}, ${f.st.value} ${f.zip.value}`};
+  state.orders.unshift(order);
+  state.cart = [];
+  save();
+  go("order",{id:order.id});
+  return false;
+}
+function login() {
+  return `
+    <p class="kicker">Patient profile</p>
+    <h1>Create or reopen your account</h1>
+    <p class="muted">Profiles live in this browser file so the preview can remember purchases. No password, no server.</p>
+    <form class="panel pad stack" onsubmit="return signIn(event)">
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <input name="firstName" required placeholder="First name">
+        <input name="lastName" required placeholder="Last name">
+      </div>
+      <input name="email" type="email" required placeholder="Email">
+      <input name="phone" placeholder="Phone">
+      <button class="btn" type="submit">Save profile</button>
+    </form>
+    <p><button class="btn line" style="width:100%;margin-top:.7rem" onclick="loadDemo()">Explore as demo patient (Avery Nguyen)</button></p>`;
+}
+function signIn(e) {
+  e.preventDefault();
+  const f = e.target;
+  state.patient = {firstName:f.firstName.value,lastName:f.lastName.value,email:f.email.value,phone:f.phone.value,createdAt:Date.now()};
+  save(); go("account"); return false;
+}
+function loadDemo() {
+  state.patient = {firstName:"Avery",lastName:"Nguyen",email:"avery.nguyen@example.com",phone:"(503) 555-0148",createdAt:Date.now()-80*864e5};
+  state.orders = demoOrders();
+  save(); go("account");
+}
+function account() {
+  if (!state.patient) return `<h1>No profile yet</h1><button class="btn" onclick="go('login')">Create a profile</button>`;
+  return `
+    <p class="kicker">Patient profile</p>
+    <div class="row">
+      <div>
+        <h1>${state.patient.firstName} ${state.patient.lastName}</h1>
+        <p class="muted">${state.patient.email}${state.patient.phone?" · "+state.patient.phone:""}</p>
+      </div>
+      <button class="btn ghost" onclick="state.patient=null;save();go('login')">Sign out of this browser</button>
+    </div>
+    ${suggestions(state.orders, state.orders.length ? "Suggested next compounds" : "Popular starting compounds")}
+    <section style="margin-top:2rem">
+      <h2>Past purchases</h2>
+      ${state.orders.length ? state.orders.map(o => `
+        <article class="panel pad" style="margin:.8rem 0">
+          <div class="row"><div><p class="kicker">${o.status}</p><h3>ISO-${o.id.slice(-6).toUpperCase()}</h3><p class="muted">${new Date(o.placedAt).toLocaleDateString()}</p></div><strong>${money(o.total)}</strong></div>
+          ${o.items.map(i=>`<p class="row"><span>${i.productName} · ${i.doseLabel} × ${i.quantity}</span><button class="btn ghost" onclick="addToCart('${i.productId}','${i.doseId}',${i.quantity});go('cart')">Refill this dose</button></p>`).join("")}
+          <p><a href="#order?id=${o.id}">View receipt</a></p>
+        </article>`).join("") : `<p class="muted">No orders yet. After checkout, every compound and dose will land here.</p>`}
+    </section>`;
+}
+function order(params) {
+  const o = state.orders.find(x => x.id===params.id);
+  if (!o) return `<h1>Order not found</h1><button class="btn" onclick="go('account')">Back to profile</button>`;
+  return `
+    <p class="kicker">${o.status}</p>
+    <h1>Order ISO-${o.id.slice(-6).toUpperCase()}</h1>
+    <p class="muted">Placed ${new Date(o.placedAt).toLocaleDateString()}</p>
+    <div class="panel pad">
+      ${o.items.map(i=>`<p class="row"><span>${i.productName}<br><span class="muted">${i.doseLabel} × ${i.quantity}</span></span><span>${money(i.unitPrice*i.quantity)}</span></p>`).join("")}
+      <p class="row"><strong>Total</strong><strong>${money(o.total)}</strong></p>
+      ${o.address?`<p class="muted">Ship to ${o.address}</p>`:""}
+    </div>
+    <p style="margin-top:1rem"><button class="btn" onclick="go('account')">View profile and suggestions</button> <button class="btn line" onclick="go('catalog')">Keep browsing</button></p>
+    ${suggestions([o], "Because of this order")}`;
+}
+
+window.addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>

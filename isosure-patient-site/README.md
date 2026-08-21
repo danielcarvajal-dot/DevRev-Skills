@@ -12,6 +12,10 @@ A patient-facing catalog for a compounding pharmacy. The pharmacy name is centra
 
 No real prescriptions are filled and no payment is processed. Profile, cart, and order history persist in `localStorage`.
 
+## Fastest preview
+
+Open [`../isosure-preview.html`](../isosure-preview.html) in any browser (double-click the file). No `npm` or server is required.
+
 ## Run locally
 
 ```bash
