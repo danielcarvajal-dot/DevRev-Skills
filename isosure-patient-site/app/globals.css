@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f4efe4;
+  --paper-strong: #fffdf8;
+  --ink: #1b241c;
+  --ink-soft: #4a5548;
+  --forest: #1d3c32;
+  --forest-deep: #12261f;
+  --leaf: #3d6b54;
+  --brass: #b68b3d;
+  --brass-soft: #e6d3a3;
+  --blush: #d9b7a3;
+  --line: #d8d0c0;
+  --danger: #8a2f2f;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-strong: var(--paper-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-forest: var(--forest);
+  --color-forest-deep: var(--forest-deep);
+  --color-leaf: var(--leaf);
+  --color-brass: var(--brass);
+  --color-brass-soft: var(--brass-soft);
+  --color-blush: var(--blush);
+  --color-line: var(--line);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-sans-body);
+  --font-serif: var(--font-serif-display);
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100%;
+}
+
+h1,
+h2,
+h3,
+.serif {
+  font-family: var(--font-serif-display), ui-serif, Georgia, serif;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--brass-soft);
+  color: var(--forest-deep);
+}
+
+.apothecary-grid {
+  background-image:
+    linear-gradient(180deg, rgba(244, 239, 228, 0.2), rgba(244, 239, 228, 0.92)),
+    radial-gradient(circle at 12% 18%, rgba(182, 139, 61, 0.16), transparent 28%),
+    radial-gradient(circle at 88% 0%, rgba(61, 107, 84, 0.18), transparent 32%),
+    url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 47.5h48M47.5 0v48' stroke='%23d8d0c0' stroke-width='.4'/%3E%3C/svg%3E");
+}
+
+.bottle-shadow {
+  box-shadow: 0 18px 40px -24px rgba(18, 38, 31, 0.55);
+}
