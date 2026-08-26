@@ -1,3 +1,5 @@
+export type Role = "doctor" | "pharmacy";
+
 export type Category =
   | "Hormone Therapy"
   | "Thyroid"
@@ -29,8 +31,8 @@ export type Product = {
   slug: string;
   name: string;
   shortName: string;
-  category: Category;
-  form: Form;
+  category: Category | string;
+  form: Form | string;
   summary: string;
   description: string;
   howToUse: string;
@@ -46,15 +48,29 @@ export type CartItem = {
   quantity: number;
 };
 
-export type Patient = {
+export type Doctor = {
   id: string;
-  firstName: string;
-  lastName: string;
+  role: "doctor";
+  practiceName: string;
+  prescriberName: string;
+  npi: string;
+  dea: string;
   email: string;
   phone: string;
-  dateOfBirth: string;
   createdAt: string;
 };
+
+export type PharmacyUser = {
+  id: string;
+  role: "pharmacy";
+  pharmacyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+};
+
+export type SessionUser = Doctor | PharmacyUser;
 
 export type Address = {
   line1: string;
@@ -64,13 +80,21 @@ export type Address = {
   zip: string;
 };
 
+export type ScriptFile = {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+};
+
 export type OrderItem = CartItem & {
   productName: string;
   doseLabel: string;
   unitPrice: number;
 };
 
-export type OrderStatus = "Received" | "Compounding" | "Shipped" | "Delivered";
+export type OrderStatus = "Received" | "Compounding" | "Ready" | "Shipped";
 
 export type Order = {
   id: string;
@@ -82,4 +106,10 @@ export type Order = {
   status: OrderStatus;
   address: Address;
   notes: string;
+  patientName: string;
+  patientDob: string;
+  practiceName: string;
+  prescriberName: string;
+  npi: string;
+  scripts: ScriptFile[];
 };

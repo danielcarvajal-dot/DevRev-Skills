@@ -1,33 +1,23 @@
-# ISOSURE patient website (prototype)
+# ISOSure practice portal (prototype)
 
-A patient-facing catalog for a compounding pharmacy. The pharmacy name is centralized in `lib/brand.ts` so it can be replaced later.
+Doctors and offices place compounding orders. Pharmacy admins manage the medication list and the production queue.
 
-## What this prototype does
+## Preview without Next.js
 
-- Browse a fake catalog of compounded products
-- Choose a product and a specific dose/strength
-- Add items to a cart and complete a mock checkout
-- Create a patient profile stored in the browser
-- Remember past purchases and suggest related compounds
-
-No real prescriptions are filled and no payment is processed. Profile, cart, and order history persist in `localStorage`.
-
-## Fastest preview
-
-Open [`../isosure-preview.html`](../isosure-preview.html) in any browser (double-click the file). No `npm` or server is required.
+Open `../isosure-preview.html` in a browser (keep the `../brand` logo files next to it).
 
 ## Run locally
 
 ```bash
-cd isosure-patient-site
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+## Roles
 
-Use **Explore as demo patient** on the sign-in page to load Avery Nguyen with prior HRT and LDN orders, then review the suggested next compounds on the profile.
+- **Doctor / office:** list-style formulary, radio-button doses, script upload at checkout
+- **Pharmacy admin:** upload or hand-edit the formulary; receive orders and update production status
 
-## Replace the business name
+Brand assets live in `public/brand/`. Rename tokens in `lib/brand.ts`.
 
-Edit `lib/brand.ts`. Product names currently use the `Iso…` prefix and can be renamed in `lib/products.ts`.
+Phase 2 will replace `localStorage` in `lib/store.tsx` with the production API sketched in `lib/phase2.ts`.

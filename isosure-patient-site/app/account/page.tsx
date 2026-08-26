@@ -1,107 +1,71 @@
 "use client";
 
 import Link from "next/link";
-import { Suggestions } from "@/components/Suggestions";
 import { formatDate, formatMoney, orderNumber } from "@/lib/format";
-import { getProduct } from "@/lib/products";
 import { useStore } from "@/lib/store";
 
 export default function AccountPage() {
-  const { patient, orders, ready, signOut, addToCart } = useStore();
+  const { user, orders, ready, signOut } = useStore();
 
   if (!ready) {
-    return <div className="mx-auto max-w-6xl px-4 py-16 text-ink-soft">Loading profile…</div>;
+    return <div className="mx-auto max-w-6xl px-4 py-16 text-ink-soft">Loading practice…</div>;
   }
 
-  if (!patient) {
+  if (!user || user.role !== "doctor") {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
-        <h1 className="serif text-4xl">No profile yet</h1>
-        <p className="mt-3 text-ink-soft">
-          Create a patient profile to keep purchase history and get compound suggestions.
-        </p>
-        <Link href="/login" className="mt-5 inline-block rounded-full bg-forest px-5 py-2.5 text-sm text-paper-strong">
-          Create a profile
+        <h1 className="text-3xl font-semibold">Practice sign-in required</h1>
+        <Link href="/login" className="mt-5 inline-block rounded-lg bg-purple-deep px-5 py-2.5 text-sm font-semibold text-white">
+          Sign in
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-12 px-4 py-10">
+    <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
       <section className="flex flex-col justify-between gap-4 border-b border-line pb-8 md:flex-row md:items-end">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-brass">Patient profile</p>
-          <h1 className="serif mt-2 text-4xl">
-            {patient.firstName} {patient.lastName}
-          </h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Practice</p>
+          <h1 className="mt-2 text-3xl font-semibold">{user.practiceName}</h1>
           <p className="mt-2 text-ink-soft">
-            {patient.email}
-            {patient.phone ? ` · ${patient.phone}` : ""}
+            {user.prescriberName} · NPI {user.npi || "—"}
           </p>
-          <p className="text-sm text-ink-soft">Member since {formatDate(patient.createdAt)}</p>
         </div>
-        <button
-          type="button"
-          onClick={signOut}
-          className="w-fit rounded-full border border-line px-4 py-2 text-sm"
-        >
-          Sign out of this browser
+        <button type="button" onClick={signOut} className="w-fit rounded-lg border border-line px-4 py-2 text-sm">
+          Sign out
         </button>
       </section>
 
-      <Suggestions
-        orders={orders}
-        title={orders.length ? "Suggested next compounds" : "Popular starting compounds"}
-      />
-
       <section>
-        <h2 className="serif text-3xl">Past purchases</h2>
+        <h2 className="text-2xl font-semibold">Past orders</h2>
         {orders.length === 0 ? (
-          <p className="mt-4 text-ink-soft">
-            No orders yet. After checkout, every compound and dose will land here so you can refill it.
-          </p>
+          <p className="mt-4 text-ink-soft">No orders yet. Attach scripts at checkout to send a fill to the lab.</p>
         ) : (
-          <div className="mt-5 space-y-4">
+          <div className="mt-4 space-y-3">
             {orders.map((order) => (
-              <article key={order.id} className="rounded-2xl border border-line bg-paper-strong p-5">
+              <article key={order.id} className="rounded-xl border border-line bg-paper p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-brass">{order.status}</p>
-                    <h3 className="serif text-2xl">{orderNumber(order.id)}</h3>
-                    <p className="text-sm text-ink-soft">{formatDate(order.placedAt)}</p>
+                    <span className="rounded-full bg-purple-soft px-2 py-0.5 text-xs font-semibold text-purple">
+                      {order.status}
+                    </span>
+                    <h3 className="mt-2 text-xl font-semibold">{orderNumber(order.id)}</h3>
+                    <p className="text-sm text-ink-soft">
+                      {formatDate(order.placedAt)} · Patient {order.patientName}
+                    </p>
                   </div>
                   <p className="text-lg">{formatMoney(order.total)}</p>
                 </div>
-                <ul className="mt-4 space-y-2 text-sm">
-                  {order.items.map((item) => {
-                    const product = getProduct(item.productId);
-                    return (
-                      <li key={`${order.id}-${item.productId}-${item.doseId}`} className="flex flex-wrap items-center justify-between gap-3">
-                        <span>
-                          {item.productName} · {item.doseLabel} × {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => addToCart(item.productId, item.doseId, item.quantity)}
-                          className="text-leaf underline underline-offset-4"
-                        >
-                          Refill this dose
-                        </button>
-                        {product ? (
-                          <Link href={`/product/${product.slug}`} className="sr-only">
-                            View {product.name}
-                          </Link>
-                        ) : null}
-                      </li>
-                    );
-                  })}
+                <ul className="mt-3 text-sm">
+                  {order.items.map((item) => (
+                    <li key={`${order.id}-${item.productId}-${item.doseId}`}>
+                      {item.productName} · {item.doseLabel} × {item.quantity}
+                    </li>
+                  ))}
                 </ul>
-                <Link
-                  href={`/order/${order.id}`}
-                  className="mt-4 inline-block text-sm underline underline-offset-4"
-                >
-                  View receipt
+                <Link href={`/order/${order.id}`} className="mt-3 inline-block text-sm underline underline-offset-4">
+                  Open ticket
                 </Link>
               </article>
             ))}

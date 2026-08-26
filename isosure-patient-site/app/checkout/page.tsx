@@ -4,30 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
-import { getDose, getProduct } from "@/lib/products";
 import { useStore } from "@/lib/store";
 import type { Address } from "@/lib/types";
 
-const emptyAddress: Address = {
-  line1: "",
-  line2: "",
-  city: "",
-  state: "",
-  zip: "",
-};
+const emptyAddress: Address = { line1: "", line2: "", city: "", state: "", zip: "" };
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, cartTotal, patient, placeOrder, signIn, ready } = useStore();
+  const { cart, cartTotal, products, user, scripts, addScript, removeScript, placeOrder, ready } =
+    useStore();
   const [address, setAddress] = useState<Address>(emptyAddress);
+  const [patientName, setPatientName] = useState("");
+  const [patientDob, setPatientDob] = useState("");
   const [notes, setNotes] = useState("");
-  const [guest, setGuest] = useState({
-    firstName: patient?.firstName ?? "",
-    lastName: patient?.lastName ?? "",
-    email: patient?.email ?? "",
-    phone: patient?.phone ?? "",
-    dateOfBirth: patient?.dateOfBirth ?? "",
-  });
   const [error, setError] = useState("");
   const shipping = cartTotal >= 75 || cartTotal === 0 ? 0 : 8;
 
@@ -38,145 +27,173 @@ export default function CheckoutPage() {
   if (cart.length === 0) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
-        <h1 className="serif text-4xl">Nothing to check out</h1>
-        <Link href="/catalog" className="mt-4 inline-block text-leaf underline underline-offset-4">
-          Return to catalog
+        <h1 className="text-3xl font-semibold">Nothing to send</h1>
+        <Link href="/catalog" className="mt-4 inline-block text-purple underline underline-offset-4">
+          Return to formulary
         </Link>
       </div>
     );
   }
 
+  if (!user || user.role !== "doctor") {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <h1 className="text-3xl font-semibold">Sign in as a practice first</h1>
+        <Link href="/login" className="mt-4 inline-block rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white">
+          Sign in
+        </Link>
+      </div>
+    );
+  }
+
+  function onFiles(files: FileList | null) {
+    if (!files) return;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        addScript({
+          id: crypto.randomUUID(),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          dataUrl: String(reader.result || ""),
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!guest.firstName || !guest.lastName || !guest.email) {
-      setError("Add your name and email so we can attach this order to a profile.");
+    if (!scripts.length) {
+      setError("Attach at least one script before submitting.");
       return;
     }
     if (!address.line1 || !address.city || !address.state || !address.zip) {
-      setError("A shipping address is required.");
+      setError("A delivery address is required.");
       return;
     }
-    if (!patient) {
-      signIn(guest);
-    }
-    const order = placeOrder(address, notes);
+    const order = placeOrder({ address, notes, patientName, patientDob });
     router.push(`/order/${order.id}`);
   }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <p className="text-xs uppercase tracking-[0.18em] text-brass">Checkout</p>
-      <h1 className="serif mt-2 text-4xl">Finalize this compound order</h1>
-      <p className="mt-3 max-w-2xl text-ink-soft">
-        Prototype checkout only — no payment is collected. Completing the order writes it onto your patient profile.
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Send to compounding</p>
+      <h1 className="mt-2 text-3xl font-semibold">Upload scripts, then complete the order</h1>
+      <p className="mt-2 max-w-2xl text-ink-soft">
+        A prescription image or PDF is required before the lab will accept the order. Files stay in this browser until Phase 2.
       </p>
 
-      <form onSubmit={submit} className="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6">
-          <fieldset className="rounded-2xl border border-line bg-paper-strong p-5">
-            <legend className="px-1 text-sm font-medium">Patient</legend>
-            <div className="grid gap-3 sm:grid-cols-2">
+      <form onSubmit={submit} className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-4">
+          <section className="rounded-xl border border-line bg-paper p-5">
+            <p className="font-semibold">Prescriber</p>
+            <p className="mt-1 text-sm">
+              {user.prescriberName} · {user.practiceName}
+              <span className="block text-ink-soft">
+                NPI {user.npi || "—"} · DEA {user.dea || "—"}
+              </span>
+            </p>
+            <label className="mt-4 block text-sm">
+              Patient name
               <input
                 required
-                placeholder="First name"
-                value={guest.firstName}
-                onChange={(e) => setGuest({ ...guest, firstName: e.target.value })}
-                className="rounded-xl border border-line bg-paper px-3 py-2"
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2"
               />
+            </label>
+            <label className="mt-3 block text-sm">
+              Patient date of birth
               <input
                 required
-                placeholder="Last name"
-                value={guest.lastName}
-                onChange={(e) => setGuest({ ...guest, lastName: e.target.value })}
-                className="rounded-xl border border-line bg-paper px-3 py-2"
-              />
-              <input
-                required
-                type="email"
-                placeholder="Email"
-                value={guest.email}
-                onChange={(e) => setGuest({ ...guest, email: e.target.value })}
-                className="rounded-xl border border-line bg-paper px-3 py-2 sm:col-span-2"
-              />
-              <input
-                placeholder="Phone"
-                value={guest.phone}
-                onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
-                className="rounded-xl border border-line bg-paper px-3 py-2"
-              />
-              <input
                 type="date"
-                value={guest.dateOfBirth}
-                onChange={(e) => setGuest({ ...guest, dateOfBirth: e.target.value })}
-                className="rounded-xl border border-line bg-paper px-3 py-2"
+                value={patientDob}
+                onChange={(e) => setPatientDob(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2"
               />
-            </div>
-          </fieldset>
+            </label>
+          </section>
 
-          <fieldset className="rounded-2xl border border-line bg-paper-strong p-5">
-            <legend className="px-1 text-sm font-medium">Ship to</legend>
-            <div className="grid gap-3">
+          <section className="space-y-3 rounded-xl border border-line bg-paper p-5">
+            <p className="font-semibold">Ship / deliver to</p>
+            <input
+              required
+              placeholder="Street address"
+              value={address.line1}
+              onChange={(e) => setAddress({ ...address, line1: e.target.value })}
+              className="w-full rounded-lg border border-line px-3 py-2"
+            />
+            <div className="grid gap-3 sm:grid-cols-3">
               <input
                 required
-                placeholder="Street address"
-                value={address.line1}
-                onChange={(e) => setAddress({ ...address, line1: e.target.value })}
-                className="rounded-xl border border-line bg-paper px-3 py-2"
+                placeholder="City"
+                value={address.city}
+                onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                className="rounded-lg border border-line px-3 py-2"
               />
               <input
-                placeholder="Apt, suite"
-                value={address.line2}
-                onChange={(e) => setAddress({ ...address, line2: e.target.value })}
-                className="rounded-xl border border-line bg-paper px-3 py-2"
+                required
+                placeholder="State"
+                value={address.state}
+                onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                className="rounded-lg border border-line px-3 py-2"
               />
-              <div className="grid gap-3 sm:grid-cols-3">
-                <input
-                  required
-                  placeholder="City"
-                  value={address.city}
-                  onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                  className="rounded-xl border border-line bg-paper px-3 py-2"
-                />
-                <input
-                  required
-                  placeholder="State"
-                  value={address.state}
-                  onChange={(e) => setAddress({ ...address, state: e.target.value })}
-                  className="rounded-xl border border-line bg-paper px-3 py-2"
-                />
-                <input
-                  required
-                  placeholder="ZIP"
-                  value={address.zip}
-                  onChange={(e) => setAddress({ ...address, zip: e.target.value })}
-                  className="rounded-xl border border-line bg-paper px-3 py-2"
-                />
-              </div>
+              <input
+                required
+                placeholder="ZIP"
+                value={address.zip}
+                onChange={(e) => setAddress({ ...address, zip: e.target.value })}
+                className="rounded-lg border border-line px-3 py-2"
+              />
             </div>
-          </fieldset>
-
-          <label className="block rounded-2xl border border-line bg-paper-strong p-5 text-sm">
-            Notes for the pharmacist
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="mt-2 w-full rounded-xl border border-line bg-paper px-3 py-2"
-              placeholder="Flavor, allergy, or “match last fill”"
+              placeholder="Compounding notes: flavor, allergy, match last fill"
+              className="w-full rounded-lg border border-line px-3 py-2"
             />
-          </label>
+          </section>
+
+          <section className="rounded-xl border border-dashed border-purple-mid bg-paper p-5">
+            <p className="font-semibold">Scripts</p>
+            <p className="text-sm text-ink-soft">Upload one or more prescriptions (PDF, JPG, or PNG).</p>
+            <input
+              type="file"
+              accept=".pdf,image/*"
+              multiple
+              className="mt-3"
+              onChange={(e) => onFiles(e.target.files)}
+            />
+            <ul className="mt-3 space-y-2 text-sm">
+              {scripts.length === 0 ? <li className="text-ink-soft">No scripts attached yet.</li> : null}
+              {scripts.map((script) => (
+                <li key={script.id} className="flex justify-between gap-3">
+                  <span>
+                    {script.name}{" "}
+                    <span className="text-ink-soft">({Math.round(script.size / 1024)} KB)</span>
+                  </span>
+                  <button type="button" className="text-danger underline" onClick={() => removeScript(script.id)}>
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <button type="submit" className="rounded-full bg-forest px-6 py-3 text-sm text-paper-strong">
-            Place prototype order
+          <button type="submit" className="rounded-lg bg-purple-deep px-5 py-3 text-sm font-semibold text-white">
+            Submit order to ISOSure lab
           </button>
         </div>
 
-        <aside className="h-fit rounded-2xl border border-line bg-paper-strong p-5">
-          <h2 className="serif text-2xl">Order summary</h2>
+        <aside className="h-fit rounded-xl border border-line bg-paper p-5">
+          <h2 className="text-xl font-semibold">Order summary</h2>
           <ul className="mt-4 space-y-3 text-sm">
             {cart.map((item) => {
-              const product = getProduct(item.productId);
-              const dose = product ? getDose(product, item.doseId) : undefined;
+              const product = products.find((p) => p.id === item.productId);
+              const dose = product?.doses.find((d) => d.id === item.doseId);
               if (!product || !dose) return null;
               return (
                 <li key={`${item.productId}-${item.doseId}`} className="flex justify-between gap-3">

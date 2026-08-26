@@ -6,94 +6,85 @@ import { useStore } from "@/lib/store";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, loadDemo, patient } = useStore();
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
+  const { signInDoctor, signInPharmacy, loadDemoDoctor, loadDemoPharmacy } = useStore();
+  const [doctor, setDoctor] = useState({
+    practiceName: "",
+    prescriberName: "",
+    npi: "",
+    dea: "",
     email: "",
     phone: "",
-    dateOfBirth: "",
+  });
+  const [pharmacy, setPharmacy] = useState({
+    pharmacyName: "ISOSure Compounding Lab",
+    contactName: "",
+    email: "",
+    phone: "",
   });
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    signIn(form);
-    router.push("/account");
-  }
-
   return (
-    <div className="mx-auto max-w-xl px-4 py-12">
-      <p className="text-xs uppercase tracking-[0.18em] text-brass">Patient profile</p>
-      <h1 className="serif mt-2 text-4xl">Create or reopen your account</h1>
-      <p className="mt-3 text-ink-soft">
-        Profiles live in this browser so the prototype can remember purchases and suggest the next compound. No password, no server.
-      </p>
+    <div className="mx-auto max-w-5xl px-4 py-10">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Access</p>
+      <h1 className="mt-2 text-3xl font-semibold">Sign in as the practice or the pharmacy</h1>
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <form
+          className="space-y-3 rounded-xl border border-line bg-paper p-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            signInDoctor(doctor);
+            router.push("/catalog");
+          }}
+        >
+          <p className="font-semibold">Doctor / office</p>
+          <input required placeholder="Practice name" className="w-full rounded-lg border border-line px-3 py-2" value={doctor.practiceName} onChange={(e) => setDoctor({ ...doctor, practiceName: e.target.value })} />
+          <input required placeholder="Prescriber name" className="w-full rounded-lg border border-line px-3 py-2" value={doctor.prescriberName} onChange={(e) => setDoctor({ ...doctor, prescriberName: e.target.value })} />
+          <input placeholder="NPI" className="w-full rounded-lg border border-line px-3 py-2" value={doctor.npi} onChange={(e) => setDoctor({ ...doctor, npi: e.target.value })} />
+          <input placeholder="DEA" className="w-full rounded-lg border border-line px-3 py-2" value={doctor.dea} onChange={(e) => setDoctor({ ...doctor, dea: e.target.value })} />
+          <input required type="email" placeholder="Office email" className="w-full rounded-lg border border-line px-3 py-2" value={doctor.email} onChange={(e) => setDoctor({ ...doctor, email: e.target.value })} />
+          <input placeholder="Phone" className="w-full rounded-lg border border-line px-3 py-2" value={doctor.phone} onChange={(e) => setDoctor({ ...doctor, phone: e.target.value })} />
+          <button type="submit" className="w-full rounded-lg bg-purple-deep py-2.5 text-sm font-semibold text-white">
+            Save practice profile
+          </button>
+          <button
+            type="button"
+            className="w-full rounded-lg border border-line py-2.5 text-sm"
+            onClick={() => {
+              loadDemoDoctor();
+              router.push("/account");
+            }}
+          >
+            Use demo practice (Hawthorne Family Medicine)
+          </button>
+        </form>
 
-      {patient ? (
-        <p className="mt-4 rounded-2xl border border-line bg-paper-strong p-4 text-sm">
-          You are signed in as {patient.firstName} {patient.lastName}. Continue to your{" "}
-          <a href="/account" className="underline underline-offset-4">
-            profile
-          </a>
-          .
-        </p>
-      ) : null}
-
-      <form onSubmit={submit} className="mt-8 grid gap-3 rounded-3xl border border-line bg-paper-strong p-6">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <input
-            required
-            placeholder="First name"
-            value={form.firstName}
-            onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-            className="rounded-xl border border-line bg-paper px-3 py-2"
-          />
-          <input
-            required
-            placeholder="Last name"
-            value={form.lastName}
-            onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-            className="rounded-xl border border-line bg-paper px-3 py-2"
-          />
-        </div>
-        <input
-          required
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="rounded-xl border border-line bg-paper px-3 py-2"
-        />
-        <input
-          placeholder="Phone"
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          className="rounded-xl border border-line bg-paper px-3 py-2"
-        />
-        <label className="text-sm text-ink-soft">
-          Date of birth
-          <input
-            type="date"
-            value={form.dateOfBirth}
-            onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-            className="mt-1 w-full rounded-xl border border-line bg-paper px-3 py-2 text-ink"
-          />
-        </label>
-        <button type="submit" className="mt-2 rounded-full bg-forest py-3 text-sm text-paper-strong">
-          Save profile
-        </button>
-      </form>
-
-      <button
-        type="button"
-        onClick={() => {
-          loadDemo();
-          router.push("/account");
-        }}
-        className="mt-4 w-full rounded-full border border-forest py-3 text-sm"
-      >
-        Explore as demo patient (Avery Nguyen)
-      </button>
+        <form
+          className="space-y-3 rounded-xl border border-line bg-paper p-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            signInPharmacy(pharmacy);
+            router.push("/admin/orders");
+          }}
+        >
+          <p className="font-semibold">Compounding pharmacy admin</p>
+          <input required placeholder="Pharmacy name" className="w-full rounded-lg border border-line px-3 py-2" value={pharmacy.pharmacyName} onChange={(e) => setPharmacy({ ...pharmacy, pharmacyName: e.target.value })} />
+          <input required placeholder="Pharmacist / admin name" className="w-full rounded-lg border border-line px-3 py-2" value={pharmacy.contactName} onChange={(e) => setPharmacy({ ...pharmacy, contactName: e.target.value })} />
+          <input required type="email" placeholder="Lab email" className="w-full rounded-lg border border-line px-3 py-2" value={pharmacy.email} onChange={(e) => setPharmacy({ ...pharmacy, email: e.target.value })} />
+          <input placeholder="Phone" className="w-full rounded-lg border border-line px-3 py-2" value={pharmacy.phone} onChange={(e) => setPharmacy({ ...pharmacy, phone: e.target.value })} />
+          <button type="submit" className="w-full rounded-lg bg-purple-mid py-2.5 text-sm font-semibold text-white">
+            Save pharmacy admin
+          </button>
+          <button
+            type="button"
+            className="w-full rounded-lg border border-line py-2.5 text-sm"
+            onClick={() => {
+              loadDemoPharmacy();
+              router.push("/admin/orders");
+            }}
+          >
+            Use demo pharmacist (Jordan Hale, RPh)
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
