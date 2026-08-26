@@ -24,10 +24,11 @@ export default function CatalogPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Formulary</p>
-      <h1 className="mt-2 text-3xl font-semibold">Select compounds and strengths</h1>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Provider portal · Order submission</p>
+      <h1 className="mt-2 text-3xl font-semibold">Select published strengths</h1>
       <p className="mt-2 max-w-2xl text-ink-soft">
-        Each row is one medication. Choose the dose with the radio buttons, then add it to the practice order.
+        This list is published by Operations. Choose a dose and submit the request. Compounding
+        formulas, BUD, and mixing steps stay in the lab — not in this portal.
       </p>
       <div className="mt-6">
         <MedicationList products={products} />

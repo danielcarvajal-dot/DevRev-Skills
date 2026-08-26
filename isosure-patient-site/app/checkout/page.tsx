@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
+import { DOCUMENT_KIND_LABEL } from "@/lib/operations";
 import { useStore } from "@/lib/store";
-import type { Address } from "@/lib/types";
+import type { Address, DocumentKind } from "@/lib/types";
 
 const emptyAddress: Address = { line1: "", line2: "", city: "", state: "", zip: "" };
 
@@ -18,6 +19,7 @@ export default function CheckoutPage() {
   const [patientDob, setPatientDob] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [docKind, setDocKind] = useState<DocumentKind>("rx");
   const shipping = cartTotal >= 75 || cartTotal === 0 ? 0 : 8;
 
   if (!ready) {
@@ -38,7 +40,7 @@ export default function CheckoutPage() {
   if (!user || user.role !== "doctor") {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
-        <h1 className="text-3xl font-semibold">Sign in as a practice first</h1>
+        <h1 className="text-3xl font-semibold">Provider login required</h1>
         <Link href="/login" className="mt-4 inline-block rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white">
           Sign in
         </Link>
@@ -57,6 +59,9 @@ export default function CheckoutPage() {
           type: file.type,
           size: file.size,
           dataUrl: String(reader.result || ""),
+          kind: docKind,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: "provider",
         });
       };
       reader.readAsDataURL(file);
@@ -158,8 +163,24 @@ export default function CheckoutPage() {
           </section>
 
           <section className="rounded-xl border border-dashed border-purple-mid bg-paper p-5">
-            <p className="font-semibold">Scripts</p>
-            <p className="text-sm text-ink-soft">Upload one or more prescriptions (PDF, JPG, or PNG).</p>
+            <p className="font-semibold">Document exchange</p>
+            <p className="text-sm text-ink-soft">
+              Attach at least one Rx image. You may also add a PA form or a patient-specific formula
+              document. Operations reviews these — this portal does not compound them.
+            </p>
+            <label className="mt-3 block text-sm">
+              Document type
+              <select
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2"
+                value={docKind}
+                onChange={(e) => setDocKind(e.target.value as DocumentKind)}
+              >
+                <option value="rx">Rx image</option>
+                <option value="pa">PA form</option>
+                <option value="formula">Patient-specific formula</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
             <input
               type="file"
               accept=".pdf,image/*"
@@ -168,11 +189,11 @@ export default function CheckoutPage() {
               onChange={(e) => onFiles(e.target.files)}
             />
             <ul className="mt-3 space-y-2 text-sm">
-              {scripts.length === 0 ? <li className="text-ink-soft">No scripts attached yet.</li> : null}
+              {scripts.length === 0 ? <li className="text-ink-soft">No documents attached yet.</li> : null}
               {scripts.map((script) => (
                 <li key={script.id} className="flex justify-between gap-3">
                   <span>
-                    {script.name}{" "}
+                    {DOCUMENT_KIND_LABEL[script.kind]} · {script.name}{" "}
                     <span className="text-ink-soft">({Math.round(script.size / 1024)} KB)</span>
                   </span>
                   <button type="button" className="text-danger underline" onClick={() => removeScript(script.id)}>

@@ -9,19 +9,29 @@ import {
   useState,
 } from "react";
 import { productFromPartial } from "./catalog-io";
-import { demoDoctor, demoPharmacy, seedDemoOrders } from "./demo-data";
+import {
+  demoDoctor,
+  demoPharmacy,
+  seedDemoDocuments,
+  seedDemoNotifications,
+  seedDemoOrders,
+  seedDemoRefills,
+} from "./demo-data";
+import { notificationForStatus, refillNotification } from "./operations";
 import { PHASE2 } from "./phase2";
-import { PRODUCTS as DEFAULT_FORMULARY } from "./products";
-import { getDose, getProduct as findDefault } from "./products";
+import { PRODUCTS as DEFAULT_FORMULARY, getDose, getProduct as findDefault } from "./products";
 import type {
   Address,
   CartItem,
   Doctor,
+  ExchangeDocument,
   Order,
   OrderStatus,
   PharmacyUser,
+  PortalNotification,
   Product,
-  ScriptFile,
+  RefillRequest,
+  RefillStatus,
   SessionUser,
 } from "./types";
 
@@ -30,7 +40,10 @@ type Persisted = {
   cart: CartItem[];
   orders: Order[];
   products: Product[];
-  scripts: ScriptFile[];
+  scripts: ExchangeDocument[];
+  documents: ExchangeDocument[];
+  notifications: PortalNotification[];
+  refills: RefillRequest[];
 };
 
 const emptyState: Persisted = {
@@ -39,12 +52,16 @@ const emptyState: Persisted = {
   orders: [],
   products: DEFAULT_FORMULARY,
   scripts: [],
+  documents: [],
+  notifications: [],
+  refills: [],
 };
 
 type StoreValue = Persisted & {
   ready: boolean;
   cartCount: number;
   cartTotal: number;
+  unreadCount: number;
   signInDoctor: (input: Omit<Doctor, "id" | "createdAt" | "role">) => void;
   signInPharmacy: (input: Omit<PharmacyUser, "id" | "createdAt" | "role">) => void;
   loadDemoDoctor: () => void;
@@ -53,8 +70,9 @@ type StoreValue = Persisted & {
   addToCart: (productId: string, doseId: string, quantity?: number) => void;
   updateQty: (productId: string, doseId: string, quantity: number) => void;
   removeFromCart: (productId: string, doseId: string) => void;
-  addScript: (file: ScriptFile) => void;
+  addScript: (file: ExchangeDocument) => void;
   removeScript: (id: string) => void;
+  addDocument: (file: ExchangeDocument) => void;
   placeOrder: (input: {
     address: Address;
     notes: string;
@@ -62,6 +80,9 @@ type StoreValue = Persisted & {
     patientDob: string;
   }) => Order;
   setOrderStatus: (id: string, status: OrderStatus) => void;
+  markNotificationRead: (id: string) => void;
+  requestRefill: (orderId: string, notes: string) => RefillRequest | null;
+  setRefillStatus: (id: string, status: RefillStatus) => void;
   upsertProduct: (product: Product) => void;
   removeProduct: (id: string) => void;
   replaceFormulary: (products: Product[]) => void;
@@ -82,6 +103,9 @@ function loadState(): Persisted {
       orders: parsed.orders ?? [],
       products: parsed.products?.length ? parsed.products : DEFAULT_FORMULARY,
       scripts: parsed.scripts ?? [],
+      documents: parsed.documents ?? [],
+      notifications: parsed.notifications ?? [],
+      refills: parsed.refills ?? [],
     };
   } catch {
     return emptyState;
@@ -97,6 +121,10 @@ function lineTotal(item: CartItem, products: Product[]) {
   if (!product) return 0;
   const dose = product.doses.find((d) => d.id === item.doseId);
   return (dose?.price ?? 0) * item.quantity;
+}
+
+function seedIfEmpty<T>(current: T[], seed: T[]) {
+  return current.length ? current : seed;
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
@@ -152,7 +180,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     commit((prev) => ({
       ...prev,
       user: demoDoctor(),
-      orders: prev.orders.length ? prev.orders : seedDemoOrders(),
+      orders: seedIfEmpty(prev.orders, seedDemoOrders()),
+      documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
+      notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
+      refills: seedIfEmpty(prev.refills, seedDemoRefills()),
     }));
   }, [commit]);
 
@@ -160,7 +191,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     commit((prev) => ({
       ...prev,
       user: demoPharmacy(),
-      orders: prev.orders.length ? prev.orders : seedDemoOrders(),
+      orders: seedIfEmpty(prev.orders, seedDemoOrders()),
+      documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
+      notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
+      refills: seedIfEmpty(prev.refills, seedDemoRefills()),
     }));
   }, [commit]);
 
@@ -232,6 +266,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  const addDocument: StoreValue["addDocument"] = useCallback(
+    (file) => {
+      commit((prev) => ({ ...prev, documents: [file, ...prev.documents] }));
+    },
+    [commit],
+  );
+
   const placeOrder: StoreValue["placeOrder"] = useCallback(
     ({ address, notes, patientName, patientDob }) => {
       const doctor = state.user?.role === "doctor" ? state.user : null;
@@ -257,7 +298,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         subtotal,
         shipping,
         total: subtotal + shipping,
-        status: "Received",
+        status: "Submitted",
         address,
         notes,
         patientName,
@@ -267,13 +308,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         npi: doctor?.npi || "",
         scripts: state.scripts,
       };
+      const receivedNote = notificationForStatus({ ...order, status: "Received" }, "Received");
       commit((prev) => ({
         ...prev,
         cart: [],
         scripts: [],
+        documents: [...state.scripts.map((doc) => ({ ...doc, orderId: order.id })), ...prev.documents],
         orders: prev.orders.some((existing) => existing.id === order.id)
           ? prev.orders
           : [order, ...prev.orders],
+        notifications: receivedNote ? [receivedNote, ...prev.notifications] : prev.notifications,
       }));
       return order;
     },
@@ -282,10 +326,63 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const setOrderStatus: StoreValue["setOrderStatus"] = useCallback(
     (id, status) => {
+      commit((prev) => {
+        const order = prev.orders.find((item) => item.id === id);
+        if (!order) return prev;
+        const note = notificationForStatus({ ...order, status }, status);
+        return {
+          ...prev,
+          orders: prev.orders.map((item) => (item.id === id ? { ...item, status } : item)),
+          notifications: note ? [note, ...prev.notifications] : prev.notifications,
+        };
+      });
+    },
+    [commit],
+  );
+
+  const markNotificationRead: StoreValue["markNotificationRead"] = useCallback(
+    (id) => {
       commit((prev) => ({
         ...prev,
-        orders: prev.orders.map((order) => (order.id === id ? { ...order, status } : order)),
+        notifications: prev.notifications.map((note) =>
+          note.id === id ? { ...note, read: true } : note,
+        ),
       }));
+    },
+    [commit],
+  );
+
+  const requestRefill: StoreValue["requestRefill"] = useCallback(
+    (orderId, notes) => {
+      const order = state.orders.find((item) => item.id === orderId);
+      if (!order) return null;
+      const refill: RefillRequest = {
+        id: crypto.randomUUID(),
+        orderId,
+        patientName: order.patientName,
+        summary: order.items.map((item) => `${item.productName} ${item.doseLabel}`).join(" · "),
+        notes,
+        requestedAt: new Date().toISOString(),
+        status: "Submitted",
+      };
+      commit((prev) => ({ ...prev, refills: [refill, ...prev.refills] }));
+      return refill;
+    },
+    [commit, state.orders],
+  );
+
+  const setRefillStatus: StoreValue["setRefillStatus"] = useCallback(
+    (id, status) => {
+      commit((prev) => {
+        const refill = prev.refills.find((item) => item.id === id);
+        if (!refill) return prev;
+        const next = { ...refill, status };
+        return {
+          ...prev,
+          refills: prev.refills.map((item) => (item.id === id ? next : item)),
+          notifications: [refillNotification(next), ...prev.notifications],
+        };
+      });
     },
     [commit],
   );
@@ -329,6 +426,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const cartCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = state.cart.reduce((sum, item) => sum + lineTotal(item, state.products), 0);
+  const unreadCount = state.notifications.filter((note) => !note.read).length;
 
   const value = useMemo<StoreValue>(
     () => ({
@@ -336,6 +434,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ready,
       cartCount,
       cartTotal,
+      unreadCount,
       signInDoctor,
       signInPharmacy,
       loadDemoDoctor,
@@ -346,8 +445,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removeFromCart,
       addScript,
       removeScript,
+      addDocument,
       placeOrder,
       setOrderStatus,
+      markNotificationRead,
+      requestRefill,
+      setRefillStatus,
       upsertProduct,
       removeProduct,
       replaceFormulary,
@@ -358,6 +461,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ready,
       cartCount,
       cartTotal,
+      unreadCount,
       signInDoctor,
       signInPharmacy,
       loadDemoDoctor,
@@ -368,8 +472,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removeFromCart,
       addScript,
       removeScript,
+      addDocument,
       placeOrder,
       setOrderStatus,
+      markNotificationRead,
+      requestRefill,
+      setRefillStatus,
       upsertProduct,
       removeProduct,
       replaceFormulary,

@@ -1,25 +1,24 @@
 /**
  * Phase 2 — move this prototype onto a production website.
  *
- * Nothing here is live yet. These contracts are the seam we will swap
- * when orders start leaving the browser and entering a real pharmacy system.
+ * Provider Portal is a thin client to Operations. Do not add compounding
+ * formulas, BUD math, or mixing steps to the provider UI.
  *
- * Planned production endpoints (do not call from this prototype):
+ * Planned production endpoints (not called yet):
  *   POST /api/v1/auth/session
- *   GET  /api/v1/formulary
- *   PUT  /api/v1/formulary
- *   POST /api/v1/formulary/import
+ *   GET  /api/v1/formulary            (published orderables only)
  *   POST /api/v1/orders
  *   GET  /api/v1/orders
- *   PATCH /api/v1/orders/:id/status
- *   POST /api/v1/orders/:id/scripts
+ *   POST /api/v1/orders/:id/refills
+ *   POST /api/v1/documents
+ *   GET  /api/v1/notifications
+ *   PATCH /api/v1/orders/:id/status   (Operations only)
  *
- * Current prototype storage is localStorage key `isosure.practice.v2`.
- * When Phase 2 lands, replace `lib/store.tsx` persistence only — keep
- * the Doctor, Pharmacy, Product, Order, and ScriptFile shapes.
+ * Current prototype storage: localStorage key `isosure.practice.v3`.
  */
 export const PHASE2 = {
   status: "prepared",
-  storageKey: "isosure.practice.v2",
+  storageKey: "isosure.practice.v3",
   productionReady: false,
+  providerIsThinClient: true,
 } as const;

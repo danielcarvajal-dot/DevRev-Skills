@@ -1,4 +1,5 @@
 export type Role = "doctor" | "pharmacy";
+export type ProviderLoginKind = "prescriber" | "facility";
 
 export type Category =
   | "Hormone Therapy"
@@ -51,6 +52,7 @@ export type CartItem = {
 export type Doctor = {
   id: string;
   role: "doctor";
+  loginKind: ProviderLoginKind;
   practiceName: string;
   prescriberName: string;
   npi: string;
@@ -80,13 +82,22 @@ export type Address = {
   zip: string;
 };
 
-export type ScriptFile = {
+export type DocumentKind = "rx" | "pa" | "formula" | "other";
+
+export type ExchangeDocument = {
   id: string;
   name: string;
   type: string;
   size: number;
   dataUrl: string;
+  kind: DocumentKind;
+  orderId?: string;
+  uploadedAt: string;
+  uploadedBy: "provider" | "operations";
 };
+
+/** @deprecated Use ExchangeDocument. Kept as an alias for checkout drafts. */
+export type ScriptFile = ExchangeDocument;
 
 export type OrderItem = CartItem & {
   productName: string;
@@ -94,7 +105,16 @@ export type OrderItem = CartItem & {
   unitPrice: number;
 };
 
-export type OrderStatus = "Received" | "Compounding" | "Ready" | "Shipped";
+/** Operations-owned statuses. Provider portal only displays labels. */
+export type OrderStatus =
+  | "Submitted"
+  | "Received"
+  | "ClarificationNeeded"
+  | "Backorder"
+  | "InProduction"
+  | "ReadyPickup"
+  | "OutForDelivery"
+  | "Delivered";
 
 export type Order = {
   id: string;
@@ -111,5 +131,35 @@ export type Order = {
   practiceName: string;
   prescriberName: string;
   npi: string;
-  scripts: ScriptFile[];
+  scripts: ExchangeDocument[];
+};
+
+export type NotificationKind =
+  | "backorder"
+  | "clarification"
+  | "ready_pickup"
+  | "ready_delivery"
+  | "order_update"
+  | "refill";
+
+export type PortalNotification = {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  orderId?: string;
+  createdAt: string;
+  read: boolean;
+};
+
+export type RefillStatus = "Submitted" | "Accepted" | "Declined";
+
+export type RefillRequest = {
+  id: string;
+  orderId: string;
+  patientName: string;
+  summary: string;
+  notes: string;
+  requestedAt: string;
+  status: RefillStatus;
 };

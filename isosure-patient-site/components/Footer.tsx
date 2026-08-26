@@ -15,11 +15,11 @@ export function Footer() {
         </div>
         <div className="text-sm text-purple-soft">
           <p>
-            Doctors and offices place compounding orders. The pharmacy lab reviews scripts and
-            produces the fill. Phase 2 will move these orders onto the production website.
+            External provider portal: login, order status, refills, document exchange, and
+            operations notifications. Compounding logic stays in the lab.
           </p>
-          <Link href="/catalog" className="mt-3 inline-block underline underline-offset-4">
-            Open the formulary
+          <Link href="/login" className="mt-3 inline-block underline underline-offset-4">
+            Provider login
           </Link>
         </div>
       </div>

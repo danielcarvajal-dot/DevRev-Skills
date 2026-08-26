@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ISOSure | Practice ordering</title>
+  <title>ISOSure | Provider portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -105,13 +105,17 @@
         <p>pharmacy@isosure.example · (800) 555-4767</p>
       </div>
       <div>
-        <p>Doctors and offices place compounding orders. The pharmacy lab reviews scripts and produces the fill. Phase 2 will move these orders onto the production website.</p>
+        <p>External provider portal: login, order status, refills, document exchange, and operations notifications. Compounding logic stays in the lab.</p>
       </div>
     </div>
   </footer>
 
 <script>
-const KEY = "isosure.practice.v2";
+const KEY = "isosure.practice.v3";
+const STATUS_LABEL = {Submitted:"Submitted to operations",Received:"Received by operations",ClarificationNeeded:"Clarification needed",Backorder:"Backordered",InProduction:"In production",ReadyPickup:"Ready for pickup",OutForDelivery:"Out for delivery",Delivered:"Delivered"};
+const STATUS_LIST = Object.keys(STATUS_LABEL);
+const DOC_LABEL = {rx:"Rx image",pa:"PA form",formula:"Patient-specific formula",other:"Other"};
+const NOTE_LABEL = {backorder:"Backorder",clarification:"Clarification needed",ready_pickup:"Ready for pickup",ready_delivery:"Ready for delivery",order_update:"Order update",refill:"Refill"};
 const CATEGORIES = ["Hormone Therapy","Women's Health","Men's Health","Thyroid","Pain & Inflammation","Dermatology","Wellness","Pediatric"];
 const DEFAULT_PRODUCTS = [
   {id:"estradiol-cream",name:"IsoBalance Estradiol Cream",shortName:"Estradiol Cream",category:"Hormone Therapy",form:"Cream",summary:"Bioidentical estradiol cream for transdermal hormone support.",doses:[{id:"e2-025",label:"0.25 mg/g",price:48},{id:"e2-05",label:"0.5 mg/g",price:56},{id:"e2-1",label:"1 mg/g",price:64}]},
@@ -138,11 +142,14 @@ const money = (n) => (Number(n)||0).toLocaleString("en-US",{style:"currency",cur
 const product = (id) => state.products.find(p => p.id === id);
 const doseOf = (p, id) => p.doses.find(d => d.id === id);
 
-let state = { user:null, cart:[], orders:[], products: DEFAULT_PRODUCTS, scripts:[], selections:{} };
+let state = { user:null, cart:[], orders:[], products: DEFAULT_PRODUCTS, scripts:[], selections:{}, documents:[], notifications:[], refills:[] };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
   state = Object.assign(state, saved, { selections: saved.selections || {} });
   if (!state.products?.length) state.products = DEFAULT_PRODUCTS;
+  state.documents = state.documents || [];
+  state.notifications = state.notifications || [];
+  state.refills = state.refills || [];
 } catch {}
 
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); chrome(); }
@@ -155,7 +162,7 @@ function route() {
   const [name, qs] = raw.split("?");
   const params = Object.fromEntries(new URLSearchParams(qs || ""));
   chrome();
-  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order};
+  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills};
   document.getElementById("app").innerHTML = (views[name] || home)(params);
 }
 function chrome() {
@@ -164,9 +171,10 @@ function chrome() {
   badge.hidden = !count; badge.textContent = count;
   const u = state.user;
   document.getElementById("roleBtn").textContent = u ? (u.role==="pharmacy" ? u.pharmacyName : u.practiceName) : "Sign in";
+  const unread = (state.notifications||[]).filter(n=>!n.read).length;
   document.getElementById("nav").innerHTML = u?.role === "pharmacy"
-    ? `<a href="#formulary">Formulary</a><a href="#pharmacy">Production queue</a>`
-    : `<a href="#catalog">Formulary</a><a href="#practice">Practice orders</a>`;
+    ? `<a href="#formulary">Formulary</a><a href="#pharmacy">Operations queue</a><a href="#refills">Refills</a>`
+    : `<a href="#catalog">Submit order</a><a href="#practice">Order status</a><a href="#refills">Refills</a><a href="#documents">Documents</a><a href="#notifications">Notifications${unread?` (${unread})`:""}</a>`;
 }
 
 function addLine(productId, qty=1) {
@@ -189,34 +197,91 @@ function selectDose(productId, doseId) {
 
 function demoOrders() {
   return [
-    {id:"demo-1",placedAt:Date.now()-12*864e5,status:"Compounding",total:120,patientName:"Avery Nguyen",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"Match last fill.",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
+    {id:"demo-order-1",placedAt:Date.now()-12*864e5,status:"InProduction",total:120,patientName:"Avery Nguyen",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"Match last fill.",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
       {productId:"estradiol-cream",doseId:"e2-05",quantity:1,productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",unitPrice:56},
       {productId:"progesterone-caps",doseId:"p4-100",quantity:1,productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",unitPrice:52}
     ]},
-    {id:"demo-2",placedAt:Date.now()-4*864e5,status:"Received",total:46,patientName:"Sam Rivera",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
+    {id:"demo-order-2",placedAt:Date.now()-4*864e5,status:"ClarificationNeeded",total:46,patientName:"Sam Rivera",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
       {productId:"ldn-caps",doseId:"ldn-45",quantity:1,productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",unitPrice:38}
+    ]},
+    {id:"demo-order-3",placedAt:Date.now()-2*864e5,status:"ReadyPickup",total:72,patientName:"Lee Park",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
+      {productId:"ketoprofen-cream",doseId:"keto-10",quantity:1,productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",unitPrice:46}
     ]}
   ];
+}
+function seedDemoDocuments() {
+  return [
+    {id:"doc-rx-1",name:"nguyen-hrt-rx.pdf",type:"application/pdf",size:48200,dataUrl:"",kind:"rx",orderId:"demo-order-1",uploadedAt:Date.now()-12*864e5,uploadedBy:"provider"},
+    {id:"doc-pa-1",name:"rivera-ldn-pa.pdf",type:"application/pdf",size:31100,dataUrl:"",kind:"pa",orderId:"demo-order-2",uploadedAt:Date.now()-4*864e5,uploadedBy:"provider"},
+    {id:"doc-formula-1",name:"nguyen-patient-formula.pdf",type:"application/pdf",size:18400,dataUrl:"",kind:"formula",orderId:"demo-order-1",uploadedAt:Date.now()-11*864e5,uploadedBy:"provider"}
+  ];
+}
+function seedDemoNotifications() {
+  return [
+    {id:"note-clarify",kind:"clarification",title:"Clarification needed on ISO-RDER-2",body:"Operations needs a clarification on Sam Rivera’s LDN order. Upload a note or PA from the document exchange. Compounding stays in the lab.",orderId:"demo-order-2",createdAt:Date.now()-6*36e5,read:false},
+    {id:"note-pickup",kind:"ready_pickup",title:"Ready for pickup · ISO-RDER-3",body:"Lee Park’s order is ready for pickup at the ISOSure pharmacy.",orderId:"demo-order-3",createdAt:Date.now()-3*36e5,read:false},
+    {id:"note-backorder",kind:"backorder",title:"Backorder watch",body:"Operations flagged a possible backorder on a thyroid capsule strength. No lab formula is shown in the provider portal.",createdAt:Date.now()-20*36e5,read:true}
+  ];
+}
+function seedDemoRefills() {
+  return [
+    {id:"refill-1",orderId:"demo-order-1",patientName:"Avery Nguyen",summary:"Estradiol cream 0.5 mg/g · Progesterone 100 mg",notes:"Continue current strength.",requestedAt:Date.now()-30*36e5,status:"Submitted"}
+  ];
+}
+function seedPortalIfEmpty() {
+  if (!state.orders.length) state.orders = demoOrders();
+  if (!state.documents.length) state.documents = seedDemoDocuments();
+  if (!state.notifications.length) state.notifications = seedDemoNotifications();
+  if (!state.refills.length) state.refills = seedDemoRefills();
+}
+function notifyForStatus(order, status) {
+  const kinds = {Backorder:"backorder",ClarificationNeeded:"clarification",ReadyPickup:"ready_pickup",OutForDelivery:"ready_delivery",Received:"order_update",Delivered:"order_update"};
+  const kind = kinds[status];
+  if (!kind) return;
+  const ticket = "ISO-" + order.id.slice(-6).toUpperCase();
+  const titles = {
+    backorder: "Backorder on " + ticket,
+    clarification: "Clarification needed on " + ticket,
+    ready_pickup: "Ready for pickup · " + ticket,
+    ready_delivery: "Out for delivery · " + ticket,
+    order_update: "Order update · " + ticket
+  };
+  const bodies = {
+    backorder: "Operations placed " + order.patientName + "'s order on backorder. No compounding details are shown here.",
+    clarification: "Operations needs a clarification on " + order.patientName + "'s order. Upload a document from the exchange.",
+    ready_pickup: order.patientName + "'s order is ready for pickup at the ISOSure pharmacy.",
+    ready_delivery: order.patientName + "'s order is out for delivery.",
+    order_update: "Operations updated " + order.patientName + "'s order to “" + (STATUS_LABEL[status] || status) + "”."
+  };
+  state.notifications.unshift({id:crypto.randomUUID(),kind,title:titles[kind],body:bodies[kind],orderId:order.id,createdAt:Date.now(),read:false});
+}
+function setOrderStatus(id, status) {
+  const order = state.orders.find(x => x.id === id);
+  if (!order) return;
+  order.status = status;
+  notifyForStatus(order, status);
+  save(); route();
 }
 
 function home() {
   return `
     <div class="hero">
       <div>
-        <p class="kicker" style="color:#c9b6e3">Practice portal · Phase 1 prototype</p>
-        <h1 style="color:#fff">Doctors order. The ISOSure lab compounds.</h1>
-        <p class="muted">Write the fill from the formulary, attach the script, and send it to the compounding pharmacy. Pharmacy admins manage the medication list and move incoming orders into production.</p>
+        <p class="kicker" style="color:#c9b6e3">Provider portal · External thin client</p>
+        <h1 style="color:#fff">Prescribers submit. Operations compounds.</h1>
+        <p class="muted">This portal is a thin client to ISOSure Operations. Submit orders, exchange documents, request refills, and read status notifications. Clinical and compounding logic stays in the lab — not here.</p>
         <p>
-          <button class="btn mid" onclick="go('catalog')">Open the formulary</button>
-          <button class="btn ghost" onclick="go('login')">Sign in as practice or pharmacy</button>
+          <button class="btn mid" onclick="go('login')">Provider or facility login</button>
+          <button class="btn ghost" onclick="go('catalog')">Start an order</button>
         </p>
       </div>
       <img src="brand/isosure-logo-inverse.png" alt="" style="width:min(320px,100%);justify-self:end" />
     </div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1.2rem">
-      <div class="tile" onclick="go('catalog')"><p class="kicker">Doctor / office</p><h2>Build an order</h2><p class="muted">Select a dose on each medication, then attach scripts before checkout.</p></div>
-      <div class="tile" onclick="go('login')"><p class="kicker">Pharmacy admin</p><h2>Run the formulary</h2><p class="muted">Upload a custom list or add, edit, and retire compounds by hand.</p></div>
-      <div class="tile" onclick="go('pharmacy')"><p class="kicker">Phase 2 ready</p><h2>Production handoff</h2><p class="muted">Orders are shaped for the future production website. Nothing ships from this prototype.</p></div>
+      <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><h2>Order submission</h2><p class="muted">Select published strengths and send the request to Operations.</p></div>
+      <div class="tile" onclick="go('practice')"><p class="kicker">Status</p><h2>Order status</h2><p class="muted">See only the labels Operations publishes — never compounding steps.</p></div>
+      <div class="tile" onclick="go('documents')"><p class="kicker">Exchange</p><h2>Documents</h2><p class="muted">Rx images, PA forms, and patient-specific formulas.</p></div>
+      <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><h2>Notifications</h2><p class="muted">Backorder, clarification needed, ready for pickup or delivery.</p></div>
     </div>`;
 }
 
@@ -231,9 +296,9 @@ function catalog(params) {
     (!q || p.name.toLowerCase().includes(q) || p.summary.toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q))
   );
   return `
-    <p class="kicker">Formulary</p>
-    <h1>Select compounds and strengths</h1>
-    <p class="muted">Each row is one medication. Choose the dose with the radio buttons, then add it to the practice order.</p>
+    <p class="kicker">Provider portal · Order submission</p>
+    <h1>Select published strengths</h1>
+    <p class="muted">This list is published by Operations. Choose a dose and submit the request. Compounding formulas, BUD, and mixing steps stay in the lab — not in this portal.</p>
     <div class="split" style="margin-top:1rem">
       <aside class="panel pad">
         <label>Search<input value="${params.q||""}" oninput="go('catalog',{category:'${category}',q:this.value})" placeholder="estradiol, pain, thyroid…"></label>
@@ -274,8 +339,8 @@ function cart() {
   const ship = total>=75 || !total ? 0 : 8;
   if (!state.cart.length) return `<p class="kicker">Practice order</p><h1>No compounds selected</h1><button class="btn" onclick="go('catalog')">Browse the formulary</button>`;
   return `
-    <p class="kicker">Practice order</p>
-    <h1>Review strengths</h1>
+    <p class="kicker">Order submission</p>
+    <h1>Review published strengths</h1>
     ${state.cart.map((item,idx)=>{
       const p=product(item.productId); const d=doseOf(p,item.doseId);
       return `<div class="panel pad row" style="margin:.6rem 0">
@@ -295,19 +360,19 @@ function cart() {
       <p class="row"><span>Subtotal</span><span>${money(total)}</span></p>
       <p class="row"><span>Shipping</span><span>${ship?money(ship):"Waived at $75"}</span></p>
       <p class="row"><strong>Total</strong><strong>${money(total+ship)}</strong></p>
-      <button class="btn" style="width:100%" onclick="go('checkout')">Continue — attach scripts</button>
+      <button class="btn" style="width:100%" onclick="go('checkout')">Continue — attach documents</button>
     </div>`;
 }
 
 function checkout() {
   if (!state.cart.length) return `<h1>Nothing to send</h1><button class="btn" onclick="go('catalog')">Return to formulary</button>`;
   if (state.user?.role === "pharmacy") return `<h1>Pharmacy accounts review orders; they do not place them.</h1>`;
-  if (!state.user) return `<h1>Sign in as a practice first</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (!state.user) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
   const u = state.user;
   return `
-    <p class="kicker">Send to compounding</p>
-    <h1>Upload scripts, then complete the order</h1>
-    <p class="muted">A prescription image or PDF is required before the lab will accept the order. Files stay in this browser until Phase 2.</p>
+    <p class="kicker">Submit to Operations</p>
+    <h1>Attach documents, then complete the order</h1>
+    <p class="muted">At least one Rx image is required. You may also add a PA form or a patient-specific formula document. This portal stores files only — it does not compound them.</p>
     <form class="split checkout" onsubmit="return placeOrder(event)">
       <div class="grid">
         <div class="panel pad grid">
@@ -324,18 +389,26 @@ function checkout() {
             <input name="st" required placeholder="State">
             <input name="zip" required placeholder="ZIP">
           </div>
-          <textarea name="notes" rows="3" placeholder="Compounding notes: flavor, allergy, match last fill"></textarea>
+          <textarea name="notes" rows="3" placeholder="Note to Operations: flavor, allergy, match last fill"></textarea>
         </div>
         <div class="panel pad">
-          <strong>Scripts</strong>
-          <p class="muted">Upload one or more prescriptions (PDF, JPG, or PNG).</p>
+          <strong>Document exchange</strong>
+          <p class="muted">Rx images, PA forms, and patient-specific formulas. Operations reviews these.</p>
+          <label>Document type
+            <select id="docKind" onchange="pendingDocKind=this.value">
+              <option value="rx">Rx image</option>
+              <option value="pa">PA form</option>
+              <option value="formula">Patient-specific formula</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
           <div class="drop">
             <input type="file" accept=".pdf,image/*" multiple onchange="attachScripts(event)">
           </div>
           <ul id="scriptList">${scriptListHtml()}</ul>
           <p id="err" class="danger"></p>
         </div>
-        <button class="btn" type="submit">Submit order to ISOSure lab</button>
+        <button class="btn" type="submit">Submit order to Operations</button>
       </div>
       <aside class="panel pad">
         <h2>Order summary</h2>
@@ -345,15 +418,19 @@ function checkout() {
     </form>`;
 }
 
+let pendingDocKind = "rx";
+let pendingRefillMsg = "";
 function scriptListHtml() {
-  if (!state.scripts.length) return `<li class="muted">No scripts attached yet.</li>`;
-  return state.scripts.map((s,i)=>`<li class="row"><span>${s.name} <span class="muted">(${Math.round(s.size/1024)} KB)</span></span><button type="button" class="btn ghost" onclick="state.scripts.splice(${i},1);save();document.getElementById('scriptList').innerHTML=scriptListHtml()">Remove</button></li>`).join("");
+  if (!state.scripts.length) return `<li class="muted">No documents attached yet.</li>`;
+  return state.scripts.map((s,i)=>`<li class="row"><span>${DOC_LABEL[s.kind]||s.kind} · ${s.name} <span class="muted">(${Math.round(s.size/1024)} KB)</span></span><button type="button" class="btn ghost" onclick="state.scripts.splice(${i},1);save();document.getElementById('scriptList').innerHTML=scriptListHtml()">Remove</button></li>`).join("");
 }
 function attachScripts(e) {
+  const kind = document.getElementById("docKind")?.value || pendingDocKind || "rx";
+  pendingDocKind = kind;
   [...e.target.files].forEach(file => {
     const reader = new FileReader();
     reader.onload = () => {
-      state.scripts.push({id:crypto.randomUUID(), name:file.name, type:file.type, size:file.size, dataUrl:reader.result});
+      state.scripts.push({id:crypto.randomUUID(), name:file.name, type:file.type, size:file.size, dataUrl:reader.result, kind, uploadedAt:Date.now(), uploadedBy:"provider"});
       save();
       const list = document.getElementById("scriptList");
       if (list) list.innerHTML = scriptListHtml();
@@ -364,7 +441,7 @@ function attachScripts(e) {
 function placeOrder(e) {
   e.preventDefault();
   const err = document.getElementById("err");
-  if (!state.scripts.length) { err.textContent = "Attach at least one script before submitting."; return false; }
+  if (!state.scripts.length) { err.textContent = "Attach at least one document (Rx image, PA, or formula) before submitting."; return false; }
   const f = e.target;
   const items = state.cart.map(item => {
     const p = product(item.productId); const d = doseOf(p,item.doseId);
@@ -372,14 +449,17 @@ function placeOrder(e) {
   });
   const subtotal = items.reduce((s,i)=>s+i.unitPrice*i.quantity,0);
   const order = {
-    id: crypto.randomUUID(), placedAt: Date.now(), status: "Received", items,
+    id: crypto.randomUUID(), placedAt: Date.now(), status: "Submitted", items,
     total: subtotal + (subtotal>=75?0:8), notes: f.notes.value,
     patientName: f.patientName.value, patientDob: f.patientDob.value,
     practiceName: state.user.practiceName, prescriberName: state.user.prescriberName, npi: state.user.npi,
     address: `${f.line1.value}, ${f.city.value}, ${f.st.value} ${f.zip.value}`,
     scripts: state.scripts.slice()
   };
+  const exchanged = state.scripts.map(doc => ({...doc, orderId: order.id}));
+  state.documents = exchanged.concat(state.documents);
   state.orders.unshift(order);
+  notifyForStatus({...order, status:"Received"}, "Received");
   state.cart = [];
   state.scripts = [];
   save();
@@ -389,35 +469,42 @@ function placeOrder(e) {
 
 function login() {
   return `
-    <p class="kicker">Access</p>
-    <h1>Sign in as the practice or the pharmacy</h1>
+    <p class="kicker">Provider portal</p>
+    <h1>Prescriber or facility login</h1>
+    <p class="muted">External-facing access only. This portal does not run compounding or clinical calculations — it submits work to Operations.</p>
     <div class="split checkout">
       <form class="panel pad grid" onsubmit="return signDoctor(event)">
-        <strong>Doctor / office</strong>
-        <input name="practiceName" required placeholder="Practice name">
+        <strong>Prescriber / facility</strong>
+        <div class="doses">
+          <label><input type="radio" name="loginKind" value="prescriber" checked> Prescriber</label>
+          <label><input type="radio" name="loginKind" value="facility"> Facility</label>
+        </div>
+        <input name="practiceName" required placeholder="Practice or facility name">
         <input name="prescriberName" required placeholder="Prescriber name">
         <input name="npi" placeholder="NPI">
         <input name="dea" placeholder="DEA">
         <input name="email" type="email" required placeholder="Office email">
         <input name="phone" placeholder="Phone">
-        <button class="btn" type="submit">Save practice profile</button>
-        <button type="button" class="btn ghost" onclick="loadDoctor()">Use demo practice (Hawthorne Family Medicine)</button>
+        <button class="btn" type="submit">Enter provider portal</button>
+        <button type="button" class="btn ghost" onclick="loadDoctor()">Demo prescriber (Hawthorne Family Medicine)</button>
       </form>
       <form class="panel pad grid" onsubmit="return signPharmacy(event)">
-        <strong>Compounding pharmacy admin</strong>
+        <strong>Operations (pharmacy admin)</strong>
+        <p class="muted">Internal lab access. Compounding logic lives here, not in the provider portal.</p>
         <input name="pharmacyName" required placeholder="Pharmacy name" value="ISOSure Compounding Lab">
         <input name="contactName" required placeholder="Pharmacist / admin name">
         <input name="email" type="email" required placeholder="Lab email">
         <input name="phone" placeholder="Phone">
-        <button class="btn mid" type="submit">Save pharmacy admin</button>
-        <button type="button" class="btn ghost" onclick="loadPharmacy()">Use demo pharmacist (Jordan Hale, RPh)</button>
+        <button class="btn mid" type="submit">Enter operations</button>
+        <button type="button" class="btn ghost" onclick="loadPharmacy()">Demo operations (Jordan Hale, RPh)</button>
       </form>
     </div>`;
 }
 function signDoctor(e) {
   e.preventDefault();
   const f = e.target;
-  state.user = {role:"doctor", practiceName:f.practiceName.value, prescriberName:f.prescriberName.value, npi:f.npi.value, dea:f.dea.value, email:f.email.value, phone:f.phone.value};
+  const loginKind = f.loginKind.value || "prescriber";
+  state.user = {role:"doctor", loginKind, practiceName:f.practiceName.value, prescriberName:f.prescriberName.value, npi:f.npi.value, dea:f.dea.value, email:f.email.value, phone:f.phone.value};
   save(); go("catalog"); return false;
 }
 function signPharmacy(e) {
@@ -427,41 +514,50 @@ function signPharmacy(e) {
   save(); go("pharmacy"); return false;
 }
 function loadDoctor() {
-  state.user = {role:"doctor", practiceName:"Hawthorne Family Medicine", prescriberName:"Dr. Maya Ellison, MD", npi:"1234567890", dea:"BE1234563", email:"orders@hawthornefm.example", phone:"(503) 555-0148"};
-  if (!state.orders.length) state.orders = demoOrders();
+  state.user = {role:"doctor", loginKind:"prescriber", practiceName:"Hawthorne Family Medicine", prescriberName:"Dr. Maya Ellison, MD", npi:"1234567890", dea:"BE1234563", email:"orders@hawthornefm.example", phone:"(503) 555-0148"};
+  seedPortalIfEmpty();
   save(); go("practice");
 }
 function loadPharmacy() {
   state.user = {role:"pharmacy", pharmacyName:"ISOSure Compounding Lab", contactName:"Jordan Hale, RPh", email:"pharmacy@isosure.example", phone:"(800) 555-4767"};
-  if (!state.orders.length) state.orders = demoOrders();
+  seedPortalIfEmpty();
   save(); go("pharmacy");
 }
 
 function practice() {
-  if (!state.user || state.user.role!=="doctor") return `<h1>Practice sign-in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Prescriber / facility login</button>`;
+  const unread = (state.notifications||[]).filter(n=>!n.read).length;
+  const kind = state.user.loginKind === "facility" ? "Facility" : "Prescriber";
   return `
     <div class="row">
       <div>
-        <p class="kicker">Practice</p>
+        <p class="kicker">Provider portal · ${kind}</p>
         <h1>${state.user.practiceName}</h1>
         <p class="muted">${state.user.prescriberName} · NPI ${state.user.npi || "—"}</p>
+        <p class="muted">Thin client to Operations. This view never shows compounding formulas or lab steps.</p>
       </div>
       <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
     </div>
-    <h2>Past orders</h2>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:1rem 0">
+      <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><strong>New order</strong></div>
+      <div class="tile" onclick="go('refills')"><p class="kicker">Refills</p><strong>Request a refill</strong></div>
+      <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><strong>${unread} unread notification${unread===1?"":"s"}</strong></div>
+    </div>
+    <h2>Order status</h2>
     ${orderCards(state.orders)}`;
 }
 
 function pharmacy() {
-  if (!state.user || state.user.role!=="pharmacy") return `<h1>Pharmacy admin sign-in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (!state.user || state.user.role!=="pharmacy") return `<h1>Operations sign-in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
   return `
     <div class="row">
       <div>
-        <p class="kicker">Pharmacy admin</p>
-        <h1>Production queue</h1>
-        <p class="muted">${state.user.contactName} · ${state.user.pharmacyName}. Phase 2 will send these rows to the production website.</p>
+        <p class="kicker">Operations</p>
+        <h1>Incoming provider orders</h1>
+        <p class="muted">${state.user.contactName} · ${state.user.pharmacyName}. Status changes notify the provider portal. Compounding stays in Operations.</p>
       </div>
       <div>
+        <button class="btn ghost" onclick="go('refills')">Refill inbox</button>
         <button class="btn ghost" onclick="go('formulary')">Edit formulary</button>
         <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
       </div>
@@ -475,19 +571,19 @@ function orderCards(orders, admin=false) {
     <article class="panel pad" style="margin:.7rem 0">
       <div class="row">
         <div>
-          <span class="chip">${o.status}</span>
+          <span class="chip">${STATUS_LABEL[o.status] || o.status}</span>
           <h2 style="margin:.35rem 0 0">ISO-${o.id.slice(-6).toUpperCase()}</h2>
           <p class="muted">${new Date(o.placedAt).toLocaleDateString()} · ${o.practiceName} · Patient ${o.patientName}</p>
         </div>
         <strong>${money(o.total)}</strong>
       </div>
       ${o.items.map(i=>`<p>${i.productName} · ${i.doseLabel} × ${i.quantity}</p>`).join("")}
-      ${o.scripts?.length ? `<p class="muted">${o.scripts.length} script${o.scripts.length>1?"s":""} attached</p>` : `<p class="muted">No script files on this demo order</p>`}
-      ${admin ? `<label>Production status
-        <select onchange="state.orders.find(x=>x.id==='${o.id}').status=this.value;save();route()">
-          ${["Received","Compounding","Ready","Shipped"].map(s=>`<option ${s===o.status?"selected":""}>${s}</option>`).join("")}
+      ${o.scripts?.length ? `<p class="muted">${o.scripts.length} document${o.scripts.length>1?"s":""} on the ticket</p>` : `<p class="muted">Documents live in the exchange for this demo order</p>`}
+      ${admin ? `<label>Operations status (notifies provider)
+        <select onchange="setOrderStatus('${o.id}', this.value)">
+          ${STATUS_LIST.map(s=>`<option value="${s}" ${s===o.status?"selected":""}>${STATUS_LABEL[s]}</option>`).join("")}
         </select>
-      </label>` : ""}
+      </label>` : `<p><a href="#refills?order=${o.id}">Request refill</a></p>`}
       <p><a href="#order?id=${o.id}">Open ticket</a></p>
     </article>`).join("");
 }
@@ -495,21 +591,184 @@ function orderCards(orders, admin=false) {
 function order(params) {
   const o = state.orders.find(x => x.id===params.id);
   if (!o) return `<h1>Order not found</h1>`;
+  const related = [
+    ...(o.scripts||[]),
+    ...(state.documents||[]).filter(d => d.orderId===o.id && !(o.scripts||[]).some(s => s.id===d.id))
+  ];
+  const isProvider = state.user?.role === "doctor";
   return `
-    <p class="kicker">${o.status}</p>
+    <p class="kicker">${STATUS_LABEL[o.status] || o.status}</p>
     <h1>Order ISO-${o.id.slice(-6).toUpperCase()}</h1>
     <p class="muted">${o.prescriberName} · ${o.practiceName} · Patient ${o.patientName}</p>
+    <p class="muted">Status comes from Operations. This ticket does not include compounding instructions.</p>
     <div class="panel pad">
       ${o.items.map(i=>`<p class="row"><span>${i.productName}<br><span class="muted">${i.doseLabel} × ${i.quantity}</span></span><span>${money(i.unitPrice*i.quantity)}</span></p>`).join("")}
       <p class="row"><strong>Total</strong><strong>${money(o.total)}</strong></p>
       <p class="muted">${o.address||""}</p>
-      ${o.notes?`<p>Lab note: ${o.notes}</p>`:""}
-      <h2>Scripts</h2>
-      ${(o.scripts||[]).map(s=>`<p><a href="${s.dataUrl}" download="${s.name}">${s.name}</a></p>`).join("") || `<p class="muted">No files</p>`}
+      ${o.notes?`<p>Note to Operations: ${o.notes}</p>`:""}
+      <h2>Documents</h2>
+      ${related.length ? related.map(s=>`<p>${DOC_LABEL[s.kind]||s.kind} · ${s.dataUrl?`<a href="${s.dataUrl}" download="${s.name}">${s.name}</a>`:s.name}</p>`).join("") : `<p class="muted">No files on this ticket.</p>`}
     </div>
     <p style="margin-top:1rem">
-      <button class="btn" onclick="go(state.user?.role==='pharmacy'?'pharmacy':'practice')">Back to queue</button>
+      <button class="btn" onclick="go(state.user?.role==='pharmacy'?'pharmacy':'practice')">Back</button>
+      ${isProvider ? `<button class="btn ghost" onclick="go('refills',{order:'${o.id}'})">Request refill</button>` : ""}
     </p>`;
+}
+
+function notifications() {
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  const notes = state.notifications || [];
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>Notifications from Operations</h1>
+    <p class="muted">Backorder, clarification needed, ready-for-pickup, and delivery alerts. The portal only displays what Operations sends.</p>
+    ${notes.length ? notes.map(n => `
+      <article class="panel pad" style="margin:.7rem 0;${n.read?"":"border-color:var(--purple-mid);background:#fcfaff"}">
+        <div class="row">
+          <div>
+            <p class="kicker">${NOTE_LABEL[n.kind]||n.kind}</p>
+            <h2 style="margin:.25rem 0 0">${n.title}</h2>
+            <p class="muted">${n.body}</p>
+            <p class="muted">${new Date(n.createdAt).toLocaleString()}</p>
+          </div>
+          ${n.read?"":`<button class="btn ghost" onclick="state.notifications.find(x=>x.id==='${n.id}').read=true;save();route()">Mark read</button>`}
+        </div>
+        ${n.orderId?`<p><a href="#order?id=${n.orderId}">Open related order</a></p>`:""}
+      </article>`).join("") : `<p class="muted">No notifications yet.</p>`}`;
+}
+
+function documents() {
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  const docs = state.documents || [];
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>Document exchange</h1>
+    <p class="muted">Send Rx images, PA forms, and patient-specific formulas to Operations. Files are stored as documents only — this portal does not interpret or compound them.</p>
+    <div class="panel pad grid" style="margin:1rem 0">
+      <label>Document type
+        <select id="exchangeKind">
+          <option value="rx">Rx image</option>
+          <option value="pa">PA form</option>
+          <option value="formula">Patient-specific formula</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label>Related order (optional)
+        <select id="exchangeOrder">
+          <option value="">None</option>
+          ${state.orders.map(o=>`<option value="${o.id}">${o.patientName} · ${o.id.slice(-6).toUpperCase()}</option>`).join("")}
+        </select>
+      </label>
+      <input type="file" accept=".pdf,image/*" multiple onchange="attachExchange(event)">
+    </div>
+    <div class="panel" style="overflow:auto">
+      <table>
+        <thead><tr><th>Document</th><th>Type</th><th>Order</th><th>Uploaded</th></tr></thead>
+        <tbody>
+          ${docs.map(d=>`<tr>
+            <td>${d.dataUrl?`<a href="${d.dataUrl}" download="${d.name}">${d.name}</a>`:d.name}</td>
+            <td>${DOC_LABEL[d.kind]||d.kind}</td>
+            <td>${d.orderId?d.orderId.slice(-6).toUpperCase():"—"}</td>
+            <td>${new Date(d.uploadedAt||Date.now()).toLocaleDateString()}</td>
+          </tr>`).join("") || `<tr><td colspan="4" class="muted">No documents exchanged yet.</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+}
+function attachExchange(e) {
+  const kind = document.getElementById("exchangeKind")?.value || "rx";
+  const orderId = document.getElementById("exchangeOrder")?.value || "";
+  [...e.target.files].forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.documents.unshift({id:crypto.randomUUID(),name:file.name,type:file.type,size:file.size,dataUrl:reader.result,kind,orderId:orderId||undefined,uploadedAt:Date.now(),uploadedBy:"provider"});
+      save(); route();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function refills(params) {
+  if (!state.user) return `<h1>Sign in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (state.user.role === "pharmacy") return refillInbox();
+  const selected = params.order || state.orders[0]?.id || "";
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>Refill requests</h1>
+    <p class="muted">Ask Operations to refill a prior order. The portal forwards the request; the lab decides whether the previous compound can be repeated.</p>
+    <form class="panel pad grid" style="margin:1rem 0" onsubmit="return submitRefill(event)">
+      <label>Prior order
+        <select name="orderId" required>
+          <option value="">Select an order</option>
+          ${state.orders.map(o=>`<option value="${o.id}" ${o.id===selected?"selected":""}>${o.patientName} · ${o.items.map(i=>i.doseLabel).join(", ")}</option>`).join("")}
+        </select>
+      </label>
+      <label>Note to Operations
+        <textarea name="notes" rows="3" placeholder="Continue current strength, or flag a change for the lab to review."></textarea>
+      </label>
+      <button class="btn" type="submit">Submit refill request</button>
+      <p id="refillMsg" class="ok">${pendingRefillMsg}</p>
+    </form>
+    ${(state.refills||[]).map(r=>`
+      <article class="panel pad" style="margin:.6rem 0">
+        <p class="kicker">${r.status}</p>
+        <strong>${r.patientName}</strong>
+        <p class="muted">${r.summary}</p>
+        ${r.notes?`<p>${r.notes}</p>`:""}
+        <p class="muted">${new Date(r.requestedAt).toLocaleString()}</p>
+      </article>`).join("") || `<p class="muted">No refill requests yet.</p>`}`;
+}
+function submitRefill(e) {
+  e.preventDefault();
+  const f = e.target;
+  const order = state.orders.find(x => x.id === f.orderId.value);
+  if (!order) { document.getElementById("refillMsg").textContent = "Choose a prior order."; return false; }
+  state.refills.unshift({
+    id: crypto.randomUUID(),
+    orderId: order.id,
+    patientName: order.patientName,
+    summary: order.items.map(i => i.productName + " " + i.doseLabel).join(" · "),
+    notes: f.notes.value,
+    requestedAt: Date.now(),
+    status: "Submitted"
+  });
+  save();
+  pendingRefillMsg = "Refill submitted to Operations.";
+  route();
+  return false;
+}
+function refillInbox() {
+  return `
+    <p class="kicker">Operations</p>
+    <h1>Refill requests</h1>
+    <p class="muted">Providers submitted these as thin-client requests. Accepting a refill does not expose compounding steps back to the portal.</p>
+    ${(state.refills||[]).length ? state.refills.map(r=>`
+      <article class="panel pad" style="margin:.7rem 0">
+        <strong>${r.patientName}</strong>
+        <p class="muted">${r.summary}</p>
+        ${r.notes?`<p>${r.notes}</p>`:""}
+        <p class="muted">${new Date(r.requestedAt).toLocaleString()}</p>
+        <label>Decision
+          <select onchange="setRefillStatus('${r.id}', this.value)">
+            ${["Submitted","Accepted","Declined"].map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}
+          </select>
+        </label>
+      </article>`).join("") : `<p class="muted">No refill requests.</p>`}`;
+}
+function setRefillStatus(id, status) {
+  const refill = state.refills.find(x => x.id === id);
+  if (!refill) return;
+  refill.status = status;
+  state.notifications.unshift({
+    id: crypto.randomUUID(),
+    kind: "refill",
+    title: "Refill " + status.toLowerCase(),
+    body: "Operations " + status.toLowerCase() + " the refill for " + refill.patientName + " (" + refill.summary + ").",
+    orderId: refill.orderId,
+    createdAt: Date.now(),
+    read: false
+  });
+  save(); route();
 }
 
 function formulary() {

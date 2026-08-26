@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { formatDate, formatMoney, orderNumber } from "@/lib/format";
+import { ORDER_STATUSES, PROVIDER_STATUS_LABEL } from "@/lib/operations";
 import { useStore } from "@/lib/store";
 import type { OrderStatus } from "@/lib/types";
-
-const STATUSES: OrderStatus[] = ["Received", "Compounding", "Ready", "Shipped"];
 
 export default function AdminOrdersPage() {
   const { user, orders, ready, signOut, setOrderStatus } = useStore();
@@ -14,7 +13,7 @@ export default function AdminOrdersPage() {
   if (user?.role !== "pharmacy") {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
-        <h1 className="text-3xl font-semibold">Pharmacy admin sign-in required</h1>
+        <h1 className="text-3xl font-semibold">Operations sign-in required</h1>
         <Link href="/login" className="mt-4 inline-block rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white">
           Sign in
         </Link>
@@ -26,15 +25,19 @@ export default function AdminOrdersPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Pharmacy admin</p>
-          <h1 className="mt-2 text-3xl font-semibold">Production queue</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Operations</p>
+          <h1 className="mt-2 text-3xl font-semibold">Incoming provider orders</h1>
           <p className="mt-2 text-ink-soft">
-            {user.contactName} · {user.pharmacyName}. Phase 2 will send these rows to the production website.
+            {user.contactName} · {user.pharmacyName}. Status changes notify the provider portal.
+            Compounding stays in Operations.
           </p>
         </div>
         <div className="flex gap-2">
+          <Link href="/admin/refills" className="rounded-lg border border-line px-4 py-2 text-sm">
+            Refills
+          </Link>
           <Link href="/admin/formulary" className="rounded-lg border border-line px-4 py-2 text-sm">
-            Edit formulary
+            Formulary
           </Link>
           <button type="button" onClick={signOut} className="rounded-lg border border-line px-4 py-2 text-sm">
             Sign out
@@ -49,7 +52,7 @@ export default function AdminOrdersPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <span className="rounded-full bg-purple-soft px-2 py-0.5 text-xs font-semibold text-purple">
-                  {order.status}
+                  {PROVIDER_STATUS_LABEL[order.status]}
                 </span>
                 <h2 className="mt-2 text-xl font-semibold">{orderNumber(order.id)}</h2>
                 <p className="text-sm text-ink-soft">
@@ -66,17 +69,19 @@ export default function AdminOrdersPage() {
               ))}
             </ul>
             <p className="mt-2 text-sm text-ink-soft">
-              {order.scripts.length} script{order.scripts.length === 1 ? "" : "s"} attached
+              {order.scripts.length} document{order.scripts.length === 1 ? "" : "s"} on the ticket
             </p>
-            <label className="mt-3 block max-w-xs text-sm">
-              Production status
+            <label className="mt-3 block max-w-sm text-sm">
+              Operations status (notifies provider)
               <select
                 className="mt-1 w-full rounded-lg border border-line px-3 py-2"
                 value={order.status}
                 onChange={(e) => setOrderStatus(order.id, e.target.value as OrderStatus)}
               >
-                {STATUSES.map((status) => (
-                  <option key={status}>{status}</option>
+                {ORDER_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {PROVIDER_STATUS_LABEL[status]}
+                  </option>
                 ))}
               </select>
             </label>
