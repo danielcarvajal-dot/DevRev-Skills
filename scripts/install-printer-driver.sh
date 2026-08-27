@@ -312,7 +312,8 @@ driver_packages() {
 }
 
 cups_is_running() {
-  [[ -S /run/cups/cups.sock || -S /var/run/cups/cups.sock ]] || lpstat -r >/dev/null 2>&1
+  # lpstat -r exits 0 even when the scheduler is down; trust the message.
+  lpstat -r 2>/dev/null | grep -q 'scheduler is running'
 }
 
 start_cupsd_direct() {
@@ -401,10 +402,11 @@ pick_generic_model() {
   models="$(lpinfo -m 2>/dev/null || true)"
   local candidate
   for candidate in \
-      "drv:///sample.drv/generic.ppd" \
-      "everywhere" \
+      "lsb/usr/cups-pdf/CUPS-PDF_opt.ppd" \
       "lsb/usr/cups-pdf/CUPS-PDF.ppd" \
-      "cups-pdf/CUPS-PDF.ppd"
+      "lsb/usr/cupsfilters/Generic-PDF_Printer-PDF.ppd" \
+      "drv:///sample.drv/generic.ppd" \
+      "everywhere"
   do
     if printf '%s\n' "$models" | grep -Fq "$candidate"; then
       printf '%s\n' "$candidate"
@@ -454,10 +456,14 @@ ensure_pdf_printer() {
   local models
   models="$(lpinfo -m 2>/dev/null || true)"
 
-  if printf '%s\n' "$models" | grep -Fq "lsb/usr/cups-pdf/CUPS-PDF.ppd"; then
+  if printf '%s\n' "$models" | grep -Fq "lsb/usr/cups-pdf/CUPS-PDF_opt.ppd"; then
+    model="lsb/usr/cups-pdf/CUPS-PDF_opt.ppd"
+  elif printf '%s\n' "$models" | grep -Fq "lsb/usr/cups-pdf/CUPS-PDF.ppd"; then
     model="lsb/usr/cups-pdf/CUPS-PDF.ppd"
-  elif printf '%s\n' "$models" | grep -Fq "cups-pdf/CUPS-PDF.ppd"; then
-    model="cups-pdf/CUPS-PDF.ppd"
+  elif printf '%s\n' "$models" | grep -q 'cups-pdf/CUPS-PDF'; then
+    model="$(printf '%s\n' "$models" | awk '/cups-pdf\/CUPS-PDF/ {print $1; exit}')"
+  elif printf '%s\n' "$models" | grep -Fq "lsb/usr/cupsfilters/Generic-PDF_Printer-PDF.ppd"; then
+    model="lsb/usr/cupsfilters/Generic-PDF_Printer-PDF.ppd"
   else
     # Fallback: write PostScript/PDF to a spool file so the VM still has a queue.
     uri="file:///var/tmp/virtual-printer.ps"
