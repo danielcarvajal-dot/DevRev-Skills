@@ -25,11 +25,20 @@ export function Header() {
         <nav className="hidden items-center gap-5 text-sm text-ink-soft md:flex">
           {isPharmacy ? (
             <>
-              <Link href="/admin/formulary" className="hover:text-purple">
-                Formulary
+              <Link href="/ops" className="hover:text-purple">
+                Lab
               </Link>
               <Link href="/admin/orders" className="hover:text-purple">
-                Operations queue
+                Intake
+              </Link>
+              <Link href="/ops/mfr" className="hover:text-purple">
+                MFRs
+              </Link>
+              <Link href="/ops/inventory" className="hover:text-purple">
+                Inventory
+              </Link>
+              <Link href="/ops/environment" className="hover:text-purple">
+                Environment
               </Link>
               <Link href="/admin/refills" className="hover:text-purple">
                 Refills
@@ -62,7 +71,7 @@ export function Header() {
         </nav>
         <div className="flex items-center gap-2">
           <Link
-            href={user ? (isPharmacy ? "/admin/orders" : "/account") : "/login"}
+            href={user ? (isPharmacy ? "/ops" : "/account") : "/login"}
             className="rounded-lg border border-line px-3 py-1.5 text-sm text-purple"
           >
             {label}

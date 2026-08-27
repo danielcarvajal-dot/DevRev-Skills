@@ -17,6 +17,24 @@ import {
   seedDemoOrders,
   seedDemoRefills,
 } from "./demo-data";
+import {
+  INGREDIENTS as DEFAULT_INGREDIENTS,
+  MFRS as DEFAULT_MFRS,
+  seedCsLogs,
+  seedEquipmentLogs,
+  seedEnvironmentLogs,
+  seedLots,
+} from "./lims-catalog";
+import { aggregateOrderStatus, createCrsForOrder, seedDemoCrs, advanceCr as stepCr } from "./lims";
+import type {
+  CompoundingRecord,
+  ControlledSubstanceLog,
+  EnvironmentLog,
+  EquipmentLog,
+  Ingredient,
+  InventoryLot,
+  MasterFormulationRecord,
+} from "./lims-types";
 import { notificationForStatus, refillNotification } from "./operations";
 import { PHASE2 } from "./phase2";
 import { PRODUCTS as DEFAULT_FORMULARY, getDose, getProduct as findDefault } from "./products";
@@ -44,6 +62,13 @@ type Persisted = {
   documents: ExchangeDocument[];
   notifications: PortalNotification[];
   refills: RefillRequest[];
+  ingredients: Ingredient[];
+  lots: InventoryLot[];
+  mfrs: MasterFormulationRecord[];
+  crs: CompoundingRecord[];
+  envLogs: EnvironmentLog[];
+  equipmentLogs: EquipmentLog[];
+  csLogs: ControlledSubstanceLog[];
 };
 
 const emptyState: Persisted = {
@@ -55,6 +80,13 @@ const emptyState: Persisted = {
   documents: [],
   notifications: [],
   refills: [],
+  ingredients: DEFAULT_INGREDIENTS,
+  lots: [],
+  mfrs: DEFAULT_MFRS,
+  crs: [],
+  envLogs: [],
+  equipmentLogs: [],
+  csLogs: [],
 };
 
 type StoreValue = Persisted & {
@@ -87,6 +119,11 @@ type StoreValue = Persisted & {
   removeProduct: (id: string) => void;
   replaceFormulary: (products: Product[]) => void;
   getProduct: (idOrSlug: string) => Product | undefined;
+  assignMfr: (crId: string, mfrId: string) => void;
+  advanceBatch: (crId: string) => string | null;
+  addEnvironmentLog: (log: Omit<EnvironmentLog, "id">) => void;
+  addEquipmentLog: (log: Omit<EquipmentLog, "id">) => void;
+  receiveLot: (lot: Omit<InventoryLot, "id" | "remaining">) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -106,6 +143,13 @@ function loadState(): Persisted {
       documents: parsed.documents ?? [],
       notifications: parsed.notifications ?? [],
       refills: parsed.refills ?? [],
+      ingredients: parsed.ingredients?.length ? parsed.ingredients : DEFAULT_INGREDIENTS,
+      lots: parsed.lots ?? [],
+      mfrs: parsed.mfrs?.length ? parsed.mfrs : DEFAULT_MFRS,
+      crs: parsed.crs ?? [],
+      envLogs: parsed.envLogs ?? [],
+      equipmentLogs: parsed.equipmentLogs ?? [],
+      csLogs: parsed.csLogs ?? [],
     };
   } catch {
     return emptyState;
@@ -184,6 +228,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
       notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
       refills: seedIfEmpty(prev.refills, seedDemoRefills()),
+      lots: seedIfEmpty(prev.lots, seedLots()),
+      crs: seedIfEmpty(prev.crs, seedDemoCrs()),
+      envLogs: seedIfEmpty(prev.envLogs, seedEnvironmentLogs()),
+      equipmentLogs: seedIfEmpty(prev.equipmentLogs, seedEquipmentLogs()),
+      csLogs: seedIfEmpty(prev.csLogs, seedCsLogs()),
+      ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+      mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
     }));
   }, [commit]);
 
@@ -195,6 +246,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
       notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
       refills: seedIfEmpty(prev.refills, seedDemoRefills()),
+      lots: seedIfEmpty(prev.lots, seedLots()),
+      crs: seedIfEmpty(prev.crs, seedDemoCrs()),
+      envLogs: seedIfEmpty(prev.envLogs, seedEnvironmentLogs()),
+      equipmentLogs: seedIfEmpty(prev.equipmentLogs, seedEquipmentLogs()),
+      csLogs: seedIfEmpty(prev.csLogs, seedCsLogs()),
+      ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+      mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
     }));
   }, [commit]);
 
@@ -309,16 +367,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         scripts: state.scripts,
       };
       const receivedNote = notificationForStatus({ ...order, status: "Received" }, "Received");
-      commit((prev) => ({
-        ...prev,
-        cart: [],
-        scripts: [],
-        documents: [...state.scripts.map((doc) => ({ ...doc, orderId: order.id })), ...prev.documents],
-        orders: prev.orders.some((existing) => existing.id === order.id)
-          ? prev.orders
-          : [order, ...prev.orders],
-        notifications: receivedNote ? [receivedNote, ...prev.notifications] : prev.notifications,
-      }));
+      const pharmacist = "ISOSure lab";
+      commit((prev) => {
+        const crs = createCrsForOrder({
+          order,
+          mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
+          ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+          pharmacist,
+        });
+        return {
+          ...prev,
+          cart: [],
+          scripts: [],
+          documents: [...state.scripts.map((doc) => ({ ...doc, orderId: order.id })), ...prev.documents],
+          orders: prev.orders.some((existing) => existing.id === order.id)
+            ? prev.orders
+            : [order, ...prev.orders],
+          notifications: receivedNote ? [receivedNote, ...prev.notifications] : prev.notifications,
+          crs: [...crs, ...prev.crs],
+          lots: prev.lots.length ? prev.lots : seedLots(),
+          mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
+          ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+        };
+      });
       return order;
     },
     [commit, state.cart, state.products, state.scripts, state.user],
@@ -417,6 +488,97 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  const assignMfr: StoreValue["assignMfr"] = useCallback(
+    (crId, mfrId) => {
+      commit((prev) => ({
+        ...prev,
+        crs: prev.crs.map((item) => (item.id === crId ? { ...item, mfrId } : item)),
+      }));
+    },
+    [commit],
+  );
+
+  const advanceBatch: StoreValue["advanceBatch"] = useCallback(
+    (crId) => {
+      let error: string | null = null;
+      commit((prev) => {
+        const cr = prev.crs.find((item) => item.id === crId);
+        if (!cr) {
+          error = "Batch not found.";
+          return prev;
+        }
+        const pharmacist = prev.user?.role === "pharmacy" ? prev.user.contactName : "ISOSure lab";
+        const stepped = stepCr({
+          cr,
+          mfrs: prev.mfrs,
+          lots: prev.lots,
+          ingredients: prev.ingredients,
+          pharmacist,
+        });
+        if (stepped.error) {
+          error = stepped.error;
+          return prev;
+        }
+        const crs = prev.crs.map((item) => (item.id === crId ? stepped.cr : item));
+        const related = crs.filter((item) => item.orderId === cr.orderId);
+        const nextStatus = aggregateOrderStatus(related.map((item) => item.stage));
+        const order = prev.orders.find((item) => item.id === cr.orderId);
+        const statusChanged = nextStatus && order && order.status !== nextStatus;
+        const note =
+          statusChanged && order ? notificationForStatus({ ...order, status: nextStatus }, nextStatus) : null;
+        return {
+          ...prev,
+          crs,
+          lots: stepped.lots,
+          csLogs: [...stepped.csLogs, ...prev.csLogs],
+          orders: nextStatus
+            ? prev.orders.map((item) => (item.id === cr.orderId ? { ...item, status: nextStatus } : item))
+            : prev.orders,
+          notifications: note ? [note, ...prev.notifications] : prev.notifications,
+        };
+      });
+      return error;
+    },
+    [commit],
+  );
+
+  const addEnvironmentLog: StoreValue["addEnvironmentLog"] = useCallback(
+    (log) => {
+      commit((prev) => ({
+        ...prev,
+        envLogs: [{ ...log, id: crypto.randomUUID() }, ...prev.envLogs],
+      }));
+    },
+    [commit],
+  );
+
+  const addEquipmentLog: StoreValue["addEquipmentLog"] = useCallback(
+    (log) => {
+      commit((prev) => ({
+        ...prev,
+        equipmentLogs: [{ ...log, id: crypto.randomUUID() }, ...prev.equipmentLogs],
+      }));
+    },
+    [commit],
+  );
+
+  const receiveLot: StoreValue["receiveLot"] = useCallback(
+    (lot) => {
+      commit((prev) => ({
+        ...prev,
+        lots: [
+          {
+            ...lot,
+            id: crypto.randomUUID(),
+            remaining: lot.quantity,
+          },
+          ...prev.lots,
+        ],
+      }));
+    },
+    [commit],
+  );
+
   const getProduct = useCallback(
     (idOrSlug: string) =>
       state.products.find((p) => p.id === idOrSlug || p.slug === idOrSlug) ||
@@ -455,6 +617,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removeProduct,
       replaceFormulary,
       getProduct,
+      assignMfr,
+      advanceBatch,
+      addEnvironmentLog,
+      addEquipmentLog,
+      receiveLot,
     }),
     [
       state,
@@ -482,6 +649,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removeProduct,
       replaceFormulary,
       getProduct,
+      assignMfr,
+      advanceBatch,
+      addEnvironmentLog,
+      addEquipmentLog,
+      receiveLot,
     ],
   );
 

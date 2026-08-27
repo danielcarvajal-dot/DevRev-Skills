@@ -78,11 +78,11 @@ export default function LoginPage() {
           onSubmit={(e) => {
             e.preventDefault();
             signInPharmacy(pharmacy);
-            router.push("/admin/orders");
+            router.push("/ops");
           }}
         >
           <p className="font-semibold">Operations (pharmacy admin)</p>
-          <p className="text-sm text-ink-soft">Internal lab access. Compounding logic lives here, not in the provider portal.</p>
+          <p className="text-sm text-ink-soft">Internal LIMS/MOM. Compounding, BUD, and inventory live here — not in the provider portal.</p>
           <input required placeholder="Pharmacy name" className="w-full rounded-lg border border-line px-3 py-2" value={pharmacy.pharmacyName} onChange={(e) => setPharmacy({ ...pharmacy, pharmacyName: e.target.value })} />
           <input required placeholder="Pharmacist / admin name" className="w-full rounded-lg border border-line px-3 py-2" value={pharmacy.contactName} onChange={(e) => setPharmacy({ ...pharmacy, contactName: e.target.value })} />
           <input required type="email" placeholder="Lab email" className="w-full rounded-lg border border-line px-3 py-2" value={pharmacy.email} onChange={(e) => setPharmacy({ ...pharmacy, email: e.target.value })} />
@@ -95,7 +95,7 @@ export default function LoginPage() {
             className="w-full rounded-lg border border-line py-2.5 text-sm"
             onClick={() => {
               loadDemoPharmacy();
-              router.push("/admin/orders");
+              router.push("/ops");
             }}
           >
             Demo operations (Jordan Hale, RPh)

@@ -18,7 +18,10 @@ export default function HomePage() {
             logic stays in the lab — not in this portal.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/login" className="rounded-lg bg-purple-mid px-4 py-2 text-sm font-semibold">
+          <Link href="/ops" className="rounded-lg bg-purple-mid px-4 py-2 text-sm font-semibold">
+            Open Operations (lab)
+          </Link>
+          <Link href="/login" className="rounded-lg bg-purple-mid px-4 py-2 text-sm font-semibold">
               Provider or facility login
             </Link>
             <Link href="/catalog" className="rounded-lg border border-white/30 px-4 py-2 text-sm">
@@ -28,7 +31,7 @@ export default function HomePage() {
         </div>
         <img src={BRAND.logoInverse} alt="" className="mx-auto w-full max-w-xs" />
       </section>
-      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Link href="/catalog" className="rounded-xl border border-line bg-paper p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Submit</p>
           <h2 className="mt-2 text-lg font-semibold">Order submission</h2>
@@ -48,6 +51,11 @@ export default function HomePage() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Alerts</p>
           <h2 className="mt-2 text-lg font-semibold">Notifications</h2>
           <p className="mt-2 text-sm text-ink-soft">Backorder, clarification needed, ready for pickup or delivery.</p>
+        </Link>
+        <Link href="/ops" className="rounded-xl border border-line bg-paper p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Lab</p>
+          <h2 className="mt-2 text-lg font-semibold">Operations LIMS</h2>
+          <p className="mt-2 text-sm text-ink-soft">MFR, CR, BUD, HD flags, lots, and environment logs.</p>
         </Link>
       </div>
     </div>

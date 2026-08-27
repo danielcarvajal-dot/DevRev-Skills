@@ -11,6 +11,7 @@
   --paper: #ffffff;
   --bg: #f7f4fb;
   --danger: #9b1c3a;
+  --ok: #2f6d4f;
 }
 
 @theme inline {
@@ -24,6 +25,7 @@
   --color-paper: var(--paper);
   --color-bg: var(--bg);
   --color-danger: var(--danger);
+  --color-ok: var(--ok);
   --font-sans: var(--font-sans-body);
 }
 

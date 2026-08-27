@@ -105,13 +105,13 @@
         <p>pharmacy@isosure.example · (800) 555-4767</p>
       </div>
       <div>
-        <p>External provider portal: login, order status, refills, document exchange, and operations notifications. Compounding logic stays in the lab.</p>
+        <p>Two systems, one store: provider portal (thin client) and Operations LIMS/MOM for MFR, compounding records, BUD, inventory, and environment logs.</p>
       </div>
     </div>
   </footer>
 
 <script>
-const KEY = "isosure.practice.v3";
+const KEY = "isosure.practice.v4";
 const STATUS_LABEL = {Submitted:"Submitted to operations",Received:"Received by operations",ClarificationNeeded:"Clarification needed",Backorder:"Backordered",InProduction:"In production",ReadyPickup:"Ready for pickup",OutForDelivery:"Out for delivery",Delivered:"Delivered"};
 const STATUS_LIST = Object.keys(STATUS_LABEL);
 const DOC_LABEL = {rx:"Rx image",pa:"PA form",formula:"Patient-specific formula",other:"Other"};
@@ -142,7 +142,7 @@ const money = (n) => (Number(n)||0).toLocaleString("en-US",{style:"currency",cur
 const product = (id) => state.products.find(p => p.id === id);
 const doseOf = (p, id) => p.doses.find(d => d.id === id);
 
-let state = { user:null, cart:[], orders:[], products: DEFAULT_PRODUCTS, scripts:[], selections:{}, documents:[], notifications:[], refills:[] };
+let state = { user:null, cart:[], orders:[], products: DEFAULT_PRODUCTS, scripts:[], selections:{}, documents:[], notifications:[], refills:[], ingredients:[], lots:[], mfrs:[], crs:[], envLogs:[], equipmentLogs:[], csLogs:[] };
 try {
   const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
   state = Object.assign(state, saved, { selections: saved.selections || {} });
@@ -150,6 +150,13 @@ try {
   state.documents = state.documents || [];
   state.notifications = state.notifications || [];
   state.refills = state.refills || [];
+  state.ingredients = state.ingredients || [];
+  state.lots = state.lots || [];
+  state.mfrs = state.mfrs || [];
+  state.crs = state.crs || [];
+  state.envLogs = state.envLogs || [];
+  state.equipmentLogs = state.equipmentLogs || [];
+  state.csLogs = state.csLogs || [];
 } catch {}
 
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); chrome(); }
@@ -162,18 +169,19 @@ function route() {
   const [name, qs] = raw.split("?");
   const params = Object.fromEntries(new URLSearchParams(qs || ""));
   chrome();
-  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills};
+  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients};
   document.getElementById("app").innerHTML = (views[name] || home)(params);
 }
 function chrome() {
   const count = state.cart.reduce((s,i)=>s+i.quantity,0);
   const badge = document.getElementById("cartBadge");
-  badge.hidden = !count; badge.textContent = count;
+  document.getElementById("cartBadge").hidden = !count || u?.role === "pharmacy";
+  document.getElementById("cartBadge").textContent = count;
   const u = state.user;
   document.getElementById("roleBtn").textContent = u ? (u.role==="pharmacy" ? u.pharmacyName : u.practiceName) : "Sign in";
   const unread = (state.notifications||[]).filter(n=>!n.read).length;
   document.getElementById("nav").innerHTML = u?.role === "pharmacy"
-    ? `<a href="#formulary">Formulary</a><a href="#pharmacy">Operations queue</a><a href="#refills">Refills</a>`
+    ? `<a href="#ops">Lab</a><a href="#pharmacy">Intake</a><a href="#mfrs">MFRs</a><a href="#inventory">Inventory</a><a href="#environment">Environment</a>`
     : `<a href="#catalog">Submit order</a><a href="#practice">Order status</a><a href="#refills">Refills</a><a href="#documents">Documents</a><a href="#notifications">Notifications${unread?` (${unread})`:""}</a>`;
 }
 
@@ -233,6 +241,7 @@ function seedPortalIfEmpty() {
   if (!state.documents.length) state.documents = seedDemoDocuments();
   if (!state.notifications.length) state.notifications = seedDemoNotifications();
   if (!state.refills.length) state.refills = seedDemoRefills();
+  seedLimsIfEmpty();
 }
 function notifyForStatus(order, status) {
   const kinds = {Backorder:"backorder",ClarificationNeeded:"clarification",ReadyPickup:"ready_pickup",OutForDelivery:"ready_delivery",Received:"order_update",Delivered:"order_update"};
@@ -272,7 +281,7 @@ function home() {
         <p class="muted">This portal is a thin client to ISOSure Operations. Submit orders, exchange documents, request refills, and read status notifications. Clinical and compounding logic stays in the lab — not here.</p>
         <p>
           <button class="btn mid" onclick="go('login')">Provider or facility login</button>
-          <button class="btn ghost" onclick="go('catalog')">Start an order</button>
+          <button class="btn ghost" onclick="go('ops')">Open Operations (lab)</button>
         </p>
       </div>
       <img src="brand/isosure-logo-inverse.png" alt="" style="width:min(320px,100%);justify-self:end" />
@@ -460,6 +469,8 @@ function placeOrder(e) {
   state.documents = exchanged.concat(state.documents);
   state.orders.unshift(order);
   notifyForStatus({...order, status:"Received"}, "Received");
+  state.crs = createCrsForOrder(order).concat(state.crs || []);
+  seedLimsIfEmpty();
   state.cart = [];
   state.scripts = [];
   save();
@@ -511,7 +522,7 @@ function signPharmacy(e) {
   e.preventDefault();
   const f = e.target;
   state.user = {role:"pharmacy", pharmacyName:f.pharmacyName.value, contactName:f.contactName.value, email:f.email.value, phone:f.phone.value};
-  save(); go("pharmacy"); return false;
+  save(); go("ops"); return false;
 }
 function loadDoctor() {
   state.user = {role:"doctor", loginKind:"prescriber", practiceName:"Hawthorne Family Medicine", prescriberName:"Dr. Maya Ellison, MD", npi:"1234567890", dea:"BE1234563", email:"orders@hawthornefm.example", phone:"(503) 555-0148"};
@@ -521,7 +532,7 @@ function loadDoctor() {
 function loadPharmacy() {
   state.user = {role:"pharmacy", pharmacyName:"ISOSure Compounding Lab", contactName:"Jordan Hale, RPh", email:"pharmacy@isosure.example", phone:"(800) 555-4767"};
   seedPortalIfEmpty();
-  save(); go("pharmacy");
+  save(); go("ops");
 }
 
 function practice() {
@@ -557,6 +568,7 @@ function pharmacy() {
         <p class="muted">${state.user.contactName} · ${state.user.pharmacyName}. Status changes notify the provider portal. Compounding stays in Operations.</p>
       </div>
       <div>
+        <button class="btn ghost" onclick="go('ops')">Lab pipeline</button>
         <button class="btn ghost" onclick="go('refills')">Refill inbox</button>
         <button class="btn ghost" onclick="go('formulary')">Edit formulary</button>
         <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
@@ -579,6 +591,7 @@ function orderCards(orders, admin=false) {
       </div>
       ${o.items.map(i=>`<p>${i.productName} · ${i.doseLabel} × ${i.quantity}</p>`).join("")}
       ${o.scripts?.length ? `<p class="muted">${o.scripts.length} document${o.scripts.length>1?"s":""} on the ticket</p>` : `<p class="muted">Documents live in the exchange for this demo order</p>`}
+      ${admin ? `<ul>${(state.crs||[]).filter(c=>c.orderId===o.id).map(c=>`<li><a href="#batch?id=${c.id}">${c.batchLot} · ${STAGE_LABEL[c.stage]||c.stage}${c.hd?" · HD":""}</a></li>`).join("")}</ul>` : ""}
       ${admin ? `<label>Operations status (notifies provider)
         <select onchange="setOrderStatus('${o.id}', this.value)">
           ${STATUS_LIST.map(s=>`<option value="${s}" ${s===o.status?"selected":""}>${STATUS_LABEL[s]}</option>`).join("")}
@@ -872,6 +885,308 @@ function parseCsv(text) {
     const get = (k) => cols[headers.indexOf(k)] || "";
     return normalizeImported({name:get("name"), shortName:get("shortname"), category:get("category"), form:get("form"), summary:get("summary"), doses:get("doses")});
   });
+}
+
+const STAGE_LABEL = {intake:"Order intake",formula:"Formula / recipe",compounding:"Batch production",labeling:"Labeling",dispense:"Dispensing",shipped:"Shipping"};
+const STAGES = Object.keys(STAGE_LABEL);
+function daysFromNow(d) { return Date.now() + d*864e5; }
+function defaultIngredients() {
+  return [
+    {id:"estradiol",name:"Estradiol USP",cas:"50-28-2",niosh:2,hd:true,cs:null,unit:"g"},
+    {id:"progesterone",name:"Progesterone USP micronized",cas:"57-83-0",niosh:2,hd:true,cs:null,unit:"g"},
+    {id:"testosterone",name:"Testosterone USP",cas:"58-22-0",niosh:2,hd:true,cs:"III",unit:"g"},
+    {id:"tretinoin",name:"Tretinoin USP",cas:"302-79-4",niosh:3,hd:true,cs:null,unit:"g"},
+    {id:"dhea",name:"DHEA USP",cas:"53-43-0",niosh:2,hd:true,cs:null,unit:"g"},
+    {id:"naltrexone",name:"Naltrexone HCl USP",cas:"16676-29-2",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"ketoprofen",name:"Ketoprofen USP",cas:"22071-15-4",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"nad",name:"NAD+",cas:"53-84-9",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"versabase",name:"VersaBase cream",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"avicel",name:"Microcrystalline cellulose",cas:"9004-34-6",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"oil-cap",name:"Sunflower oil capsule fill",cas:"",niosh:null,hd:false,cs:null,unit:"mL"},
+    {id:"parabens",name:"Paraben blend",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"hydrogel",name:"Alcohol hydrogel base",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"nasal-vehicle",name:"Isotonic nasal vehicle",cas:"",niosh:null,hd:false,cs:null,unit:"mL"},
+    {id:"ns-water",name:"Sterile water for irrigation",cas:"7732-18-5",niosh:null,hd:false,cs:null,unit:"mL"}
+  ];
+}
+function defaultMfrs() {
+  return [
+    {id:"mfr-e2-05",productId:"estradiol-cream",doseId:"e2-05",title:"Estradiol 0.5 mg/g cream — MFR-795-014",chapter:"795",vehicle:"aqueous-preserved",preserved:true,refrig:false,form:"Cream",strength:"0.5 mg/g",batchSize:30,batchUnit:"g",hd:true,hdNote:"NIOSH Table 2. C-PEC, double gloves, gown.",stabilityDays:null,container:"30 g jar",storage:"CRT",lines:[{id:"estradiol",qty:0.015,unit:"g",role:"API"},{id:"parabens",qty:0.06,unit:"g",role:"excipient"},{id:"versabase",qty:29.925,unit:"g",role:"base"}],procedure:["PPE per USP <800>. Compound in C-PEC.","Weigh estradiol; adjust for lot potency.","Levigate into VersaBase; QS 30 g."],qc:["White cream","Weight ±2%"]},
+    {id:"mfr-p4-100",productId:"progesterone-caps",doseId:"p4-100",title:"Progesterone 100 mg capsules — MFR-795-022",chapter:"795",vehicle:"nonaqueous-solid",preserved:false,refrig:false,form:"Capsule",strength:"100 mg",batchSize:30,batchUnit:"caps",hd:true,hdNote:"NIOSH Table 2 hormone.",stabilityDays:90,container:"30-count vial",storage:"CRT",lines:[{id:"progesterone",qty:3,unit:"g",role:"API"},{id:"oil-cap",qty:15,unit:"mL",role:"base"}],procedure:["C-PEC for NIOSH Table 2.","Fill size 1 capsules. QS 30."],qc:["Fill weight ±5%"]},
+    {id:"mfr-ldn-45",productId:"ldn-caps",doseId:"ldn-45",title:"Naltrexone HCl 4.5 mg capsules — MFR-795-031",chapter:"795",vehicle:"nonaqueous-solid",preserved:false,refrig:false,form:"Capsule",strength:"4.5 mg",batchSize:30,batchUnit:"caps",hd:false,hdNote:"",stabilityDays:null,container:"30-count vial",storage:"CRT",lines:[{id:"naltrexone",qty:0.135,unit:"g",role:"API"},{id:"avicel",qty:6,unit:"g",role:"excipient"}],procedure:["Triturate with MCC. Fill size 3."],qc:["Content uniformity by weight"]},
+    {id:"mfr-keto-10",productId:"ketoprofen-cream",doseId:"keto-10",title:"Ketoprofen 10% cream — MFR-795-044",chapter:"795",vehicle:"aqueous-preserved",preserved:true,refrig:false,form:"Cream",strength:"10%",batchSize:60,batchUnit:"g",hd:false,hdNote:"",stabilityDays:45,container:"60 g jar",storage:"CRT",lines:[{id:"ketoprofen",qty:6,unit:"g",role:"API"},{id:"parabens",qty:0.12,unit:"g",role:"excipient"},{id:"versabase",qty:53.88,unit:"g",role:"base"}],procedure:["Levigate ketoprofen into VersaBase. QS 60 g."],qc:["No grit"]},
+    {id:"mfr-t-20",productId:"testosterone-gel",doseId:"t-20",title:"Testosterone 20 mg/mL gel — MFR-795-018",chapter:"795",vehicle:"aqueous-unpreserved",preserved:false,refrig:true,form:"Gel",strength:"20 mg/mL",batchSize:30,batchUnit:"mL",hd:true,hdNote:"NIOSH Table 2 + C-III. Vault count-in.",stabilityDays:null,container:"30 mL pump",storage:"Refrigerate",lines:[{id:"testosterone",qty:0.6,unit:"g",role:"API"},{id:"hydrogel",qty:29.4,unit:"g",role:"base"}],procedure:["Two-person CS count-in.","C-PEC. QS 30 mL."],qc:["CS log complete"]},
+    {id:"mfr-nad-50",productId:"nad-spray",doseId:"nad-50",title:"NAD+ 50 mg/mL nasal spray — MFR-797-003",chapter:"797",vehicle:"aqueous-unpreserved",preserved:false,refrig:true,sterileCat:1,form:"Nasal spray",strength:"50 mg/mL",batchSize:15,batchUnit:"mL",hd:false,hdNote:"",stabilityDays:null,container:"15 mL spray",storage:"Refrigerate",lines:[{id:"nad",qty:0.75,unit:"g",role:"API"},{id:"nasal-vehicle",qty:10,unit:"mL",role:"base"},{id:"ns-water",qty:4.25,unit:"mL",role:"excipient"}],procedure:["ISO 5 PEC in ISO 7 buffer. Category 1 CSP.","0.22 µm filter into bottle."],qc:["ISO 5 counts in spec"]}
+  ];
+}
+function defaultLots() {
+  return [
+    {id:"lot-e2-a",ingredientId:"estradiol",lotNumber:"E2-24091",expiresAt:daysFromNow(280),remaining:41.2,quantity:50,unit:"g",potencyPct:99.2,coaName:"COA-E2-24091.pdf",quarantine:false,supplier:"PCCA"},
+    {id:"lot-p4-a",ingredientId:"progesterone",lotNumber:"P4-24112",expiresAt:daysFromNow(310),remaining:86,quantity:100,unit:"g",potencyPct:99.4,coaName:"COA-P4-24112.pdf",quarantine:false,supplier:"Medisca"},
+    {id:"lot-t-a",ingredientId:"testosterone",lotNumber:"TES-CIII-8831",expiresAt:daysFromNow(200),remaining:18.4,quantity:25,unit:"g",potencyPct:98.8,coaName:"COA-TES-8831.pdf",quarantine:false,supplier:"Letco"},
+    {id:"lot-ldn-a",ingredientId:"naltrexone",lotNumber:"NTX-25014",expiresAt:daysFromNow(400),remaining:22.1,quantity:25,unit:"g",potencyPct:99.6,coaName:"COA-NTX-25014.pdf",quarantine:false,supplier:"Letco"},
+    {id:"lot-keto-a",ingredientId:"ketoprofen",lotNumber:"KETO-23990",expiresAt:daysFromNow(18),remaining:144,quantity:200,unit:"g",potencyPct:99.5,coaName:"COA-KETO-23990.pdf",quarantine:false,supplier:"PCCA"},
+    {id:"lot-keto-exp",ingredientId:"ketoprofen",lotNumber:"KETO-22101",expiresAt:daysFromNow(-12),remaining:6,quantity:50,unit:"g",potencyPct:99.1,coaName:"COA-KETO-22101.pdf",quarantine:true,supplier:"PCCA"},
+    {id:"lot-vb-a",ingredientId:"versabase",lotNumber:"VB-25002",expiresAt:daysFromNow(500),remaining:1640,quantity:2000,unit:"g",potencyPct:100,coaName:"COA-VB-25002.pdf",quarantine:false,supplier:"PCCA"},
+    {id:"lot-avicel-a",ingredientId:"avicel",lotNumber:"MCC-24880",expiresAt:daysFromNow(600),remaining:820,quantity:1000,unit:"g",potencyPct:100,coaName:"COA-MCC-24880.pdf",quarantine:false,supplier:"Spectrum"},
+    {id:"lot-oil-a",ingredientId:"oil-cap",lotNumber:"SO-25008",expiresAt:daysFromNow(220),remaining:1710,quantity:2000,unit:"mL",potencyPct:100,coaName:"COA-SO-25008.pdf",quarantine:false,supplier:"Medisca"},
+    {id:"lot-parab-a",ingredientId:"parabens",lotNumber:"PB-24101",expiresAt:daysFromNow(340),remaining:91,quantity:100,unit:"g",potencyPct:100,coaName:"COA-PB-24101.pdf",quarantine:false,supplier:"Letco"},
+    {id:"lot-nad-a",ingredientId:"nad",lotNumber:"NAD-25021",expiresAt:daysFromNow(90),remaining:8.2,quantity:10,unit:"g",potencyPct:98,coaName:"COA-NAD-25021.pdf",quarantine:false,supplier:"Fagron"},
+    {id:"lot-nsw-a",ingredientId:"ns-water",lotNumber:"SW-26011",expiresAt:daysFromNow(700),remaining:3500,quantity:4000,unit:"mL",potencyPct:100,coaName:"COA-SW-26011.pdf",quarantine:false,supplier:"Hospira"},
+    {id:"lot-nasal-a",ingredientId:"nasal-vehicle",lotNumber:"NV-25004",expiresAt:daysFromNow(180),remaining:860,quantity:1000,unit:"mL",potencyPct:100,coaName:"COA-NV-25004.pdf",quarantine:false,supplier:"PCCA"}
+  ];
+}
+function defaultEnv() {
+  return [
+    {id:"env-1",area:"Nonsterile suite",iso:"unclassified",temp:21.4,rh:44,at:Date.now()-2*36e5,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-2",area:"HD C-PEC room",iso:"unclassified",temp:22.1,rh:41,at:Date.now()-2*36e5,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-3",area:"ISO 7 buffer",iso:"ISO 7",temp:20.8,rh:48,at:Date.now()-90*60e3,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-4",area:"ISO 5 PEC",iso:"ISO 5",temp:20.6,rh:47,at:Date.now()-90*60e3,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-5",area:"CS fridge",iso:"unclassified",temp:4.2,rh:38,at:Date.now()-30*60e3,by:"Jordan Hale, RPh",ok:true}
+  ];
+}
+function defaultEquip() {
+  return [
+    {id:"eq-1",name:"Mettler XPR analytical balance",kind:"balance",reading:"Internal cal pass · 100.0002 g",at:Date.now()-864e5,by:"Jordan Hale, RPh"},
+    {id:"eq-2",name:"C-PEC",kind:"hood",reading:"Face velocity 100 fpm",at:Date.now()-2*864e5,by:"Jordan Hale, RPh"},
+    {id:"eq-3",name:"ISO 5 LAFW",kind:"hood",reading:"Smoke study current",at:Date.now()-864e5,by:"Jordan Hale, RPh"}
+  ];
+}
+function defaultCrs() {
+  const now = Date.now();
+  return [
+    {id:"cr-e2-1",mfrId:"mfr-e2-05",orderId:"demo-order-1",productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",patientName:"Avery Nguyen",batchLot:"CR-20260814-4412",stage:"compounding",hd:true,createdAt:now-12*864e5,budHours:35*24,budDate:now-12*864e5+35*864e5,budBasis:"USP <795> preserved aqueous: 35 days CRT",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[{ingredientId:"estradiol",lotId:"lot-e2-a",formulaQty:0.015,weighedQty:0.015,unit:"g",potencyPct:99.2},{ingredientId:"versabase",lotId:"lot-vb-a",formulaQty:29.925,weighedQty:29.925,unit:"g",potencyPct:100}],labelText:"",notes:"Match last fill."},
+    {id:"cr-p4-1",mfrId:"mfr-p4-100",orderId:"demo-order-1",productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",patientName:"Avery Nguyen",batchLot:"CR-20260814-4413",stage:"formula",hd:true,createdAt:now-12*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Match last fill."},
+    {id:"cr-ldn-2",mfrId:"mfr-ldn-45",orderId:"demo-order-2",productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",patientName:"Sam Rivera",batchLot:"CR-20260822-1090",stage:"intake",hd:false,createdAt:now-4*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Clarification pending."},
+    {id:"cr-keto-3",mfrId:"mfr-keto-10",orderId:"demo-order-3",productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",patientName:"Lee Park",batchLot:"CR-20260824-7721",stage:"dispense",hd:false,createdAt:now-2*864e5,budHours:45*24,budDate:now-2*864e5+45*864e5,budBasis:"In-house stability study: 45 days",budStorage:"CRT",cappedBy:"stability",ingredientsUsed:[{ingredientId:"ketoprofen",lotId:"lot-keto-a",formulaQty:6,weighedQty:6.03,unit:"g",potencyPct:99.5}],labelText:"IsoEase Ketoprofen Cream 10%\\nPatient: Lee Park\\nBatch CR-20260824-7721\\nBUD · store CRT\\nUSP <795>",notes:""}
+  ];
+}
+function seedLimsIfEmpty() {
+  if (!state.ingredients.length) state.ingredients = defaultIngredients();
+  if (!state.mfrs.length) state.mfrs = defaultMfrs();
+  if (!state.lots.length) state.lots = defaultLots();
+  if (!state.crs.length) state.crs = defaultCrs();
+  if (!state.envLogs.length) state.envLogs = defaultEnv();
+  if (!state.equipmentLogs.length) state.equipmentLogs = defaultEquip();
+  if (!state.csLogs) state.csLogs = [];
+}
+function ingName(id) { return (state.ingredients.find(i=>i.id===id)||{}).name || id; }
+function calculateBud(mfr, lotExpires, compoundedAt) {
+  compoundedAt = compoundedAt || Date.now();
+  const day = 24;
+  let hours, storage, basis, cappedBy = "chapter";
+  if (mfr.chapter === "797") {
+    hours = mfr.refrig ? 24 : 12;
+    storage = "refrigerated";
+    basis = "USP <797> Category 1: " + hours + " hours";
+  } else if (mfr.vehicle === "aqueous-unpreserved") {
+    hours = 14 * day; storage = "refrigerated"; basis = "USP <795> non-preserved aqueous: 14 days refrigerated";
+  } else if (mfr.vehicle === "aqueous-preserved") {
+    hours = 35 * day; storage = mfr.refrig ? "refrigerated" : "CRT"; basis = "USP <795> preserved aqueous: 35 days";
+  } else if (mfr.vehicle === "nonaqueous-liquid") {
+    hours = 90 * day; storage = "CRT"; basis = "USP <795> nonaqueous oral liquid: 90 days";
+  } else {
+    hours = 180 * day; storage = "CRT"; basis = "USP <795> other nonaqueous: 180 days";
+  }
+  if (mfr.stabilityDays && mfr.stabilityDays * day < hours) {
+    hours = mfr.stabilityDays * day; cappedBy = "stability"; basis = "In-house stability study: " + mfr.stabilityDays + " days";
+  }
+  const earliest = (lotExpires||[]).filter(Boolean).sort((a,b)=>a-b)[0];
+  if (earliest) {
+    const until = Math.max(0, Math.floor((earliest - compoundedAt) / 36e5));
+    if (until < hours) { hours = until; cappedBy = "ingredient"; basis = "Capped by earliest ingredient expiration"; }
+  }
+  return { hours, date: compoundedAt + hours * 36e5, storage, basis, cappedBy };
+}
+function pickLot(ingredientId) {
+  return (state.lots||[]).filter(l => l.ingredientId===ingredientId && !l.quarantine && l.remaining>0 && l.expiresAt > Date.now())
+    .sort((a,b)=>a.expiresAt-b.expiresAt)[0];
+}
+function createCrsForOrder(order) {
+  seedLimsIfEmpty();
+  return order.items.map(item => {
+    const mfr = state.mfrs.find(m => m.productId===item.productId && m.doseId===item.doseId) || state.mfrs.find(m => m.productId===item.productId);
+    return {id:crypto.randomUUID(), mfrId:mfr?.id||"", orderId:order.id, productName:item.productName, doseLabel:item.doseLabel, patientName:order.patientName, batchLot:"CR-"+Date.now().toString().slice(-8), stage:"intake", hd:!!mfr?.hd, createdAt:Date.now(), budHours:0, budDate:"", budBasis:"", budStorage:"CRT", cappedBy:"chapter", ingredientsUsed:[], labelText:"", notes:order.notes||""};
+  });
+}
+function requireOps() {
+  if (!state.user || state.user.role!=="pharmacy") return `<h1>Lab sign-in required</h1><p class="muted">The LIMS/MOM core is internal.</p><button class="btn" onclick="go('login')">Operations login</button>`;
+}
+function ops() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty(); save();
+  const expired = state.lots.filter(l => l.expiresAt < Date.now()).length;
+  const soon = state.lots.filter(l => l.expiresAt >= Date.now() && l.expiresAt < Date.now()+30*864e5).length;
+  const hdOpen = state.crs.filter(c => c.hd && c.stage!=="shipped").length;
+  return `
+    <p class="kicker">Operations · LIMS / MOM</p>
+    <h1>Electric Lab</h1>
+    <p class="muted">Orders arrive from the provider portal. This system owns MFR, compounding records, BUD, lot traceability, USP &lt;800&gt; HD flags, inventory, and environment logs.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin:1rem 0">
+      <div class="tile" onclick="go('pharmacy')"><p class="kicker">Intake</p><strong>${state.orders.length} portal orders</strong></div>
+      <div class="tile" onclick="go('inventory')"><p class="kicker">Inventory</p><strong>${expired} expired · ${soon} &lt;30d</strong></div>
+      <div class="tile" onclick="go('ingredients')"><p class="kicker">USP &lt;800&gt;</p><strong>${hdOpen} open HD batches</strong></div>
+      <div class="tile" onclick="go('environment')"><p class="kicker">Environment</p><strong>${state.envLogs.length} readings</strong></div>
+    </div>
+    <h2>Production pipeline</h2>
+    <p class="muted">Intake → formula/recipe → batch production → labeling → dispensing/shipping</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:1rem">
+      ${STAGES.map(s => {
+        const rows = state.crs.filter(c=>c.stage===s);
+        return `<div class="panel pad"><p class="kicker">${STAGE_LABEL[s]}</p><strong>${rows.length}</strong>${rows.slice(0,3).map(c=>`<p><a href="#batch?id=${c.id}">${c.patientName.split(" ")[0]} · ${c.doseLabel}</a>${c.hd?" <span class='danger'>HD</span>":""}</p>`).join("")||"<p class='muted'>Empty</p>"}</div>`;
+      }).join("")}
+    </div>`;
+}
+function mfrs() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">USP &lt;795&gt; / &lt;797&gt;</p>
+    <h1>Master Formulation Records</h1>
+    <p class="muted">Recipe source of truth. Each MFR drives BUD defaults and HD precautions.</p>
+    ${state.mfrs.map(m=>`<article class="panel pad" style="margin:.7rem 0"><p class="kicker">USP &lt;${m.chapter}&gt; · ${m.vehicle}${m.hd?" · HD":""}</p><h2><a href="#mfr?id=${m.id}">${m.title}</a></h2><p class="muted">${m.strength} · batch ${m.batchSize} ${m.batchUnit}</p></article>`).join("")}`;
+}
+function mfr(params) {
+  const gate = requireOps(); if (gate) return gate;
+  const rec = state.mfrs.find(m=>m.id===params.id);
+  if (!rec) return `<h1>MFR not found</h1>`;
+  const bud = calculateBud(rec, rec.lines.map(l => (pickLot(l.id)||{}).expiresAt));
+  return `
+    <p class="kicker">Master Formulation Record · USP &lt;${rec.chapter}&gt;</p>
+    <h1>${rec.title}</h1>
+    ${rec.hdNote?`<p class="danger">USP &lt;800&gt;: ${rec.hdNote}</p>`:""}
+    <div class="panel pad"><strong>BUD engine preview</strong><p>${Math.round(bud.hours/24*10)/10} days · ${bud.storage} · capped by ${bud.cappedBy}</p><p class="muted">${bud.basis}</p></div>
+    <div class="panel pad" style="margin-top:1rem"><strong>Formula</strong>
+      <table><thead><tr><th>Ingredient</th><th>Qty</th><th>Role</th><th>NIOSH</th></tr></thead>
+      <tbody>${rec.lines.map(l=>{const i=state.ingredients.find(x=>x.id===l.id)||{};return `<tr><td>${i.name||l.id}</td><td>${l.qty} ${l.unit}</td><td>${l.role}</td><td class="${i.hd?"danger":""}">${i.niosh?("Table "+i.niosh):"—"}${i.cs?" · C-"+i.cs:""}</td></tr>`;}).join("")}</tbody></table>
+      <ol>${rec.procedure.map(s=>`<li>${s}</li>`).join("")}</ol>
+    </div>
+    <p><button class="btn ghost" onclick="go('mfrs')">All MFRs</button></p>`;
+}
+function batch(params) {
+  const gate = requireOps(); if (gate) return gate;
+  const cr = state.crs.find(c=>c.id===params.id);
+  if (!cr) return `<h1>Compounding record not found</h1>`;
+  const rec = state.mfrs.find(m=>m.id===cr.mfrId);
+  return `
+    <p class="kicker">Compounding record · ${STAGE_LABEL[cr.stage]}${cr.hd?" · USP <800> HD":""}</p>
+    <h1>${cr.productName} · ${cr.doseLabel}</h1>
+    <p class="muted">${cr.patientName} · ${cr.batchLot}</p>
+    ${cr.stage!=="shipped"?`<button class="btn" onclick="advanceBatch('${cr.id}')">Advance to next stage</button>`:""}
+    <div class="panel pad" style="margin-top:1rem"><strong>1. Order intake</strong><p class="muted">Received from the provider portal. Compounding math stays in the lab.</p></div>
+    <div class="panel pad" style="margin-top:1rem"><strong>2. Formula / recipe (MFR)</strong>
+      <label>Assigned MFR<select onchange="assignMfr('${cr.id}', this.value)"><option value="">Select</option>${state.mfrs.map(m=>`<option value="${m.id}" ${m.id===cr.mfrId?"selected":""}>${m.title}</option>`).join("")}</select></label>
+      ${rec?`<p><a href="#mfr?id=${rec.id}">Open MFR</a> · USP &lt;${rec.chapter}&gt;</p>`:`<p class="danger">No MFR assigned.</p>`}
+    </div>
+    <div class="panel pad" style="margin-top:1rem"><strong>3. Batch production · lot traceability</strong>
+      ${cr.ingredientsUsed.length?`<table><thead><tr><th>Ingredient</th><th>Lot</th><th>Formula</th><th>Weigh</th><th>Assay</th></tr></thead><tbody>${cr.ingredientsUsed.map(r=>{const lot=state.lots.find(l=>l.id===r.lotId);return `<tr><td>${ingName(r.ingredientId)}</td><td>${lot?lot.lotNumber:"—"}</td><td>${r.formulaQty} ${r.unit}</td><td>${r.weighedQty} ${r.unit}</td><td>${r.potencyPct}%</td></tr>`;}).join("")}</tbody></table>`:`<p class="muted">Advance from formula to lock FEFO lots, potency-adjusted weighs, and BUD.</p>`}
+    </div>
+    <div class="panel pad" style="margin-top:1rem"><strong>BUD</strong>
+      ${cr.budHours?`<p>${Math.round(cr.budHours/24*10)/10} days · store ${cr.budStorage} · ${cr.budDate?new Date(cr.budDate).toLocaleDateString():""}</p><p class="muted">${cr.budBasis}</p>`:`<p class="muted">Calculated when the batch leaves formula.</p>`}
+    </div>
+    <div class="panel pad" style="margin-top:1rem"><strong>4–5. Labeling · dispensing / shipping</strong>
+      ${cr.labelText?`<pre style="white-space:pre-wrap">${cr.labelText}</pre>`:`<p class="muted">Label prints at the labeling → dispense step.</p>`}
+    </div>`;
+}
+function assignMfr(crId, mfrId) {
+  const cr = state.crs.find(c=>c.id===crId); if (!cr) return;
+  const mfr = state.mfrs.find(m=>m.id===mfrId);
+  cr.mfrId = mfrId; cr.hd = !!mfr?.hd; save(); route();
+}
+function advanceBatch(crId) {
+  const cr = state.crs.find(c=>c.id===crId); if (!cr) return;
+  const rec = state.mfrs.find(m=>m.id===cr.mfrId);
+  const next = {intake:"formula",formula:"compounding",compounding:"labeling",labeling:"dispense",dispense:"shipped"}[cr.stage];
+  if (!next) return;
+  if ((next==="formula" || next==="compounding") && !rec) { alert("Assign an MFR first."); return; }
+  if (next==="compounding") {
+    const missing = [];
+    cr.ingredientsUsed = rec.lines.map(line => {
+      const lot = pickLot(line.id);
+      if (!lot) { missing.push(ingName(line.id)); return {ingredientId:line.id,lotId:"",formulaQty:line.qty,weighedQty:line.qty,unit:line.unit,potencyPct:100}; }
+      const weighed = Math.round(line.qty * (100/(lot.potencyPct||100)) * 1000)/1000;
+      return {ingredientId:line.id,lotId:lot.id,formulaQty:line.qty,weighedQty:weighed,unit:line.unit,potencyPct:lot.potencyPct};
+    });
+    if (missing.length) { alert("Missing usable lot for: " + missing.join(", ")); return; }
+    const bud = calculateBud(rec, cr.ingredientsUsed.map(r => (state.lots.find(l=>l.id===r.lotId)||{}).expiresAt));
+    cr.budHours = bud.hours; cr.budDate = bud.date; cr.budBasis = bud.basis; cr.budStorage = bud.storage; cr.cappedBy = bud.cappedBy;
+  }
+  if (next==="labeling") {
+    cr.ingredientsUsed.forEach(r => {
+      const lot = state.lots.find(l=>l.id===r.lotId); if (!lot) return;
+      lot.remaining = Math.max(0, Math.round((lot.remaining - r.weighedQty)*1000)/1000);
+      const ing = state.ingredients.find(i=>i.id===r.ingredientId);
+      if (ing && ing.cs) state.csLogs.unshift({id:crypto.randomUUID(), at:Date.now(), ingredientId:ing.id, lotId:lot.id, crId:cr.id, quantity:r.weighedQty, unit:r.unit, remaining:lot.remaining, pharmacist:state.user.contactName});
+    });
+  }
+  if (next==="dispense") {
+    cr.labelText = (rec.hd?"HAZARDOUS DRUG — USP <800>\\n":"") + cr.productName + " " + cr.doseLabel + "\\nPatient: " + cr.patientName + "\\nBatch " + cr.batchLot + "\\nBUD " + (cr.budDate?new Date(cr.budDate).toLocaleDateString():"—") + " · store " + cr.budStorage + "\\nUSP <" + rec.chapter + ">";
+  }
+  cr.stage = next;
+  const related = state.crs.filter(c=>c.orderId===cr.orderId);
+  const rank = STAGES;
+  const lowest = related.reduce((min,c)=> rank.indexOf(c.stage) < rank.indexOf(min) ? c.stage : min, related[0].stage);
+  const map = {intake:"Received",formula:"InProduction",compounding:"InProduction",labeling:"InProduction",dispense:"ReadyPickup",shipped:"OutForDelivery"};
+  const status = map[lowest];
+  const order = state.orders.find(o=>o.id===cr.orderId);
+  if (order && status && order.status !== status) { order.status = status; notifyForStatus(order, status); }
+  save(); route();
+}
+function inventory() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">Operations inventory</p>
+    <h1>Lots, COAs, expiration, controlled substances</h1>
+    <p class="muted">FEFO during compounding. Expired and quarantined lots cannot be used. C-III issues write the perpetual log.</p>
+    <div class="panel" style="overflow:auto;margin-top:1rem"><table>
+      <thead><tr><th>Lot</th><th>Ingredient</th><th>Remaining</th><th>Assay</th><th>Expires</th><th>COA</th><th>Status</th></tr></thead>
+      <tbody>${state.lots.map(l=>{
+        const expired = l.expiresAt < Date.now(); const soon = !expired && l.expiresAt < Date.now()+30*864e5;
+        const flag = l.quarantine?"Quarantine":expired?"Expired":soon?"Expiring":"Released";
+        const ing = state.ingredients.find(i=>i.id===l.ingredientId)||{};
+        return `<tr><td>${l.lotNumber}</td><td>${ing.name||l.ingredientId}${ing.niosh?" <span class='danger'>NIOSH T"+ing.niosh+"</span>":""}${ing.cs?" C-"+ing.cs:""}</td><td>${l.remaining} ${l.unit}</td><td>${l.potencyPct}%</td><td>${new Date(l.expiresAt).toLocaleDateString()}</td><td>${l.coaName}</td><td class="${expired||l.quarantine?"danger":""}">${flag}</td></tr>`;
+      }).join("")}</tbody></table></div>
+    <h2 style="margin-top:1.5rem">Controlled substance log</h2>
+    ${(state.csLogs||[]).length?state.csLogs.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${ingName(l.ingredientId)} · ${l.quantity} ${l.unit}</strong><p class="muted">${new Date(l.at).toLocaleString()} · remaining ${l.remaining} · ${l.pharmacist}</p></article>`).join(""):"<p class='muted'>No CS issues yet. Advance a testosterone batch through production to write a line.</p>"}`;
+}
+function environment() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">Not owned by QMS</p>
+    <h1>Equipment &amp; environment logs</h1>
+    <p class="muted">Temp, humidity, and ISO classification for compounding areas.</p>
+    <form class="panel pad grid" style="margin:1rem 0" onsubmit="return addEnv(event)">
+      <strong>Record environment</strong>
+      <input name="area" required placeholder="Area" value="Nonsterile suite">
+      <select name="iso"><option>unclassified</option><option>ISO 8</option><option>ISO 7</option><option>ISO 5</option></select>
+      <div class="grid" style="grid-template-columns:1fr 1fr"><input name="temp" required placeholder="°C" value="21.5"><input name="rh" required placeholder="% RH" value="45"></div>
+      <button class="btn" type="submit">Save reading</button>
+    </form>
+    ${state.envLogs.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${l.area} · ${l.iso} · ${l.temp} °C · ${l.rh}% RH</strong><p class="muted">${new Date(l.at).toLocaleString()} · ${l.by} · ${l.ok?"In spec":"OUT OF SPEC"}</p></article>`).join("")}
+    <h2>Equipment</h2>
+    ${state.equipmentLogs.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${l.name}</strong><p>${l.reading}</p><p class="muted">${new Date(l.at).toLocaleString()} · ${l.by}</p></article>`).join("")}`;
+}
+function addEnv(e) {
+  e.preventDefault();
+  const f = e.target;
+  const temp = Number(f.temp.value), rh = Number(f.rh.value);
+  const ok = temp>=20 && temp<=25 && rh>=30 && rh<=60;
+  state.envLogs.unshift({id:crypto.randomUUID(), area:f.area.value, iso:f.iso.value, temp, rh, at:Date.now(), by:state.user.contactName, ok});
+  save(); route(); return false;
+}
+function ingredients() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">USP &lt;800&gt;</p>
+    <h1>Hazardous drug list (NIOSH)</h1>
+    <p class="muted">Table 1 antineoplastics, Table 2 non-antineoplastic HDs, Table 3 reproductive risk.</p>
+    <div class="panel" style="overflow:auto"><table>
+      <thead><tr><th>Ingredient</th><th>CAS</th><th>NIOSH</th><th>HD</th><th>CS</th></tr></thead>
+      <tbody>${state.ingredients.map(i=>`<tr><td>${i.name}</td><td>${i.cas||"—"}</td><td class="${i.niosh?"danger":""}">${i.niosh?("Table "+i.niosh):"—"}</td><td>${i.hd?"Yes":"No"}</td><td>${i.cs?("C-"+i.cs):"—"}</td></tr>`).join("")}</tbody>
+    </table></div>`;
 }
 
 window.addEventListener("hashchange", route);

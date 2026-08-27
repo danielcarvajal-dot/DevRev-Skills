@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/recommendations.test.ts"
+    "test": "tsx --test lib/recommendations.test.ts lib/bud.test.ts lib/lims.test.ts"
   },
   "dependencies": {
     "next": "16.3.2",

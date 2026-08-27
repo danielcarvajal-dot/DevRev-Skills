@@ -15,11 +15,11 @@ export function Footer() {
         </div>
         <div className="text-sm text-purple-soft">
           <p>
-            External provider portal: login, order status, refills, document exchange, and
-            operations notifications. Compounding logic stays in the lab.
+            Two systems, one store: the provider portal is a thin client; Operations is the LIMS/MOM
+            for MFR, compounding records, BUD, inventory, and environment logs.
           </p>
-          <Link href="/login" className="mt-3 inline-block underline underline-offset-4">
-            Provider login
+          <Link href="/ops" className="mt-3 inline-block underline underline-offset-4">
+            Open Operations
           </Link>
         </div>
       </div>

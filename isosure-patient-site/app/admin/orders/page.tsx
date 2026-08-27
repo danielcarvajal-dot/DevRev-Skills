@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { formatDate, formatMoney, orderNumber } from "@/lib/format";
+import { CR_STAGE_LABEL } from "@/lib/lims";
 import { ORDER_STATUSES, PROVIDER_STATUS_LABEL } from "@/lib/operations";
 import { useStore } from "@/lib/store";
 import type { OrderStatus } from "@/lib/types";
 
 export default function AdminOrdersPage() {
-  const { user, orders, ready, signOut, setOrderStatus } = useStore();
+  const { user, orders, crs, ready, signOut, setOrderStatus } = useStore();
 
   if (!ready) return <div className="mx-auto max-w-6xl px-4 py-16 text-ink-soft">Loading queue…</div>;
   if (user?.role !== "pharmacy") {
@@ -33,6 +34,9 @@ export default function AdminOrdersPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Link href="/ops" className="rounded-lg border border-line px-4 py-2 text-sm">
+            Lab pipeline
+          </Link>
           <Link href="/admin/refills" className="rounded-lg border border-line px-4 py-2 text-sm">
             Refills
           </Link>
@@ -71,6 +75,18 @@ export default function AdminOrdersPage() {
             <p className="mt-2 text-sm text-ink-soft">
               {order.scripts.length} document{order.scripts.length === 1 ? "" : "s"} on the ticket
             </p>
+            <ul className="mt-2 text-sm">
+              {crs
+                .filter((cr) => cr.orderId === order.id)
+                .map((cr) => (
+                  <li key={cr.id}>
+                    <Link href={`/ops/batches/${cr.id}`} className="underline underline-offset-4">
+                      CR {cr.batchLot} · {CR_STAGE_LABEL[cr.stage]}
+                      {cr.hd ? " · HD" : ""}
+                    </Link>
+                  </li>
+                ))}
+            </ul>
             <label className="mt-3 block max-w-sm text-sm">
               Operations status (notifies provider)
               <select
