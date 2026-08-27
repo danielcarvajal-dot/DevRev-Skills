@@ -18,7 +18,7 @@ set -euo pipefail
 
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="${PRINTER_DRIVER_LOG:-/tmp/install-printer-driver.log}"
+LOG_FILE=""
 
 DRIVERS="generic"          # generic | core | vendor | all
 PDF_PRINTER=1              # on by default: VMs rarely have a physical printer
@@ -75,11 +75,27 @@ Examples:
 EOF
 }
 
+init_log() {
+  if [[ -n "${PRINTER_DRIVER_LOG:-}" ]]; then
+    LOG_FILE="$PRINTER_DRIVER_LOG"
+  elif [[ "$(id -u)" -eq 0 ]]; then
+    LOG_FILE="/var/log/install-printer-driver.log"
+  else
+    LOG_FILE="${TMPDIR:-/tmp}/install-printer-driver-$USER.log"
+  fi
+  if ! : >"$LOG_FILE" 2>/dev/null; then
+    LOG_FILE="${TMPDIR:-/tmp}/install-printer-driver-$(id -u).log"
+    : >"$LOG_FILE" 2>/dev/null || LOG_FILE="/dev/null"
+  fi
+}
+
 log() {
   local level="$1"; shift
   local ts
   ts="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-  printf '%s [%s] %s\n' "$ts" "$level" "$*" | tee -a "$LOG_FILE" >/dev/null
+  if [[ -n "$LOG_FILE" && "$LOG_FILE" != "/dev/null" ]]; then
+    printf '%s [%s] %s\n' "$ts" "$level" "$*" >>"$LOG_FILE" 2>/dev/null || true
+  fi
   case "$level" in
     INFO)  printf '%b[INFO]%b  %s\n' "$BLUE" "$NC" "$*" ;;
     OK)    printf '%b[OK]%b    %s\n' "$GREEN" "$NC" "$*" ;;
@@ -183,7 +199,12 @@ pkg_install() {
   case "$OS_ID" in
     ubuntu|debian|linuxmint|pop)
       export DEBIAN_FRONTEND=noninteractive
+      export NEEDRESTART_MODE=a
       run apt-get update -y
+      if [[ "$DRY_RUN" -eq 1 ]]; then
+        log INFO "dry-run: apt-get install -y --no-install-recommends ${pkgs[*]}"
+        return 0
+      fi
       # Install what exists; skip packages the distro does not ship.
       local available=()
       local pkg
@@ -194,9 +215,10 @@ pkg_install() {
           log WARN "Package not available, skipping: $pkg"
         fi
       done
-      if [[ ${#available[@]} -gt 0 ]]; then
-        run apt-get install -y --no-install-recommends "${available[@]}"
+      if [[ ${#available[@]} -eq 0 ]]; then
+        die "No printer packages were available. Check apt sources and network."
       fi
+      run apt-get install -y --no-install-recommends "${available[@]}"
       ;;
     fedora|rhel|centos|rocky|almalinux|ol)
       if command -v dnf >/dev/null 2>&1; then
@@ -289,21 +311,38 @@ driver_packages() {
   printf '%s\n' "${pkgs[@]}"
 }
 
+cups_is_running() {
+  [[ -S /run/cups/cups.sock || -S /var/run/cups/cups.sock ]] || lpstat -r >/dev/null 2>&1
+}
+
+start_cupsd_direct() {
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    log INFO "dry-run: mkdir -p cups runtime dirs && cupsd"
+    return 0
+  fi
+  command -v cupsd >/dev/null 2>&1 || die "cupsd not found; CUPS package install likely failed"
+  run mkdir -p /run/cups /var/run/cups /var/spool/cups /var/cache/cups /var/log/cups /etc/cups
+  if cups_is_running; then
+    log OK "CUPS already running"
+    return 0
+  fi
+  run cupsd
+}
+
 start_cups() {
   [[ "$START_CUPS" -eq 1 ]] || { log INFO "Not starting CUPS (--no-start)"; return 0; }
 
-  if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+  if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
     run systemctl enable --now cups || run systemctl enable --now cups.service || true
-    # Some distros split the socket/service.
     run systemctl enable --now cups.socket 2>/dev/null || true
-  elif command -v service >/dev/null 2>&1; then
+  elif command -v service >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
     run service cups start || run service cupsd start || true
   elif command -v rc-service >/dev/null 2>&1; then
     run rc-update add cupsd default || true
     run rc-service cupsd start || true
   else
-    log WARN "No service manager found; start cupsd yourself"
-    return 0
+    log INFO "No systemd session; starting cupsd directly (container/VM without an init)"
+    start_cupsd_direct
   fi
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -311,14 +350,40 @@ start_cups() {
   fi
 
   local i
-  for i in $(seq 1 20); do
-    if lpstat -r >/dev/null 2>&1 || [[ -S /run/cups/cups.sock ]] || [[ -S /var/run/cups/cups.sock ]]; then
+  for i in $(seq 1 30); do
+    if cups_is_running; then
       log OK "CUPS is running"
       return 0
     fi
     sleep 0.5
   done
   log WARN "CUPS may not be fully up yet; continuing"
+}
+
+enable_file_devices() {
+  local conf updated=0
+  for conf in /etc/cups/cups-files.conf /etc/cups/cupsd.conf; do
+    [[ -f "$conf" ]] || continue
+    if grep -qE '^[[:space:]]*FileDevice[[:space:]]' "$conf"; then
+      run sed -i -E 's/^[[:space:]]*FileDevice[[:space:]].*/FileDevice Yes/' "$conf"
+    else
+      if [[ "$DRY_RUN" -eq 1 ]]; then
+        log INFO "dry-run: append FileDevice Yes to $conf"
+      else
+        printf '\nFileDevice Yes\n' >>"$conf"
+      fi
+    fi
+    updated=1
+  done
+  if [[ "$updated" -eq 1 && "$DRY_RUN" -eq 0 ]]; then
+    if command -v cupsd >/dev/null 2>&1; then
+      # cupsd -H graceful is not universal; HUP the running daemon.
+      if pgrep -x cupsd >/dev/null 2>&1; then
+        run pkill -HUP -x cupsd || true
+        sleep 0.5
+      fi
+    fi
+  fi
 }
 
 queue_exists() {
@@ -378,6 +443,11 @@ add_or_update_printer() {
 ensure_pdf_printer() {
   [[ "$PDF_PRINTER" -eq 1 ]] || return 0
 
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    log INFO "dry-run: add virtual PDF printer (cups-pdf if present, else file:// fallback)"
+    return 0
+  fi
+
   local name="${PDF_PRINTER_NAME:-PDF}"
   local uri="cups-pdf:/"
   local model=""
@@ -393,6 +463,7 @@ ensure_pdf_printer() {
     uri="file:///var/tmp/virtual-printer.ps"
     model="$(pick_generic_model)"
     log WARN "cups-pdf driver not found; using file URI $uri"
+    enable_file_devices
   fi
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -450,8 +521,8 @@ summarize() {
 }
 
 main() {
-  : >"$LOG_FILE" 2>/dev/null || LOG_FILE="/tmp/install-printer-driver.log"
   parse_args "$@"
+  init_log
   log INFO "Starting printer driver install (drivers=$DRIVERS pdf=$PDF_PRINTER)"
   detect_os
   need_root

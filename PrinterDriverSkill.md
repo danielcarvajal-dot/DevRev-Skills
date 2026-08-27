@@ -70,7 +70,7 @@ sudo bash scripts/install-printer-driver.sh --yes \
 Useful flags: `--model` (CUPS `lpinfo -m` URI), `--skip-packages`,
 `--no-start`, `--no-pdf-printer`, `--dry-run`.
 
-Log file: `/tmp/install-printer-driver.log`.
+Log file: `/var/log/install-printer-driver.log` when run as root (otherwise a per-user file under `/tmp`). Override with `PRINTER_DRIVER_LOG`.
 
 ---
 
