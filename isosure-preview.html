@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ISOSure | Provider portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --purple-deep: #3D1E68;
+      --purple: #4B2475;
+      --purple-mid: #9267B9;
+      --purple-soft: #EDE6F5;
+      --ink: #1F1630;
+      --muted: #6B6280;
+      --line: #E4DDEF;
+      --paper: #FFFFFF;
+      --bg: #F7F4FB;
+      --danger: #9B1C3A;
+      --ok: #2F6D4F;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); }
+    body { font-family: Inter, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+    header {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      padding: .65rem 1.25rem; background: #fff; border-bottom: 1px solid var(--line);
+    }
+    .logo { height: 56px; width: auto; display: block; cursor: pointer; }
+    nav { display: flex; gap: 1.1rem; color: var(--muted); font-size: .92rem; font-weight: 500; }
+    nav a:hover { color: var(--purple); }
+    .actions { display: flex; gap: .5rem; align-items: center; }
+    .btn {
+      border: 0; border-radius: 8px; padding: .55rem 1rem; cursor: pointer;
+      background: var(--purple-deep); color: #fff; font-weight: 600;
+    }
+    .btn.ghost { background: #fff; color: var(--purple); border: 1px solid var(--line); }
+    .btn.mid { background: var(--purple-mid); }
+    .btn.danger { background: var(--danger); }
+    .badge {
+      background: var(--purple-mid); color: #fff; border-radius: 999px; min-width: 1.2rem;
+      padding: 0 .35rem; font-size: 11px; display: inline-grid; place-items: center;
+    }
+    main { flex: 1; width: min(1120px, calc(100% - 2rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+    footer { background: var(--purple-deep); color: #fff; padding: 2rem 1.25rem; }
+    .footer-inner { width: min(1120px, 100%); margin: 0 auto; display: grid; gap: 1rem; }
+    @media (min-width: 800px) { .footer-inner { grid-template-columns: 220px 1fr 1fr; align-items: center; } }
+    @media (max-width: 799px) { nav { display: none; } .logo { height: 44px; } }
+    .kicker { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--purple-mid); font-weight: 600; }
+    h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin: .25rem 0 .6rem; }
+    h2 { font-size: 1.2rem; }
+    .muted { color: var(--muted); }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+    .pad { padding: 1rem 1.1rem; }
+    .row { display: flex; justify-content: space-between; gap: .8rem; align-items: center; flex-wrap: wrap; }
+    .grid { display: grid; gap: .75rem; }
+    .hero {
+      display: grid; gap: 1.25rem; background: var(--purple-deep); color: #fff;
+      border-radius: 16px; padding: 1.4rem; overflow: hidden;
+    }
+    @media (min-width: 860px) { .hero { grid-template-columns: 1.2fr .8fr; align-items: center; } }
+    .hero .muted { color: #d9ccec; }
+    .tile { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; cursor: pointer; }
+    .tile:hover { border-color: var(--purple-mid); }
+    input, select, textarea {
+      width: 100%; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: .6rem .7rem;
+    }
+    label { display: block; font-size: .88rem; font-weight: 500; margin-bottom: .65rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: .85rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: #fbf9fe; }
+    .doses { display: flex; flex-wrap: wrap; gap: .45rem .8rem; }
+    .doses label { margin: 0; font-weight: 400; display: flex; gap: .35rem; align-items: center; cursor: pointer; }
+    .qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; }
+    .qty button { width: 32px; height: 32px; border: 0; background: none; cursor: pointer; }
+    .chip { display: inline-block; background: var(--purple-soft); color: var(--purple); border-radius: 999px; padding: .15rem .55rem; font-size: 12px; font-weight: 600; }
+    .danger { color: var(--danger); }
+    .ok { color: var(--ok); }
+    .split { display: grid; gap: 1rem; }
+    @media (min-width: 860px) { .split { grid-template-columns: 220px 1fr; } .split.checkout { grid-template-columns: 1.15fr .85fr; } }
+    .drop { border: 1px dashed var(--purple-mid); border-radius: 10px; padding: 1rem; background: #fcfaff; }
+    .tagline { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #c9b6e3; }
+  </style>
+</head>
+<body>
+  <header>
+    <img class="logo" src="brand/isosure-logo.png" alt="ISOSure Consulting" onclick="go('home')" />
+    <nav id="nav"></nav>
+    <div class="actions">
+      <button class="btn ghost" id="roleBtn" onclick="go('login')">Sign in</button>
+      <button class="btn" onclick="go('cart')">Order <span class="badge" id="cartBadge" hidden>0</span></button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <footer>
+    <div class="footer-inner">
+      <img src="brand/isosure-logo-inverse.png" alt="ISOSure" style="height:92px;width:auto" />
+      <div>
+        <p>ISOSure Consulting</p>
+        <p class="tagline">Consulting · Compliance · Compounding · Software</p>
+        <p>pharmacy@isosure.example · (800) 555-4767</p>
+      </div>
+      <div>
+        <p>Two systems, one store: provider portal (thin client) and Operations LIMS/MOM for MFR, compounding records, BUD, inventory, and environment logs.</p>
+      </div>
+    </div>
+  </footer>
+
+<script>
+const KEY = "isosure.practice.v4";
+const STATUS_LABEL = {Submitted:"Submitted to operations",Received:"Received by operations",ClarificationNeeded:"Clarification needed",Backorder:"Backordered",InProduction:"In production",ReadyPickup:"Ready for pickup",OutForDelivery:"Out for delivery",Delivered:"Delivered"};
+const STATUS_LIST = Object.keys(STATUS_LABEL);
+const DOC_LABEL = {rx:"Rx image",pa:"PA form",formula:"Patient-specific formula",other:"Other"};
+const NOTE_LABEL = {backorder:"Backorder",clarification:"Clarification needed",ready_pickup:"Ready for pickup",ready_delivery:"Ready for delivery",order_update:"Order update",refill:"Refill"};
+const CATEGORIES = ["Hormone Therapy","Women's Health","Men's Health","Thyroid","Pain & Inflammation","Dermatology","Wellness","Pediatric"];
+const DEFAULT_PRODUCTS = [
+  {id:"estradiol-cream",name:"IsoBalance Estradiol Cream",shortName:"Estradiol Cream",category:"Hormone Therapy",form:"Cream",summary:"Bioidentical estradiol cream for transdermal hormone support.",doses:[{id:"e2-025",label:"0.25 mg/g",price:48},{id:"e2-05",label:"0.5 mg/g",price:56},{id:"e2-1",label:"1 mg/g",price:64}]},
+  {id:"progesterone-caps",name:"IsoCalm Progesterone Capsules",shortName:"Progesterone Capsules",category:"Women's Health",form:"Capsule",summary:"Micronized progesterone for evening hormone balance.",doses:[{id:"p4-50",label:"50 mg",price:42},{id:"p4-100",label:"100 mg",price:52},{id:"p4-200",label:"200 mg",price:68}]},
+  {id:"testosterone-gel",name:"IsoVigor Testosterone Gel",shortName:"Testosterone Gel",category:"Men's Health",form:"Gel",summary:"Quick-dry testosterone gel in measured daily strengths.",doses:[{id:"t-10",label:"10 mg/mL",price:62},{id:"t-20",label:"20 mg/mL",price:74},{id:"t-50",label:"50 mg/mL",price:88}]},
+  {id:"thyroid-combo",name:"IsoThyroid T3/T4 Capsules",shortName:"T3/T4 Capsules",category:"Thyroid",form:"Capsule",summary:"Custom liothyronine and levothyroxine ratios.",doses:[{id:"th-5-25",label:"5 / 25 mcg",price:38},{id:"th-10-50",label:"10 / 50 mcg",price:44},{id:"th-15-75",label:"15 / 75 mcg",price:52}]},
+  {id:"ketoprofen-cream",name:"IsoEase Ketoprofen Cream",shortName:"Ketoprofen Cream",category:"Pain & Inflammation",form:"Cream",summary:"High-strength topical NSAID for joint and muscle pain.",doses:[{id:"keto-10",label:"10%",price:46},{id:"keto-15",label:"15%",price:54},{id:"keto-20",label:"20%",price:62}]},
+  {id:"gabapentin-topical",name:"IsoNerve Gabapentin Topical",shortName:"Gabapentin Topical",category:"Pain & Inflammation",form:"Topical",summary:"Targeted gabapentin gel for neuropathic pain.",doses:[{id:"gaba-6",label:"6%",price:58},{id:"gaba-10",label:"10%",price:68}]},
+  {id:"diclofenac-gel",name:"IsoFlex Diclofenac Gel",shortName:"Diclofenac Gel",category:"Pain & Inflammation",form:"Gel",summary:"Compounded diclofenac in strengths above typical retail.",doses:[{id:"diclo-3",label:"3%",price:36},{id:"diclo-5",label:"5%",price:44},{id:"diclo-10",label:"10%",price:55}]},
+  {id:"ldn-caps",name:"IsoReset Low-Dose Naltrexone",shortName:"Low-Dose Naltrexone",category:"Wellness",form:"Capsule",summary:"Precise LDN capsules, dye- and filler-conscious.",doses:[{id:"ldn-15",label:"1.5 mg",price:34},{id:"ldn-3",label:"3 mg",price:36},{id:"ldn-45",label:"4.5 mg",price:38}]},
+  {id:"hydroquinone",name:"IsoGlow Hydroquinone Cream",shortName:"Hydroquinone Cream",category:"Dermatology",form:"Cream",summary:"Prescription hydroquinone for stubborn discoloration.",doses:[{id:"hq-4",label:"4%",price:41},{id:"hq-6",label:"6%",price:49},{id:"hq-8",label:"8%",price:58}]},
+  {id:"tretinoin",name:"IsoClear Tretinoin Cream",shortName:"Tretinoin Cream",category:"Dermatology",form:"Cream",summary:"Tretinoin in a soothing cream base.",doses:[{id:"tret-025",label:"0.025%",price:39},{id:"tret-05",label:"0.05%",price:45},{id:"tret-1",label:"0.1%",price:52}]},
+  {id:"minoxidil",name:"IsoFollicle Minoxidil Compound",shortName:"Minoxidil Compound",category:"Dermatology",form:"Topical",summary:"Higher-strength minoxidil scalp solution.",doses:[{id:"mino-5",label:"5%",price:44},{id:"mino-7",label:"7%",price:54},{id:"mino-10",label:"10%",price:66}]},
+  {id:"omeprazole-susp",name:"IsoSoothe Pediatric Omeprazole",shortName:"Pediatric Omeprazole",category:"Pediatric",form:"Suspension",summary:"Flavored omeprazole suspension for children.",doses:[{id:"ome-2",label:"2 mg/mL",price:48},{id:"ome-5",label:"5 mg/mL",price:56}]},
+  {id:"melatonin-troche",name:"IsoRest Melatonin Troches",shortName:"Melatonin Troches",category:"Wellness",form:"Troche",summary:"Slow-dissolve melatonin in titratable strengths.",doses:[{id:"mel-1",label:"1 mg",price:22},{id:"mel-3",label:"3 mg",price:24},{id:"mel-5",label:"5 mg",price:26}]},
+  {id:"dhea-caps",name:"IsoPrime DHEA Capsules",shortName:"DHEA Capsules",category:"Hormone Therapy",form:"Capsule",summary:"Micronized DHEA for clinician-guided protocols.",doses:[{id:"dhea-5",label:"5 mg",price:28},{id:"dhea-10",label:"10 mg",price:32},{id:"dhea-25",label:"25 mg",price:38}]},
+  {id:"pregnenolone",name:"IsoBloom Pregnenolone Capsules",shortName:"Pregnenolone Capsules",category:"Hormone Therapy",form:"Capsule",summary:"Pregnenolone precursor support in conservative strengths.",doses:[{id:"preg-10",label:"10 mg",price:29},{id:"preg-25",label:"25 mg",price:34},{id:"preg-50",label:"50 mg",price:40}]},
+  {id:"sildenafil-troche",name:"IsoLift Sildenafil Troches",shortName:"Sildenafil Troches",category:"Men's Health",form:"Troche",summary:"Fast-dissolve sildenafil troches.",doses:[{id:"sild-25",label:"25 mg",price:48},{id:"sild-50",label:"50 mg",price:62},{id:"sild-100",label:"100 mg",price:78}]},
+  {id:"glutathione",name:"IsoShield Glutathione Capsules",shortName:"Glutathione Capsules",category:"Wellness",form:"Capsule",summary:"Reduced glutathione in acid-resistant capsules.",doses:[{id:"glu-250",label:"250 mg",price:36},{id:"glu-500",label:"500 mg",price:48}]},
+  {id:"nad-spray",name:"IsoPulse NAD+ Nasal Spray",shortName:"NAD+ Nasal Spray",category:"Wellness",form:"Nasal spray",summary:"Metered NAD+ nasal spray.",doses:[{id:"nad-50",label:"50 mg/mL",price:84},{id:"nad-100",label:"100 mg/mL",price:112}]}
+];
+
+const money = (n) => (Number(n)||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
+const product = (id) => state.products.find(p => p.id === id);
+const doseOf = (p, id) => p.doses.find(d => d.id === id);
+
+let state = { user:null, cart:[], orders:[], products: DEFAULT_PRODUCTS, scripts:[], selections:{}, documents:[], notifications:[], refills:[], ingredients:[], lots:[], mfrs:[], crs:[], envLogs:[], equipmentLogs:[], csLogs:[] };
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+  state = Object.assign(state, saved, { selections: saved.selections || {} });
+  if (!state.products?.length) state.products = DEFAULT_PRODUCTS;
+  state.documents = state.documents || [];
+  state.notifications = state.notifications || [];
+  state.refills = state.refills || [];
+  state.ingredients = state.ingredients || [];
+  state.lots = state.lots || [];
+  state.mfrs = state.mfrs || [];
+  state.crs = state.crs || [];
+  state.envLogs = state.envLogs || [];
+  state.equipmentLogs = state.equipmentLogs || [];
+  state.csLogs = state.csLogs || [];
+} catch {}
+
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); chrome(); }
+function go(name, params) {
+  const q = params ? "?" + new URLSearchParams(params) : "";
+  location.hash = name + q;
+}
+function route() {
+  const raw = location.hash.replace(/^#/, "") || "home";
+  const [name, qs] = raw.split("?");
+  const params = Object.fromEntries(new URLSearchParams(qs || ""));
+  chrome();
+  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients};
+  document.getElementById("app").innerHTML = (views[name] || home)(params);
+}
+function chrome() {
+  const count = state.cart.reduce((s,i)=>s+i.quantity,0);
+  const badge = document.getElementById("cartBadge");
+  document.getElementById("cartBadge").hidden = !count || u?.role === "pharmacy";
+  document.getElementById("cartBadge").textContent = count;
+  const u = state.user;
+  document.getElementById("roleBtn").textContent = u ? (u.role==="pharmacy" ? u.pharmacyName : u.practiceName) : "Sign in";
+  const unread = (state.notifications||[]).filter(n=>!n.read).length;
+  document.getElementById("nav").innerHTML = u?.role === "pharmacy"
+    ? `<a href="#ops">Lab</a><a href="#pharmacy">Intake</a><a href="#mfrs">MFRs</a><a href="#inventory">Inventory</a><a href="#environment">Environment</a>`
+    : `<a href="#catalog">Submit order</a><a href="#practice">Order status</a><a href="#refills">Refills</a><a href="#documents">Documents</a><a href="#notifications">Notifications${unread?` (${unread})`:""}</a>`;
+}
+
+function addLine(productId, qty=1) {
+  const p = product(productId);
+  const doseId = state.selections[productId] || p.doses[0].id;
+  const existing = state.cart.find(i => i.productId===productId && i.doseId===doseId);
+  if (existing) existing.quantity += qty;
+  else state.cart.push({productId, doseId, quantity: qty});
+  save();
+}
+function cartTotal() {
+  return state.cart.reduce((sum,item) => {
+    const p = product(item.productId); const d = p && doseOf(p,item.doseId);
+    return sum + (d ? d.price * item.quantity : 0);
+  }, 0);
+}
+function selectDose(productId, doseId) {
+  state.selections[productId] = doseId; save();
+}
+
+function demoOrders() {
+  return [
+    {id:"demo-order-1",placedAt:Date.now()-12*864e5,status:"InProduction",total:120,patientName:"Avery Nguyen",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"Match last fill.",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
+      {productId:"estradiol-cream",doseId:"e2-05",quantity:1,productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",unitPrice:56},
+      {productId:"progesterone-caps",doseId:"p4-100",quantity:1,productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",unitPrice:52}
+    ]},
+    {id:"demo-order-2",placedAt:Date.now()-4*864e5,status:"ClarificationNeeded",total:46,patientName:"Sam Rivera",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
+      {productId:"ldn-caps",doseId:"ldn-45",quantity:1,productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",unitPrice:38}
+    ]},
+    {id:"demo-order-3",placedAt:Date.now()-2*864e5,status:"ReadyPickup",total:72,patientName:"Lee Park",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
+      {productId:"ketoprofen-cream",doseId:"keto-10",quantity:1,productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",unitPrice:46}
+    ]}
+  ];
+}
+function seedDemoDocuments() {
+  return [
+    {id:"doc-rx-1",name:"nguyen-hrt-rx.pdf",type:"application/pdf",size:48200,dataUrl:"",kind:"rx",orderId:"demo-order-1",uploadedAt:Date.now()-12*864e5,uploadedBy:"provider"},
+    {id:"doc-pa-1",name:"rivera-ldn-pa.pdf",type:"application/pdf",size:31100,dataUrl:"",kind:"pa",orderId:"demo-order-2",uploadedAt:Date.now()-4*864e5,uploadedBy:"provider"},
+    {id:"doc-formula-1",name:"nguyen-patient-formula.pdf",type:"application/pdf",size:18400,dataUrl:"",kind:"formula",orderId:"demo-order-1",uploadedAt:Date.now()-11*864e5,uploadedBy:"provider"}
+  ];
+}
+function seedDemoNotifications() {
+  return [
+    {id:"note-clarify",kind:"clarification",title:"Clarification needed on ISO-RDER-2",body:"Operations needs a clarification on Sam Rivera’s LDN order. Upload a note or PA from the document exchange. Compounding stays in the lab.",orderId:"demo-order-2",createdAt:Date.now()-6*36e5,read:false},
+    {id:"note-pickup",kind:"ready_pickup",title:"Ready for pickup · ISO-RDER-3",body:"Lee Park’s order is ready for pickup at the ISOSure pharmacy.",orderId:"demo-order-3",createdAt:Date.now()-3*36e5,read:false},
+    {id:"note-backorder",kind:"backorder",title:"Backorder watch",body:"Operations flagged a possible backorder on a thyroid capsule strength. No lab formula is shown in the provider portal.",createdAt:Date.now()-20*36e5,read:true}
+  ];
+}
+function seedDemoRefills() {
+  return [
+    {id:"refill-1",orderId:"demo-order-1",patientName:"Avery Nguyen",summary:"Estradiol cream 0.5 mg/g · Progesterone 100 mg",notes:"Continue current strength.",requestedAt:Date.now()-30*36e5,status:"Submitted"}
+  ];
+}
+function seedPortalIfEmpty() {
+  if (!state.orders.length) state.orders = demoOrders();
+  if (!state.documents.length) state.documents = seedDemoDocuments();
+  if (!state.notifications.length) state.notifications = seedDemoNotifications();
+  if (!state.refills.length) state.refills = seedDemoRefills();
+  seedLimsIfEmpty();
+}
+function notifyForStatus(order, status) {
+  const kinds = {Backorder:"backorder",ClarificationNeeded:"clarification",ReadyPickup:"ready_pickup",OutForDelivery:"ready_delivery",Received:"order_update",Delivered:"order_update"};
+  const kind = kinds[status];
+  if (!kind) return;
+  const ticket = "ISO-" + order.id.slice(-6).toUpperCase();
+  const titles = {
+    backorder: "Backorder on " + ticket,
+    clarification: "Clarification needed on " + ticket,
+    ready_pickup: "Ready for pickup · " + ticket,
+    ready_delivery: "Out for delivery · " + ticket,
+    order_update: "Order update · " + ticket
+  };
+  const bodies = {
+    backorder: "Operations placed " + order.patientName + "'s order on backorder. No compounding details are shown here.",
+    clarification: "Operations needs a clarification on " + order.patientName + "'s order. Upload a document from the exchange.",
+    ready_pickup: order.patientName + "'s order is ready for pickup at the ISOSure pharmacy.",
+    ready_delivery: order.patientName + "'s order is out for delivery.",
+    order_update: "Operations updated " + order.patientName + "'s order to “" + (STATUS_LABEL[status] || status) + "”."
+  };
+  state.notifications.unshift({id:crypto.randomUUID(),kind,title:titles[kind],body:bodies[kind],orderId:order.id,createdAt:Date.now(),read:false});
+}
+function setOrderStatus(id, status) {
+  const order = state.orders.find(x => x.id === id);
+  if (!order) return;
+  order.status = status;
+  notifyForStatus(order, status);
+  save(); route();
+}
+
+function home() {
+  return `
+    <div class="hero">
+      <div>
+        <p class="kicker" style="color:#c9b6e3">Provider portal · External thin client</p>
+        <h1 style="color:#fff">Prescribers submit. Operations compounds.</h1>
+        <p class="muted">This portal is a thin client to ISOSure Operations. Submit orders, exchange documents, request refills, and read status notifications. Clinical and compounding logic stays in the lab — not here.</p>
+        <p>
+          <button class="btn mid" onclick="go('login')">Provider or facility login</button>
+          <button class="btn ghost" onclick="go('ops')">Open Operations (lab)</button>
+        </p>
+      </div>
+      <img src="brand/isosure-logo-inverse.png" alt="" style="width:min(320px,100%);justify-self:end" />
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1.2rem">
+      <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><h2>Order submission</h2><p class="muted">Select published strengths and send the request to Operations.</p></div>
+      <div class="tile" onclick="go('practice')"><p class="kicker">Status</p><h2>Order status</h2><p class="muted">See only the labels Operations publishes — never compounding steps.</p></div>
+      <div class="tile" onclick="go('documents')"><p class="kicker">Exchange</p><h2>Documents</h2><p class="muted">Rx images, PA forms, and patient-specific formulas.</p></div>
+      <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><h2>Notifications</h2><p class="muted">Backorder, clarification needed, ready for pickup or delivery.</p></div>
+    </div>`;
+}
+
+function catalog(params) {
+  if (state.user?.role === "pharmacy") {
+    return `<p class="muted">Pharmacy staff manage the list on the formulary admin screen.</p><button class="btn" onclick="go('formulary')">Open formulary admin</button>`;
+  }
+  const q = (params.q||"").toLowerCase();
+  const category = params.category || "All";
+  const list = state.products.filter(p =>
+    (category==="All"||p.category===category) &&
+    (!q || p.name.toLowerCase().includes(q) || p.summary.toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q))
+  );
+  return `
+    <p class="kicker">Provider portal · Order submission</p>
+    <h1>Select published strengths</h1>
+    <p class="muted">This list is published by Operations. Choose a dose and submit the request. Compounding formulas, BUD, and mixing steps stay in the lab — not in this portal.</p>
+    <div class="split" style="margin-top:1rem">
+      <aside class="panel pad">
+        <label>Search<input value="${params.q||""}" oninput="go('catalog',{category:'${category}',q:this.value})" placeholder="estradiol, pain, thyroid…"></label>
+        <label>Therapy area
+          <select onchange="go('catalog',{category:this.value,q:'${params.q||""}'})">
+            <option>All</option>${CATEGORIES.map(c=>`<option ${c===category?"selected":""}>${c}</option>`).join("")}
+          </select>
+        </label>
+      </aside>
+      <div class="panel" style="overflow:auto">
+        <table>
+          <thead><tr><th>Medication</th><th>Dose</th><th></th></tr></thead>
+          <tbody>
+            ${list.map(p => {
+              const selected = state.selections[p.id] || p.doses[0].id;
+              return `<tr>
+                <td>
+                  <strong>${p.name}</strong>
+                  <div class="muted">${p.form} · ${p.category}</div>
+                  <div class="muted">${p.summary}</div>
+                </td>
+                <td>
+                  <div class="doses">
+                    ${p.doses.map(d => `<label><input type="radio" name="dose-${p.id}" ${d.id===selected?"checked":""} onchange="selectDose('${p.id}','${d.id}')"> ${d.label} · ${money(d.price)}</label>`).join("")}
+                  </div>
+                </td>
+                <td><button class="btn" onclick="addLine('${p.id}'); this.textContent='Added';">Add</button></td>
+              </tr>`;
+            }).join("") || `<tr><td colspan="3" class="muted">No medications match those filters.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function cart() {
+  const total = cartTotal();
+  const ship = total>=75 || !total ? 0 : 8;
+  if (!state.cart.length) return `<p class="kicker">Practice order</p><h1>No compounds selected</h1><button class="btn" onclick="go('catalog')">Browse the formulary</button>`;
+  return `
+    <p class="kicker">Order submission</p>
+    <h1>Review published strengths</h1>
+    ${state.cart.map((item,idx)=>{
+      const p=product(item.productId); const d=doseOf(p,item.doseId);
+      return `<div class="panel pad row" style="margin:.6rem 0">
+        <div><strong>${p.name}</strong><div class="muted">${d.label} · ${p.form}</div></div>
+        <div class="row">
+          <div class="qty">
+            <button onclick="state.cart[${idx}].quantity=Math.max(1,state.cart[${idx}].quantity-1);save();route()">−</button>
+            <span>${item.quantity}</span>
+            <button onclick="state.cart[${idx}].quantity++;save();route()">+</button>
+          </div>
+          <span>${money(d.price*item.quantity)}</span>
+          <button class="btn ghost" onclick="state.cart.splice(${idx},1);save();route()">Remove</button>
+        </div>
+      </div>`;
+    }).join("")}
+    <div class="panel pad">
+      <p class="row"><span>Subtotal</span><span>${money(total)}</span></p>
+      <p class="row"><span>Shipping</span><span>${ship?money(ship):"Waived at $75"}</span></p>
+      <p class="row"><strong>Total</strong><strong>${money(total+ship)}</strong></p>
+      <button class="btn" style="width:100%" onclick="go('checkout')">Continue — attach documents</button>
+    </div>`;
+}
+
+function checkout() {
+  if (!state.cart.length) return `<h1>Nothing to send</h1><button class="btn" onclick="go('catalog')">Return to formulary</button>`;
+  if (state.user?.role === "pharmacy") return `<h1>Pharmacy accounts review orders; they do not place them.</h1>`;
+  if (!state.user) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  const u = state.user;
+  return `
+    <p class="kicker">Submit to Operations</p>
+    <h1>Attach documents, then complete the order</h1>
+    <p class="muted">At least one Rx image is required. You may also add a PA form or a patient-specific formula document. This portal stores files only — it does not compound them.</p>
+    <form class="split checkout" onsubmit="return placeOrder(event)">
+      <div class="grid">
+        <div class="panel pad grid">
+          <strong>Prescriber</strong>
+          <p>${u.prescriberName} · ${u.practiceName}<br><span class="muted">NPI ${u.npi || "—"} · DEA ${u.dea || "—"}</span></p>
+          <label>Patient name <input name="patientName" required placeholder="Patient the script is written for"></label>
+          <label>Patient date of birth <input name="patientDob" type="date" required></label>
+        </div>
+        <div class="panel pad grid">
+          <strong>Ship / deliver to</strong>
+          <input name="line1" required placeholder="Street address">
+          <div class="grid" style="grid-template-columns:1fr 80px 110px">
+            <input name="city" required placeholder="City">
+            <input name="st" required placeholder="State">
+            <input name="zip" required placeholder="ZIP">
+          </div>
+          <textarea name="notes" rows="3" placeholder="Note to Operations: flavor, allergy, match last fill"></textarea>
+        </div>
+        <div class="panel pad">
+          <strong>Document exchange</strong>
+          <p class="muted">Rx images, PA forms, and patient-specific formulas. Operations reviews these.</p>
+          <label>Document type
+            <select id="docKind" onchange="pendingDocKind=this.value">
+              <option value="rx">Rx image</option>
+              <option value="pa">PA form</option>
+              <option value="formula">Patient-specific formula</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <div class="drop">
+            <input type="file" accept=".pdf,image/*" multiple onchange="attachScripts(event)">
+          </div>
+          <ul id="scriptList">${scriptListHtml()}</ul>
+          <p id="err" class="danger"></p>
+        </div>
+        <button class="btn" type="submit">Submit order to Operations</button>
+      </div>
+      <aside class="panel pad">
+        <h2>Order summary</h2>
+        ${state.cart.map(item=>{const p=product(item.productId);const d=doseOf(p,item.doseId);return `<p class="row"><span>${p.shortName}<br><span class="muted">${d.label} × ${item.quantity}</span></span><span>${money(d.price*item.quantity)}</span></p>`;}).join("")}
+        <p class="row"><strong>Total</strong><strong>${money(cartTotal()+(cartTotal()>=75?0:8))}</strong></p>
+      </aside>
+    </form>`;
+}
+
+let pendingDocKind = "rx";
+let pendingRefillMsg = "";
+function scriptListHtml() {
+  if (!state.scripts.length) return `<li class="muted">No documents attached yet.</li>`;
+  return state.scripts.map((s,i)=>`<li class="row"><span>${DOC_LABEL[s.kind]||s.kind} · ${s.name} <span class="muted">(${Math.round(s.size/1024)} KB)</span></span><button type="button" class="btn ghost" onclick="state.scripts.splice(${i},1);save();document.getElementById('scriptList').innerHTML=scriptListHtml()">Remove</button></li>`).join("");
+}
+function attachScripts(e) {
+  const kind = document.getElementById("docKind")?.value || pendingDocKind || "rx";
+  pendingDocKind = kind;
+  [...e.target.files].forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.scripts.push({id:crypto.randomUUID(), name:file.name, type:file.type, size:file.size, dataUrl:reader.result, kind, uploadedAt:Date.now(), uploadedBy:"provider"});
+      save();
+      const list = document.getElementById("scriptList");
+      if (list) list.innerHTML = scriptListHtml();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function placeOrder(e) {
+  e.preventDefault();
+  const err = document.getElementById("err");
+  if (!state.scripts.length) { err.textContent = "Attach at least one document (Rx image, PA, or formula) before submitting."; return false; }
+  const f = e.target;
+  const items = state.cart.map(item => {
+    const p = product(item.productId); const d = doseOf(p,item.doseId);
+    return {...item, productName:p.name, doseLabel:d.label, unitPrice:d.price};
+  });
+  const subtotal = items.reduce((s,i)=>s+i.unitPrice*i.quantity,0);
+  const order = {
+    id: crypto.randomUUID(), placedAt: Date.now(), status: "Submitted", items,
+    total: subtotal + (subtotal>=75?0:8), notes: f.notes.value,
+    patientName: f.patientName.value, patientDob: f.patientDob.value,
+    practiceName: state.user.practiceName, prescriberName: state.user.prescriberName, npi: state.user.npi,
+    address: `${f.line1.value}, ${f.city.value}, ${f.st.value} ${f.zip.value}`,
+    scripts: state.scripts.slice()
+  };
+  const exchanged = state.scripts.map(doc => ({...doc, orderId: order.id}));
+  state.documents = exchanged.concat(state.documents);
+  state.orders.unshift(order);
+  notifyForStatus({...order, status:"Received"}, "Received");
+  state.crs = createCrsForOrder(order).concat(state.crs || []);
+  seedLimsIfEmpty();
+  state.cart = [];
+  state.scripts = [];
+  save();
+  go("order",{id:order.id});
+  return false;
+}
+
+function login() {
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>Prescriber or facility login</h1>
+    <p class="muted">External-facing access only. This portal does not run compounding or clinical calculations — it submits work to Operations.</p>
+    <div class="split checkout">
+      <form class="panel pad grid" onsubmit="return signDoctor(event)">
+        <strong>Prescriber / facility</strong>
+        <div class="doses">
+          <label><input type="radio" name="loginKind" value="prescriber" checked> Prescriber</label>
+          <label><input type="radio" name="loginKind" value="facility"> Facility</label>
+        </div>
+        <input name="practiceName" required placeholder="Practice or facility name">
+        <input name="prescriberName" required placeholder="Prescriber name">
+        <input name="npi" placeholder="NPI">
+        <input name="dea" placeholder="DEA">
+        <input name="email" type="email" required placeholder="Office email">
+        <input name="phone" placeholder="Phone">
+        <button class="btn" type="submit">Enter provider portal</button>
+        <button type="button" class="btn ghost" onclick="loadDoctor()">Demo prescriber (Hawthorne Family Medicine)</button>
+      </form>
+      <form class="panel pad grid" onsubmit="return signPharmacy(event)">
+        <strong>Operations (pharmacy admin)</strong>
+        <p class="muted">Internal lab access. Compounding logic lives here, not in the provider portal.</p>
+        <input name="pharmacyName" required placeholder="Pharmacy name" value="ISOSure Compounding Lab">
+        <input name="contactName" required placeholder="Pharmacist / admin name">
+        <input name="email" type="email" required placeholder="Lab email">
+        <input name="phone" placeholder="Phone">
+        <button class="btn mid" type="submit">Enter operations</button>
+        <button type="button" class="btn ghost" onclick="loadPharmacy()">Demo operations (Jordan Hale, RPh)</button>
+      </form>
+    </div>`;
+}
+function signDoctor(e) {
+  e.preventDefault();
+  const f = e.target;
+  const loginKind = f.loginKind.value || "prescriber";
+  state.user = {role:"doctor", loginKind, practiceName:f.practiceName.value, prescriberName:f.prescriberName.value, npi:f.npi.value, dea:f.dea.value, email:f.email.value, phone:f.phone.value};
+  save(); go("catalog"); return false;
+}
+function signPharmacy(e) {
+  e.preventDefault();
+  const f = e.target;
+  state.user = {role:"pharmacy", pharmacyName:f.pharmacyName.value, contactName:f.contactName.value, email:f.email.value, phone:f.phone.value};
+  save(); go("ops"); return false;
+}
+function loadDoctor() {
+  state.user = {role:"doctor", loginKind:"prescriber", practiceName:"Hawthorne Family Medicine", prescriberName:"Dr. Maya Ellison, MD", npi:"1234567890", dea:"BE1234563", email:"orders@hawthornefm.example", phone:"(503) 555-0148"};
+  seedPortalIfEmpty();
+  save(); go("practice");
+}
+function loadPharmacy() {
+  state.user = {role:"pharmacy", pharmacyName:"ISOSure Compounding Lab", contactName:"Jordan Hale, RPh", email:"pharmacy@isosure.example", phone:"(800) 555-4767"};
+  seedPortalIfEmpty();
+  save(); go("ops");
+}
+
+function practice() {
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Prescriber / facility login</button>`;
+  const unread = (state.notifications||[]).filter(n=>!n.read).length;
+  const kind = state.user.loginKind === "facility" ? "Facility" : "Prescriber";
+  return `
+    <div class="row">
+      <div>
+        <p class="kicker">Provider portal · ${kind}</p>
+        <h1>${state.user.practiceName}</h1>
+        <p class="muted">${state.user.prescriberName} · NPI ${state.user.npi || "—"}</p>
+        <p class="muted">Thin client to Operations. This view never shows compounding formulas or lab steps.</p>
+      </div>
+      <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:1rem 0">
+      <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><strong>New order</strong></div>
+      <div class="tile" onclick="go('refills')"><p class="kicker">Refills</p><strong>Request a refill</strong></div>
+      <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><strong>${unread} unread notification${unread===1?"":"s"}</strong></div>
+    </div>
+    <h2>Order status</h2>
+    ${orderCards(state.orders)}`;
+}
+
+function pharmacy() {
+  if (!state.user || state.user.role!=="pharmacy") return `<h1>Operations sign-in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  return `
+    <div class="row">
+      <div>
+        <p class="kicker">Operations</p>
+        <h1>Incoming provider orders</h1>
+        <p class="muted">${state.user.contactName} · ${state.user.pharmacyName}. Status changes notify the provider portal. Compounding stays in Operations.</p>
+      </div>
+      <div>
+        <button class="btn ghost" onclick="go('ops')">Lab pipeline</button>
+        <button class="btn ghost" onclick="go('refills')">Refill inbox</button>
+        <button class="btn ghost" onclick="go('formulary')">Edit formulary</button>
+        <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
+      </div>
+    </div>
+    ${orderCards(state.orders, true)}`;
+}
+
+function orderCards(orders, admin=false) {
+  if (!orders.length) return `<p class="muted">No orders yet.</p>`;
+  return orders.map(o => `
+    <article class="panel pad" style="margin:.7rem 0">
+      <div class="row">
+        <div>
+          <span class="chip">${STATUS_LABEL[o.status] || o.status}</span>
+          <h2 style="margin:.35rem 0 0">ISO-${o.id.slice(-6).toUpperCase()}</h2>
+          <p class="muted">${new Date(o.placedAt).toLocaleDateString()} · ${o.practiceName} · Patient ${o.patientName}</p>
+        </div>
+        <strong>${money(o.total)}</strong>
+      </div>
+      ${o.items.map(i=>`<p>${i.productName} · ${i.doseLabel} × ${i.quantity}</p>`).join("")}
+      ${o.scripts?.length ? `<p class="muted">${o.scripts.length} document${o.scripts.length>1?"s":""} on the ticket</p>` : `<p class="muted">Documents live in the exchange for this demo order</p>`}
+      ${admin ? `<ul>${(state.crs||[]).filter(c=>c.orderId===o.id).map(c=>`<li><a href="#batch?id=${c.id}">${c.batchLot} · ${STAGE_LABEL[c.stage]||c.stage}${c.hd?" · HD":""}</a></li>`).join("")}</ul>` : ""}
+      ${admin ? `<label>Operations status (notifies provider)
+        <select onchange="setOrderStatus('${o.id}', this.value)">
+          ${STATUS_LIST.map(s=>`<option value="${s}" ${s===o.status?"selected":""}>${STATUS_LABEL[s]}</option>`).join("")}
+        </select>
+      </label>` : `<p><a href="#refills?order=${o.id}">Request refill</a></p>`}
+      <p><a href="#order?id=${o.id}">Open ticket</a></p>
+    </article>`).join("");
+}
+
+function order(params) {
+  const o = state.orders.find(x => x.id===params.id);
+  if (!o) return `<h1>Order not found</h1>`;
+  const related = [
+    ...(o.scripts||[]),
+    ...(state.documents||[]).filter(d => d.orderId===o.id && !(o.scripts||[]).some(s => s.id===d.id))
+  ];
+  const isProvider = state.user?.role === "doctor";
+  return `
+    <p class="kicker">${STATUS_LABEL[o.status] || o.status}</p>
+    <h1>Order ISO-${o.id.slice(-6).toUpperCase()}</h1>
+    <p class="muted">${o.prescriberName} · ${o.practiceName} · Patient ${o.patientName}</p>
+    <p class="muted">Status comes from Operations. This ticket does not include compounding instructions.</p>
+    <div class="panel pad">
+      ${o.items.map(i=>`<p class="row"><span>${i.productName}<br><span class="muted">${i.doseLabel} × ${i.quantity}</span></span><span>${money(i.unitPrice*i.quantity)}</span></p>`).join("")}
+      <p class="row"><strong>Total</strong><strong>${money(o.total)}</strong></p>
+      <p class="muted">${o.address||""}</p>
+      ${o.notes?`<p>Note to Operations: ${o.notes}</p>`:""}
+      <h2>Documents</h2>
+      ${related.length ? related.map(s=>`<p>${DOC_LABEL[s.kind]||s.kind} · ${s.dataUrl?`<a href="${s.dataUrl}" download="${s.name}">${s.name}</a>`:s.name}</p>`).join("") : `<p class="muted">No files on this ticket.</p>`}
+    </div>
+    <p style="margin-top:1rem">
+      <button class="btn" onclick="go(state.user?.role==='pharmacy'?'pharmacy':'practice')">Back</button>
+      ${isProvider ? `<button class="btn ghost" onclick="go('refills',{order:'${o.id}'})">Request refill</button>` : ""}
+    </p>`;
+}
+
+function notifications() {
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  const notes = state.notifications || [];
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>Notifications from Operations</h1>
+    <p class="muted">Backorder, clarification needed, ready-for-pickup, and delivery alerts. The portal only displays what Operations sends.</p>
+    ${notes.length ? notes.map(n => `
+      <article class="panel pad" style="margin:.7rem 0;${n.read?"":"border-color:var(--purple-mid);background:#fcfaff"}">
+        <div class="row">
+          <div>
+            <p class="kicker">${NOTE_LABEL[n.kind]||n.kind}</p>
+            <h2 style="margin:.25rem 0 0">${n.title}</h2>
+            <p class="muted">${n.body}</p>
+            <p class="muted">${new Date(n.createdAt).toLocaleString()}</p>
+          </div>
+          ${n.read?"":`<button class="btn ghost" onclick="state.notifications.find(x=>x.id==='${n.id}').read=true;save();route()">Mark read</button>`}
+        </div>
+        ${n.orderId?`<p><a href="#order?id=${n.orderId}">Open related order</a></p>`:""}
+      </article>`).join("") : `<p class="muted">No notifications yet.</p>`}`;
+}
+
+function documents() {
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  const docs = state.documents || [];
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>Document exchange</h1>
+    <p class="muted">Send Rx images, PA forms, and patient-specific formulas to Operations. Files are stored as documents only — this portal does not interpret or compound them.</p>
+    <div class="panel pad grid" style="margin:1rem 0">
+      <label>Document type
+        <select id="exchangeKind">
+          <option value="rx">Rx image</option>
+          <option value="pa">PA form</option>
+          <option value="formula">Patient-specific formula</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label>Related order (optional)
+        <select id="exchangeOrder">
+          <option value="">None</option>
+          ${state.orders.map(o=>`<option value="${o.id}">${o.patientName} · ${o.id.slice(-6).toUpperCase()}</option>`).join("")}
+        </select>
+      </label>
+      <input type="file" accept=".pdf,image/*" multiple onchange="attachExchange(event)">
+    </div>
+    <div class="panel" style="overflow:auto">
+      <table>
+        <thead><tr><th>Document</th><th>Type</th><th>Order</th><th>Uploaded</th></tr></thead>
+        <tbody>
+          ${docs.map(d=>`<tr>
+            <td>${d.dataUrl?`<a href="${d.dataUrl}" download="${d.name}">${d.name}</a>`:d.name}</td>
+            <td>${DOC_LABEL[d.kind]||d.kind}</td>
+            <td>${d.orderId?d.orderId.slice(-6).toUpperCase():"—"}</td>
+            <td>${new Date(d.uploadedAt||Date.now()).toLocaleDateString()}</td>
+          </tr>`).join("") || `<tr><td colspan="4" class="muted">No documents exchanged yet.</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+}
+function attachExchange(e) {
+  const kind = document.getElementById("exchangeKind")?.value || "rx";
+  const orderId = document.getElementById("exchangeOrder")?.value || "";
+  [...e.target.files].forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.documents.unshift({id:crypto.randomUUID(),name:file.name,type:file.type,size:file.size,dataUrl:reader.result,kind,orderId:orderId||undefined,uploadedAt:Date.now(),uploadedBy:"provider"});
+      save(); route();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function refills(params) {
+  if (!state.user) return `<h1>Sign in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (state.user.role === "pharmacy") return refillInbox();
+  const selected = params.order || state.orders[0]?.id || "";
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>Refill requests</h1>
+    <p class="muted">Ask Operations to refill a prior order. The portal forwards the request; the lab decides whether the previous compound can be repeated.</p>
+    <form class="panel pad grid" style="margin:1rem 0" onsubmit="return submitRefill(event)">
+      <label>Prior order
+        <select name="orderId" required>
+          <option value="">Select an order</option>
+          ${state.orders.map(o=>`<option value="${o.id}" ${o.id===selected?"selected":""}>${o.patientName} · ${o.items.map(i=>i.doseLabel).join(", ")}</option>`).join("")}
+        </select>
+      </label>
+      <label>Note to Operations
+        <textarea name="notes" rows="3" placeholder="Continue current strength, or flag a change for the lab to review."></textarea>
+      </label>
+      <button class="btn" type="submit">Submit refill request</button>
+      <p id="refillMsg" class="ok">${pendingRefillMsg}</p>
+    </form>
+    ${(state.refills||[]).map(r=>`
+      <article class="panel pad" style="margin:.6rem 0">
+        <p class="kicker">${r.status}</p>
+        <strong>${r.patientName}</strong>
+        <p class="muted">${r.summary}</p>
+        ${r.notes?`<p>${r.notes}</p>`:""}
+        <p class="muted">${new Date(r.requestedAt).toLocaleString()}</p>
+      </article>`).join("") || `<p class="muted">No refill requests yet.</p>`}`;
+}
+function submitRefill(e) {
+  e.preventDefault();
+  const f = e.target;
+  const order = state.orders.find(x => x.id === f.orderId.value);
+  if (!order) { document.getElementById("refillMsg").textContent = "Choose a prior order."; return false; }
+  state.refills.unshift({
+    id: crypto.randomUUID(),
+    orderId: order.id,
+    patientName: order.patientName,
+    summary: order.items.map(i => i.productName + " " + i.doseLabel).join(" · "),
+    notes: f.notes.value,
+    requestedAt: Date.now(),
+    status: "Submitted"
+  });
+  save();
+  pendingRefillMsg = "Refill submitted to Operations.";
+  route();
+  return false;
+}
+function refillInbox() {
+  return `
+    <p class="kicker">Operations</p>
+    <h1>Refill requests</h1>
+    <p class="muted">Providers submitted these as thin-client requests. Accepting a refill does not expose compounding steps back to the portal.</p>
+    ${(state.refills||[]).length ? state.refills.map(r=>`
+      <article class="panel pad" style="margin:.7rem 0">
+        <strong>${r.patientName}</strong>
+        <p class="muted">${r.summary}</p>
+        ${r.notes?`<p>${r.notes}</p>`:""}
+        <p class="muted">${new Date(r.requestedAt).toLocaleString()}</p>
+        <label>Decision
+          <select onchange="setRefillStatus('${r.id}', this.value)">
+            ${["Submitted","Accepted","Declined"].map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}
+          </select>
+        </label>
+      </article>`).join("") : `<p class="muted">No refill requests.</p>`}`;
+}
+function setRefillStatus(id, status) {
+  const refill = state.refills.find(x => x.id === id);
+  if (!refill) return;
+  refill.status = status;
+  state.notifications.unshift({
+    id: crypto.randomUUID(),
+    kind: "refill",
+    title: "Refill " + status.toLowerCase(),
+    body: "Operations " + status.toLowerCase() + " the refill for " + refill.patientName + " (" + refill.summary + ").",
+    orderId: refill.orderId,
+    createdAt: Date.now(),
+    read: false
+  });
+  save(); route();
+}
+
+function formulary() {
+  if (state.user?.role !== "pharmacy") return `<h1>Pharmacy admin only</h1><button class="btn" onclick="go('login')">Sign in as pharmacy</button>`;
+  return `
+    <p class="kicker">Pharmacy admin</p>
+    <h1>Medication list</h1>
+    <p class="muted">Upload a CSV or JSON list, or add and edit compounds by hand. This is the list doctors order from. CSV columns: <code>name,shortName,category,form,doses,summary</code>. Doses use <code>label:price|label:price</code>.</p>
+    <div class="panel pad grid" style="margin:1rem 0">
+      <strong>Upload a custom list</strong>
+      <input type="file" accept=".csv,.json,text/csv,application/json" onchange="importList(event)">
+      <p class="muted">Upload replaces the current formulary. Keep a copy of your file.</p>
+    </div>
+    <form class="panel pad grid" onsubmit="return addMed(event)">
+      <strong>Manually add a compound</strong>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <input name="name" required placeholder="Medication name">
+        <input name="shortName" placeholder="Short name">
+        <select name="category">${CATEGORIES.map(c=>`<option>${c}</option>`).join("")}</select>
+        <input name="form" required placeholder="Form (Cream, Capsule…)">
+      </div>
+      <input name="doses" required placeholder="Doses, e.g. 50 mg:42|100 mg:52">
+      <input name="summary" placeholder="Short description">
+      <button class="btn" type="submit">Add to formulary</button>
+    </form>
+    <div class="panel" style="overflow:auto;margin-top:1rem">
+      <table>
+        <thead><tr><th>Medication</th><th>Doses</th><th></th></tr></thead>
+        <tbody>
+          ${state.products.map((p,idx)=>`<tr>
+            <td><strong>${p.name}</strong><div class="muted">${p.form} · ${p.category}</div></td>
+            <td>${p.doses.map(d=>`${d.label} ${money(d.price)}`).join(" · ")}</td>
+            <td class="row">
+              <button class="btn ghost" onclick="editMed(${idx})">Edit</button>
+              <button class="btn danger" onclick="if(confirm('Remove ${p.name}?')){state.products.splice(${idx},1);save();route()}">Remove</button>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function parseDoses(raw) {
+  return raw.split("|").map((part,i) => {
+    const [label, price] = part.split(":").map(s => s.trim());
+    return {id:"d"+i+"-"+label.toLowerCase().replace(/[^a-z0-9]+/g,"-"), label: label||("Dose "+(i+1)), price: Number(price)||0};
+  });
+}
+function addMed(e) {
+  e.preventDefault();
+  const f = e.target;
+  const name = f.name.value.trim();
+  state.products.push({
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g,"-"),
+    name, shortName: f.shortName.value || name, category: f.category.value, form: f.form.value,
+    summary: f.summary.value, doses: parseDoses(f.doses.value)
+  });
+  save(); route(); return false;
+}
+function editMed(idx) {
+  const p = state.products[idx];
+  const name = prompt("Medication name", p.name); if (name==null) return;
+  const doses = prompt("Doses as label:price|label:price", p.doses.map(d=>d.label+":"+d.price).join("|")); if (doses==null) return;
+  const summary = prompt("Summary", p.summary); if (summary==null) return;
+  p.name = name; p.summary = summary; p.doses = parseDoses(doses);
+  save(); route();
+}
+function importList(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const text = String(reader.result);
+      if (file.name.endsWith(".json")) {
+        const data = JSON.parse(text);
+        const rows = Array.isArray(data) ? data : data.products;
+        state.products = rows.map(normalizeImported);
+      } else {
+        state.products = parseCsv(text);
+      }
+      save(); route();
+    } catch (err) {
+      alert("Could not import that file: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+function normalizeImported(row) {
+  return {
+    id: (row.id || row.name || crypto.randomUUID()).toString().toLowerCase().replace(/[^a-z0-9]+/g,"-"),
+    name: row.name, shortName: row.shortName || row.name, category: row.category || "Wellness",
+    form: row.form || "Capsule", summary: row.summary || "",
+    doses: Array.isArray(row.doses) ? row.doses.map((d,i)=>({id:d.id||("d"+i), label:d.label, price:Number(d.price)||0})) : parseDoses(String(row.doses||"Standard:0"))
+  };
+}
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const headers = lines[0].split(",").map(h=>h.trim().toLowerCase());
+  return lines.slice(1).map(line => {
+    const cols = line.split(",").map(c=>c.trim());
+    const get = (k) => cols[headers.indexOf(k)] || "";
+    return normalizeImported({name:get("name"), shortName:get("shortname"), category:get("category"), form:get("form"), summary:get("summary"), doses:get("doses")});
+  });
+}
+
+const STAGE_LABEL = {intake:"Order intake",formula:"Formula / recipe",compounding:"Batch production",labeling:"Labeling",dispense:"Dispensing",shipped:"Shipping"};
+const STAGES = Object.keys(STAGE_LABEL);
+function daysFromNow(d) { return Date.now() + d*864e5; }
+function defaultIngredients() {
+  return [
+    {id:"estradiol",name:"Estradiol USP",cas:"50-28-2",niosh:2,hd:true,cs:null,unit:"g"},
+    {id:"progesterone",name:"Progesterone USP micronized",cas:"57-83-0",niosh:2,hd:true,cs:null,unit:"g"},
+    {id:"testosterone",name:"Testosterone USP",cas:"58-22-0",niosh:2,hd:true,cs:"III",unit:"g"},
+    {id:"tretinoin",name:"Tretinoin USP",cas:"302-79-4",niosh:3,hd:true,cs:null,unit:"g"},
+    {id:"dhea",name:"DHEA USP",cas:"53-43-0",niosh:2,hd:true,cs:null,unit:"g"},
+    {id:"naltrexone",name:"Naltrexone HCl USP",cas:"16676-29-2",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"ketoprofen",name:"Ketoprofen USP",cas:"22071-15-4",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"nad",name:"NAD+",cas:"53-84-9",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"versabase",name:"VersaBase cream",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"avicel",name:"Microcrystalline cellulose",cas:"9004-34-6",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"oil-cap",name:"Sunflower oil capsule fill",cas:"",niosh:null,hd:false,cs:null,unit:"mL"},
+    {id:"parabens",name:"Paraben blend",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"hydrogel",name:"Alcohol hydrogel base",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
+    {id:"nasal-vehicle",name:"Isotonic nasal vehicle",cas:"",niosh:null,hd:false,cs:null,unit:"mL"},
+    {id:"ns-water",name:"Sterile water for irrigation",cas:"7732-18-5",niosh:null,hd:false,cs:null,unit:"mL"}
+  ];
+}
+function defaultMfrs() {
+  return [
+    {id:"mfr-e2-05",productId:"estradiol-cream",doseId:"e2-05",title:"Estradiol 0.5 mg/g cream — MFR-795-014",chapter:"795",vehicle:"aqueous-preserved",preserved:true,refrig:false,form:"Cream",strength:"0.5 mg/g",batchSize:30,batchUnit:"g",hd:true,hdNote:"NIOSH Table 2. C-PEC, double gloves, gown.",stabilityDays:null,container:"30 g jar",storage:"CRT",lines:[{id:"estradiol",qty:0.015,unit:"g",role:"API"},{id:"parabens",qty:0.06,unit:"g",role:"excipient"},{id:"versabase",qty:29.925,unit:"g",role:"base"}],procedure:["PPE per USP <800>. Compound in C-PEC.","Weigh estradiol; adjust for lot potency.","Levigate into VersaBase; QS 30 g."],qc:["White cream","Weight ±2%"]},
+    {id:"mfr-p4-100",productId:"progesterone-caps",doseId:"p4-100",title:"Progesterone 100 mg capsules — MFR-795-022",chapter:"795",vehicle:"nonaqueous-solid",preserved:false,refrig:false,form:"Capsule",strength:"100 mg",batchSize:30,batchUnit:"caps",hd:true,hdNote:"NIOSH Table 2 hormone.",stabilityDays:90,container:"30-count vial",storage:"CRT",lines:[{id:"progesterone",qty:3,unit:"g",role:"API"},{id:"oil-cap",qty:15,unit:"mL",role:"base"}],procedure:["C-PEC for NIOSH Table 2.","Fill size 1 capsules. QS 30."],qc:["Fill weight ±5%"]},
+    {id:"mfr-ldn-45",productId:"ldn-caps",doseId:"ldn-45",title:"Naltrexone HCl 4.5 mg capsules — MFR-795-031",chapter:"795",vehicle:"nonaqueous-solid",preserved:false,refrig:false,form:"Capsule",strength:"4.5 mg",batchSize:30,batchUnit:"caps",hd:false,hdNote:"",stabilityDays:null,container:"30-count vial",storage:"CRT",lines:[{id:"naltrexone",qty:0.135,unit:"g",role:"API"},{id:"avicel",qty:6,unit:"g",role:"excipient"}],procedure:["Triturate with MCC. Fill size 3."],qc:["Content uniformity by weight"]},
+    {id:"mfr-keto-10",productId:"ketoprofen-cream",doseId:"keto-10",title:"Ketoprofen 10% cream — MFR-795-044",chapter:"795",vehicle:"aqueous-preserved",preserved:true,refrig:false,form:"Cream",strength:"10%",batchSize:60,batchUnit:"g",hd:false,hdNote:"",stabilityDays:45,container:"60 g jar",storage:"CRT",lines:[{id:"ketoprofen",qty:6,unit:"g",role:"API"},{id:"parabens",qty:0.12,unit:"g",role:"excipient"},{id:"versabase",qty:53.88,unit:"g",role:"base"}],procedure:["Levigate ketoprofen into VersaBase. QS 60 g."],qc:["No grit"]},
+    {id:"mfr-t-20",productId:"testosterone-gel",doseId:"t-20",title:"Testosterone 20 mg/mL gel — MFR-795-018",chapter:"795",vehicle:"aqueous-unpreserved",preserved:false,refrig:true,form:"Gel",strength:"20 mg/mL",batchSize:30,batchUnit:"mL",hd:true,hdNote:"NIOSH Table 2 + C-III. Vault count-in.",stabilityDays:null,container:"30 mL pump",storage:"Refrigerate",lines:[{id:"testosterone",qty:0.6,unit:"g",role:"API"},{id:"hydrogel",qty:29.4,unit:"g",role:"base"}],procedure:["Two-person CS count-in.","C-PEC. QS 30 mL."],qc:["CS log complete"]},
+    {id:"mfr-nad-50",productId:"nad-spray",doseId:"nad-50",title:"NAD+ 50 mg/mL nasal spray — MFR-797-003",chapter:"797",vehicle:"aqueous-unpreserved",preserved:false,refrig:true,sterileCat:1,form:"Nasal spray",strength:"50 mg/mL",batchSize:15,batchUnit:"mL",hd:false,hdNote:"",stabilityDays:null,container:"15 mL spray",storage:"Refrigerate",lines:[{id:"nad",qty:0.75,unit:"g",role:"API"},{id:"nasal-vehicle",qty:10,unit:"mL",role:"base"},{id:"ns-water",qty:4.25,unit:"mL",role:"excipient"}],procedure:["ISO 5 PEC in ISO 7 buffer. Category 1 CSP.","0.22 µm filter into bottle."],qc:["ISO 5 counts in spec"]}
+  ];
+}
+function defaultLots() {
+  return [
+    {id:"lot-e2-a",ingredientId:"estradiol",lotNumber:"E2-24091",expiresAt:daysFromNow(280),remaining:41.2,quantity:50,unit:"g",potencyPct:99.2,coaName:"COA-E2-24091.pdf",quarantine:false,supplier:"PCCA"},
+    {id:"lot-p4-a",ingredientId:"progesterone",lotNumber:"P4-24112",expiresAt:daysFromNow(310),remaining:86,quantity:100,unit:"g",potencyPct:99.4,coaName:"COA-P4-24112.pdf",quarantine:false,supplier:"Medisca"},
+    {id:"lot-t-a",ingredientId:"testosterone",lotNumber:"TES-CIII-8831",expiresAt:daysFromNow(200),remaining:18.4,quantity:25,unit:"g",potencyPct:98.8,coaName:"COA-TES-8831.pdf",quarantine:false,supplier:"Letco"},
+    {id:"lot-ldn-a",ingredientId:"naltrexone",lotNumber:"NTX-25014",expiresAt:daysFromNow(400),remaining:22.1,quantity:25,unit:"g",potencyPct:99.6,coaName:"COA-NTX-25014.pdf",quarantine:false,supplier:"Letco"},
+    {id:"lot-keto-a",ingredientId:"ketoprofen",lotNumber:"KETO-23990",expiresAt:daysFromNow(18),remaining:144,quantity:200,unit:"g",potencyPct:99.5,coaName:"COA-KETO-23990.pdf",quarantine:false,supplier:"PCCA"},
+    {id:"lot-keto-exp",ingredientId:"ketoprofen",lotNumber:"KETO-22101",expiresAt:daysFromNow(-12),remaining:6,quantity:50,unit:"g",potencyPct:99.1,coaName:"COA-KETO-22101.pdf",quarantine:true,supplier:"PCCA"},
+    {id:"lot-vb-a",ingredientId:"versabase",lotNumber:"VB-25002",expiresAt:daysFromNow(500),remaining:1640,quantity:2000,unit:"g",potencyPct:100,coaName:"COA-VB-25002.pdf",quarantine:false,supplier:"PCCA"},
+    {id:"lot-avicel-a",ingredientId:"avicel",lotNumber:"MCC-24880",expiresAt:daysFromNow(600),remaining:820,quantity:1000,unit:"g",potencyPct:100,coaName:"COA-MCC-24880.pdf",quarantine:false,supplier:"Spectrum"},
+    {id:"lot-oil-a",ingredientId:"oil-cap",lotNumber:"SO-25008",expiresAt:daysFromNow(220),remaining:1710,quantity:2000,unit:"mL",potencyPct:100,coaName:"COA-SO-25008.pdf",quarantine:false,supplier:"Medisca"},
+    {id:"lot-parab-a",ingredientId:"parabens",lotNumber:"PB-24101",expiresAt:daysFromNow(340),remaining:91,quantity:100,unit:"g",potencyPct:100,coaName:"COA-PB-24101.pdf",quarantine:false,supplier:"Letco"},
+    {id:"lot-nad-a",ingredientId:"nad",lotNumber:"NAD-25021",expiresAt:daysFromNow(90),remaining:8.2,quantity:10,unit:"g",potencyPct:98,coaName:"COA-NAD-25021.pdf",quarantine:false,supplier:"Fagron"},
+    {id:"lot-nsw-a",ingredientId:"ns-water",lotNumber:"SW-26011",expiresAt:daysFromNow(700),remaining:3500,quantity:4000,unit:"mL",potencyPct:100,coaName:"COA-SW-26011.pdf",quarantine:false,supplier:"Hospira"},
+    {id:"lot-nasal-a",ingredientId:"nasal-vehicle",lotNumber:"NV-25004",expiresAt:daysFromNow(180),remaining:860,quantity:1000,unit:"mL",potencyPct:100,coaName:"COA-NV-25004.pdf",quarantine:false,supplier:"PCCA"}
+  ];
+}
+function defaultEnv() {
+  return [
+    {id:"env-1",area:"Nonsterile suite",iso:"unclassified",temp:21.4,rh:44,at:Date.now()-2*36e5,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-2",area:"HD C-PEC room",iso:"unclassified",temp:22.1,rh:41,at:Date.now()-2*36e5,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-3",area:"ISO 7 buffer",iso:"ISO 7",temp:20.8,rh:48,at:Date.now()-90*60e3,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-4",area:"ISO 5 PEC",iso:"ISO 5",temp:20.6,rh:47,at:Date.now()-90*60e3,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-5",area:"CS fridge",iso:"unclassified",temp:4.2,rh:38,at:Date.now()-30*60e3,by:"Jordan Hale, RPh",ok:true}
+  ];
+}
+function defaultEquip() {
+  return [
+    {id:"eq-1",name:"Mettler XPR analytical balance",kind:"balance",reading:"Internal cal pass · 100.0002 g",at:Date.now()-864e5,by:"Jordan Hale, RPh"},
+    {id:"eq-2",name:"C-PEC",kind:"hood",reading:"Face velocity 100 fpm",at:Date.now()-2*864e5,by:"Jordan Hale, RPh"},
+    {id:"eq-3",name:"ISO 5 LAFW",kind:"hood",reading:"Smoke study current",at:Date.now()-864e5,by:"Jordan Hale, RPh"}
+  ];
+}
+function defaultCrs() {
+  const now = Date.now();
+  return [
+    {id:"cr-e2-1",mfrId:"mfr-e2-05",orderId:"demo-order-1",productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",patientName:"Avery Nguyen",batchLot:"CR-20260814-4412",stage:"compounding",hd:true,createdAt:now-12*864e5,budHours:35*24,budDate:now-12*864e5+35*864e5,budBasis:"USP <795> preserved aqueous: 35 days CRT",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[{ingredientId:"estradiol",lotId:"lot-e2-a",formulaQty:0.015,weighedQty:0.015,unit:"g",potencyPct:99.2},{ingredientId:"versabase",lotId:"lot-vb-a",formulaQty:29.925,weighedQty:29.925,unit:"g",potencyPct:100}],labelText:"",notes:"Match last fill."},
+    {id:"cr-p4-1",mfrId:"mfr-p4-100",orderId:"demo-order-1",productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",patientName:"Avery Nguyen",batchLot:"CR-20260814-4413",stage:"formula",hd:true,createdAt:now-12*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Match last fill."},
+    {id:"cr-ldn-2",mfrId:"mfr-ldn-45",orderId:"demo-order-2",productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",patientName:"Sam Rivera",batchLot:"CR-20260822-1090",stage:"intake",hd:false,createdAt:now-4*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Clarification pending."},
+    {id:"cr-keto-3",mfrId:"mfr-keto-10",orderId:"demo-order-3",productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",patientName:"Lee Park",batchLot:"CR-20260824-7721",stage:"dispense",hd:false,createdAt:now-2*864e5,budHours:45*24,budDate:now-2*864e5+45*864e5,budBasis:"In-house stability study: 45 days",budStorage:"CRT",cappedBy:"stability",ingredientsUsed:[{ingredientId:"ketoprofen",lotId:"lot-keto-a",formulaQty:6,weighedQty:6.03,unit:"g",potencyPct:99.5}],labelText:"IsoEase Ketoprofen Cream 10%\\nPatient: Lee Park\\nBatch CR-20260824-7721\\nBUD · store CRT\\nUSP <795>",notes:""}
+  ];
+}
+function seedLimsIfEmpty() {
+  if (!state.ingredients.length) state.ingredients = defaultIngredients();
+  if (!state.mfrs.length) state.mfrs = defaultMfrs();
+  if (!state.lots.length) state.lots = defaultLots();
+  if (!state.crs.length) state.crs = defaultCrs();
+  if (!state.envLogs.length) state.envLogs = defaultEnv();
+  if (!state.equipmentLogs.length) state.equipmentLogs = defaultEquip();
+  if (!state.csLogs) state.csLogs = [];
+}
+function ingName(id) { return (state.ingredients.find(i=>i.id===id)||{}).name || id; }
+function calculateBud(mfr, lotExpires, compoundedAt) {
+  compoundedAt = compoundedAt || Date.now();
+  const day = 24;
+  let hours, storage, basis, cappedBy = "chapter";
+  if (mfr.chapter === "797") {
+    hours = mfr.refrig ? 24 : 12;
+    storage = "refrigerated";
+    basis = "USP <797> Category 1: " + hours + " hours";
+  } else if (mfr.vehicle === "aqueous-unpreserved") {
+    hours = 14 * day; storage = "refrigerated"; basis = "USP <795> non-preserved aqueous: 14 days refrigerated";
+  } else if (mfr.vehicle === "aqueous-preserved") {
+    hours = 35 * day; storage = mfr.refrig ? "refrigerated" : "CRT"; basis = "USP <795> preserved aqueous: 35 days";
+  } else if (mfr.vehicle === "nonaqueous-liquid") {
+    hours = 90 * day; storage = "CRT"; basis = "USP <795> nonaqueous oral liquid: 90 days";
+  } else {
+    hours = 180 * day; storage = "CRT"; basis = "USP <795> other nonaqueous: 180 days";
+  }
+  if (mfr.stabilityDays && mfr.stabilityDays * day < hours) {
+    hours = mfr.stabilityDays * day; cappedBy = "stability"; basis = "In-house stability study: " + mfr.stabilityDays + " days";
+  }
+  const earliest = (lotExpires||[]).filter(Boolean).sort((a,b)=>a-b)[0];
+  if (earliest) {
+    const until = Math.max(0, Math.floor((earliest - compoundedAt) / 36e5));
+    if (until < hours) { hours = until; cappedBy = "ingredient"; basis = "Capped by earliest ingredient expiration"; }
+  }
+  return { hours, date: compoundedAt + hours * 36e5, storage, basis, cappedBy };
+}
+function pickLot(ingredientId) {
+  return (state.lots||[]).filter(l => l.ingredientId===ingredientId && !l.quarantine && l.remaining>0 && l.expiresAt > Date.now())
+    .sort((a,b)=>a.expiresAt-b.expiresAt)[0];
+}
+function createCrsForOrder(order) {
+  seedLimsIfEmpty();
+  return order.items.map(item => {
+    const mfr = state.mfrs.find(m => m.productId===item.productId && m.doseId===item.doseId) || state.mfrs.find(m => m.productId===item.productId);
+    return {id:crypto.randomUUID(), mfrId:mfr?.id||"", orderId:order.id, productName:item.productName, doseLabel:item.doseLabel, patientName:order.patientName, batchLot:"CR-"+Date.now().toString().slice(-8), stage:"intake", hd:!!mfr?.hd, createdAt:Date.now(), budHours:0, budDate:"", budBasis:"", budStorage:"CRT", cappedBy:"chapter", ingredientsUsed:[], labelText:"", notes:order.notes||""};
+  });
+}
+function requireOps() {
+  if (!state.user || state.user.role!=="pharmacy") return `<h1>Lab sign-in required</h1><p class="muted">The LIMS/MOM core is internal.</p><button class="btn" onclick="go('login')">Operations login</button>`;
+}
+function ops() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty(); save();
+  const expired = state.lots.filter(l => l.expiresAt < Date.now()).length;
+  const soon = state.lots.filter(l => l.expiresAt >= Date.now() && l.expiresAt < Date.now()+30*864e5).length;
+  const hdOpen = state.crs.filter(c => c.hd && c.stage!=="shipped").length;
+  return `
+    <p class="kicker">Operations · LIMS / MOM</p>
+    <h1>Electric Lab</h1>
+    <p class="muted">Orders arrive from the provider portal. This system owns MFR, compounding records, BUD, lot traceability, USP &lt;800&gt; HD flags, inventory, and environment logs.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin:1rem 0">
+      <div class="tile" onclick="go('pharmacy')"><p class="kicker">Intake</p><strong>${state.orders.length} portal orders</strong></div>
+      <div class="tile" onclick="go('inventory')"><p class="kicker">Inventory</p><strong>${expired} expired · ${soon} &lt;30d</strong></div>
+      <div class="tile" onclick="go('ingredients')"><p class="kicker">USP &lt;800&gt;</p><strong>${hdOpen} open HD batches</strong></div>
+      <div class="tile" onclick="go('environment')"><p class="kicker">Environment</p><strong>${state.envLogs.length} readings</strong></div>
+    </div>
+    <h2>Production pipeline</h2>
+    <p class="muted">Intake → formula/recipe → batch production → labeling → dispensing/shipping</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:1rem">
+      ${STAGES.map(s => {
+        const rows = state.crs.filter(c=>c.stage===s);
+        return `<div class="panel pad"><p class="kicker">${STAGE_LABEL[s]}</p><strong>${rows.length}</strong>${rows.slice(0,3).map(c=>`<p><a href="#batch?id=${c.id}">${c.patientName.split(" ")[0]} · ${c.doseLabel}</a>${c.hd?" <span class='danger'>HD</span>":""}</p>`).join("")||"<p class='muted'>Empty</p>"}</div>`;
+      }).join("")}
+    </div>`;
+}
+function mfrs() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">USP &lt;795&gt; / &lt;797&gt;</p>
+    <h1>Master Formulation Records</h1>
+    <p class="muted">Recipe source of truth. Each MFR drives BUD defaults and HD precautions.</p>
+    ${state.mfrs.map(m=>`<article class="panel pad" style="margin:.7rem 0"><p class="kicker">USP &lt;${m.chapter}&gt; · ${m.vehicle}${m.hd?" · HD":""}</p><h2><a href="#mfr?id=${m.id}">${m.title}</a></h2><p class="muted">${m.strength} · batch ${m.batchSize} ${m.batchUnit}</p></article>`).join("")}`;
+}
+function mfr(params) {
+  const gate = requireOps(); if (gate) return gate;
+  const rec = state.mfrs.find(m=>m.id===params.id);
+  if (!rec) return `<h1>MFR not found</h1>`;
+  const bud = calculateBud(rec, rec.lines.map(l => (pickLot(l.id)||{}).expiresAt));
+  return `
+    <p class="kicker">Master Formulation Record · USP &lt;${rec.chapter}&gt;</p>
+    <h1>${rec.title}</h1>
+    ${rec.hdNote?`<p class="danger">USP &lt;800&gt;: ${rec.hdNote}</p>`:""}
+    <div class="panel pad"><strong>BUD engine preview</strong><p>${Math.round(bud.hours/24*10)/10} days · ${bud.storage} · capped by ${bud.cappedBy}</p><p class="muted">${bud.basis}</p></div>
+    <div class="panel pad" style="margin-top:1rem"><strong>Formula</strong>
+      <table><thead><tr><th>Ingredient</th><th>Qty</th><th>Role</th><th>NIOSH</th></tr></thead>
+      <tbody>${rec.lines.map(l=>{const i=state.ingredients.find(x=>x.id===l.id)||{};return `<tr><td>${i.name||l.id}</td><td>${l.qty} ${l.unit}</td><td>${l.role}</td><td class="${i.hd?"danger":""}">${i.niosh?("Table "+i.niosh):"—"}${i.cs?" · C-"+i.cs:""}</td></tr>`;}).join("")}</tbody></table>
+      <ol>${rec.procedure.map(s=>`<li>${s}</li>`).join("")}</ol>
+    </div>
+    <p><button class="btn ghost" onclick="go('mfrs')">All MFRs</button></p>`;
+}
+function batch(params) {
+  const gate = requireOps(); if (gate) return gate;
+  const cr = state.crs.find(c=>c.id===params.id);
+  if (!cr) return `<h1>Compounding record not found</h1>`;
+  const rec = state.mfrs.find(m=>m.id===cr.mfrId);
+  return `
+    <p class="kicker">Compounding record · ${STAGE_LABEL[cr.stage]}${cr.hd?" · USP <800> HD":""}</p>
+    <h1>${cr.productName} · ${cr.doseLabel}</h1>
+    <p class="muted">${cr.patientName} · ${cr.batchLot}</p>
+    ${cr.stage!=="shipped"?`<button class="btn" onclick="advanceBatch('${cr.id}')">Advance to next stage</button>`:""}
+    <div class="panel pad" style="margin-top:1rem"><strong>1. Order intake</strong><p class="muted">Received from the provider portal. Compounding math stays in the lab.</p></div>
+    <div class="panel pad" style="margin-top:1rem"><strong>2. Formula / recipe (MFR)</strong>
+      <label>Assigned MFR<select onchange="assignMfr('${cr.id}', this.value)"><option value="">Select</option>${state.mfrs.map(m=>`<option value="${m.id}" ${m.id===cr.mfrId?"selected":""}>${m.title}</option>`).join("")}</select></label>
+      ${rec?`<p><a href="#mfr?id=${rec.id}">Open MFR</a> · USP &lt;${rec.chapter}&gt;</p>`:`<p class="danger">No MFR assigned.</p>`}
+    </div>
+    <div class="panel pad" style="margin-top:1rem"><strong>3. Batch production · lot traceability</strong>
+      ${cr.ingredientsUsed.length?`<table><thead><tr><th>Ingredient</th><th>Lot</th><th>Formula</th><th>Weigh</th><th>Assay</th></tr></thead><tbody>${cr.ingredientsUsed.map(r=>{const lot=state.lots.find(l=>l.id===r.lotId);return `<tr><td>${ingName(r.ingredientId)}</td><td>${lot?lot.lotNumber:"—"}</td><td>${r.formulaQty} ${r.unit}</td><td>${r.weighedQty} ${r.unit}</td><td>${r.potencyPct}%</td></tr>`;}).join("")}</tbody></table>`:`<p class="muted">Advance from formula to lock FEFO lots, potency-adjusted weighs, and BUD.</p>`}
+    </div>
+    <div class="panel pad" style="margin-top:1rem"><strong>BUD</strong>
+      ${cr.budHours?`<p>${Math.round(cr.budHours/24*10)/10} days · store ${cr.budStorage} · ${cr.budDate?new Date(cr.budDate).toLocaleDateString():""}</p><p class="muted">${cr.budBasis}</p>`:`<p class="muted">Calculated when the batch leaves formula.</p>`}
+    </div>
+    <div class="panel pad" style="margin-top:1rem"><strong>4–5. Labeling · dispensing / shipping</strong>
+      ${cr.labelText?`<pre style="white-space:pre-wrap">${cr.labelText}</pre>`:`<p class="muted">Label prints at the labeling → dispense step.</p>`}
+    </div>`;
+}
+function assignMfr(crId, mfrId) {
+  const cr = state.crs.find(c=>c.id===crId); if (!cr) return;
+  const mfr = state.mfrs.find(m=>m.id===mfrId);
+  cr.mfrId = mfrId; cr.hd = !!mfr?.hd; save(); route();
+}
+function advanceBatch(crId) {
+  const cr = state.crs.find(c=>c.id===crId); if (!cr) return;
+  const rec = state.mfrs.find(m=>m.id===cr.mfrId);
+  const next = {intake:"formula",formula:"compounding",compounding:"labeling",labeling:"dispense",dispense:"shipped"}[cr.stage];
+  if (!next) return;
+  if ((next==="formula" || next==="compounding") && !rec) { alert("Assign an MFR first."); return; }
+  if (next==="compounding") {
+    const missing = [];
+    cr.ingredientsUsed = rec.lines.map(line => {
+      const lot = pickLot(line.id);
+      if (!lot) { missing.push(ingName(line.id)); return {ingredientId:line.id,lotId:"",formulaQty:line.qty,weighedQty:line.qty,unit:line.unit,potencyPct:100}; }
+      const weighed = Math.round(line.qty * (100/(lot.potencyPct||100)) * 1000)/1000;
+      return {ingredientId:line.id,lotId:lot.id,formulaQty:line.qty,weighedQty:weighed,unit:line.unit,potencyPct:lot.potencyPct};
+    });
+    if (missing.length) { alert("Missing usable lot for: " + missing.join(", ")); return; }
+    const bud = calculateBud(rec, cr.ingredientsUsed.map(r => (state.lots.find(l=>l.id===r.lotId)||{}).expiresAt));
+    cr.budHours = bud.hours; cr.budDate = bud.date; cr.budBasis = bud.basis; cr.budStorage = bud.storage; cr.cappedBy = bud.cappedBy;
+  }
+  if (next==="labeling") {
+    cr.ingredientsUsed.forEach(r => {
+      const lot = state.lots.find(l=>l.id===r.lotId); if (!lot) return;
+      lot.remaining = Math.max(0, Math.round((lot.remaining - r.weighedQty)*1000)/1000);
+      const ing = state.ingredients.find(i=>i.id===r.ingredientId);
+      if (ing && ing.cs) state.csLogs.unshift({id:crypto.randomUUID(), at:Date.now(), ingredientId:ing.id, lotId:lot.id, crId:cr.id, quantity:r.weighedQty, unit:r.unit, remaining:lot.remaining, pharmacist:state.user.contactName});
+    });
+  }
+  if (next==="dispense") {
+    cr.labelText = (rec.hd?"HAZARDOUS DRUG — USP <800>\\n":"") + cr.productName + " " + cr.doseLabel + "\\nPatient: " + cr.patientName + "\\nBatch " + cr.batchLot + "\\nBUD " + (cr.budDate?new Date(cr.budDate).toLocaleDateString():"—") + " · store " + cr.budStorage + "\\nUSP <" + rec.chapter + ">";
+  }
+  cr.stage = next;
+  const related = state.crs.filter(c=>c.orderId===cr.orderId);
+  const rank = STAGES;
+  const lowest = related.reduce((min,c)=> rank.indexOf(c.stage) < rank.indexOf(min) ? c.stage : min, related[0].stage);
+  const map = {intake:"Received",formula:"InProduction",compounding:"InProduction",labeling:"InProduction",dispense:"ReadyPickup",shipped:"OutForDelivery"};
+  const status = map[lowest];
+  const order = state.orders.find(o=>o.id===cr.orderId);
+  if (order && status && order.status !== status) { order.status = status; notifyForStatus(order, status); }
+  save(); route();
+}
+function inventory() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">Operations inventory</p>
+    <h1>Lots, COAs, expiration, controlled substances</h1>
+    <p class="muted">FEFO during compounding. Expired and quarantined lots cannot be used. C-III issues write the perpetual log.</p>
+    <div class="panel" style="overflow:auto;margin-top:1rem"><table>
+      <thead><tr><th>Lot</th><th>Ingredient</th><th>Remaining</th><th>Assay</th><th>Expires</th><th>COA</th><th>Status</th></tr></thead>
+      <tbody>${state.lots.map(l=>{
+        const expired = l.expiresAt < Date.now(); const soon = !expired && l.expiresAt < Date.now()+30*864e5;
+        const flag = l.quarantine?"Quarantine":expired?"Expired":soon?"Expiring":"Released";
+        const ing = state.ingredients.find(i=>i.id===l.ingredientId)||{};
+        return `<tr><td>${l.lotNumber}</td><td>${ing.name||l.ingredientId}${ing.niosh?" <span class='danger'>NIOSH T"+ing.niosh+"</span>":""}${ing.cs?" C-"+ing.cs:""}</td><td>${l.remaining} ${l.unit}</td><td>${l.potencyPct}%</td><td>${new Date(l.expiresAt).toLocaleDateString()}</td><td>${l.coaName}</td><td class="${expired||l.quarantine?"danger":""}">${flag}</td></tr>`;
+      }).join("")}</tbody></table></div>
+    <h2 style="margin-top:1.5rem">Controlled substance log</h2>
+    ${(state.csLogs||[]).length?state.csLogs.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${ingName(l.ingredientId)} · ${l.quantity} ${l.unit}</strong><p class="muted">${new Date(l.at).toLocaleString()} · remaining ${l.remaining} · ${l.pharmacist}</p></article>`).join(""):"<p class='muted'>No CS issues yet. Advance a testosterone batch through production to write a line.</p>"}`;
+}
+function environment() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">Not owned by QMS</p>
+    <h1>Equipment &amp; environment logs</h1>
+    <p class="muted">Temp, humidity, and ISO classification for compounding areas.</p>
+    <form class="panel pad grid" style="margin:1rem 0" onsubmit="return addEnv(event)">
+      <strong>Record environment</strong>
+      <input name="area" required placeholder="Area" value="Nonsterile suite">
+      <select name="iso"><option>unclassified</option><option>ISO 8</option><option>ISO 7</option><option>ISO 5</option></select>
+      <div class="grid" style="grid-template-columns:1fr 1fr"><input name="temp" required placeholder="°C" value="21.5"><input name="rh" required placeholder="% RH" value="45"></div>
+      <button class="btn" type="submit">Save reading</button>
+    </form>
+    ${state.envLogs.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${l.area} · ${l.iso} · ${l.temp} °C · ${l.rh}% RH</strong><p class="muted">${new Date(l.at).toLocaleString()} · ${l.by} · ${l.ok?"In spec":"OUT OF SPEC"}</p></article>`).join("")}
+    <h2>Equipment</h2>
+    ${state.equipmentLogs.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${l.name}</strong><p>${l.reading}</p><p class="muted">${new Date(l.at).toLocaleString()} · ${l.by}</p></article>`).join("")}`;
+}
+function addEnv(e) {
+  e.preventDefault();
+  const f = e.target;
+  const temp = Number(f.temp.value), rh = Number(f.rh.value);
+  const ok = temp>=20 && temp<=25 && rh>=30 && rh<=60;
+  state.envLogs.unshift({id:crypto.randomUUID(), area:f.area.value, iso:f.iso.value, temp, rh, at:Date.now(), by:state.user.contactName, ok});
+  save(); route(); return false;
+}
+function ingredients() {
+  const gate = requireOps(); if (gate) return gate;
+  seedLimsIfEmpty();
+  return `
+    <p class="kicker">USP &lt;800&gt;</p>
+    <h1>Hazardous drug list (NIOSH)</h1>
+    <p class="muted">Table 1 antineoplastics, Table 2 non-antineoplastic HDs, Table 3 reproductive risk.</p>
+    <div class="panel" style="overflow:auto"><table>
+      <thead><tr><th>Ingredient</th><th>CAS</th><th>NIOSH</th><th>HD</th><th>CS</th></tr></thead>
+      <tbody>${state.ingredients.map(i=>`<tr><td>${i.name}</td><td>${i.cas||"—"}</td><td class="${i.niosh?"danger":""}">${i.niosh?("Table "+i.niosh):"—"}</td><td>${i.hd?"Yes":"No"}</td><td>${i.cs?("C-"+i.cs):"—"}</td></tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+window.addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>

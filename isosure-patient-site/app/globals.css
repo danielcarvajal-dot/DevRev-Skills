@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --purple-deep: #3d1e68;
+  --purple: #4b2475;
+  --purple-mid: #9267b9;
+  --purple-soft: #ede6f5;
+  --ink: #1f1630;
+  --ink-soft: #6b6280;
+  --line: #e4ddef;
+  --paper: #ffffff;
+  --bg: #f7f4fb;
+  --danger: #9b1c3a;
+  --ok: #2f6d4f;
+}
+
+@theme inline {
+  --color-purple-deep: var(--purple-deep);
+  --color-purple: var(--purple);
+  --color-purple-mid: var(--purple-mid);
+  --color-purple-soft: var(--purple-soft);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-paper: var(--paper);
+  --color-bg: var(--bg);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-sans-body);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--purple-soft);
+  color: var(--purple-deep);
+}
