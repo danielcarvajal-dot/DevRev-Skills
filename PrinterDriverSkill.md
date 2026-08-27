@@ -109,6 +109,12 @@ powershell -ExecutionPolicy Bypass -File scripts/install-printer-driver.ps1 `
 6. If package install fails (offline VM, missing repo), report the log path
    and the exact failing command; do not claim the driver is installed.
 
+On Ubuntu 24.04 this script was verified to:
+- install CUPS, Ghostscript, Gutenprint, Foomatic, and `printer-driver-cups-pdf`
+- start `cupsd` even when PID 1 is not systemd
+- create a default queue named `PDF` using `cups-pdf:/`
+- accept `echo hello | lp` and write a PDF under `$HOME/PDF/`
+
 ---
 
 ## Troubleshooting
@@ -117,7 +123,7 @@ powershell -ExecutionPolicy Bypass -File scripts/install-printer-driver.ps1 `
 |---|---|
 | `lpadmin: Bad file descriptor` / CUPS not running | `systemctl status cups`; re-run without `--no-start` |
 | `lpinfo: Bad file descriptor` | CUPS socket not up yet; wait and retry `lpstat -r` |
-| PDF printer missing | Install `printer-driver-cups-pdf` / `cups-pdf`, or accept the `file://` fallback |
+| PDF printer missing | Install `printer-driver-cups-pdf` / `cups-pdf`, or accept the `file://` fallback. Output lands in `$HOME/PDF/` |
 | Network printer not printing | Confirm URI (`ipp://`, `socket://host:9100`, `usb://`), firewall, and `lpstat -v` |
 | Need a specific model | `lpinfo -m \| grep -i <brand>` then pass `--model` |
 | Permission denied | Script must run as root / Administrator |
