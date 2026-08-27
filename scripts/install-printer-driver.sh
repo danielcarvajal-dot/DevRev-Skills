@@ -316,6 +316,20 @@ cups_is_running() {
   lpstat -r 2>/dev/null | grep -q 'scheduler is running'
 }
 
+wait_for_cups() {
+  local i out
+  for i in $(seq 1 40); do
+    out="$(lpstat -r 2>&1 || true)"
+    if printf '%s\n' "$out" | grep -q 'scheduler is running'; then
+      if ! lpstat -a 2>&1 | grep -qi 'bad file descriptor'; then
+        return 0
+      fi
+    fi
+    sleep 0.25
+  done
+  return 1
+}
+
 start_cupsd_direct() {
   if [[ "$DRY_RUN" -eq 1 ]]; then
     log INFO "dry-run: mkdir -p cups runtime dirs && cupsd"
@@ -350,15 +364,11 @@ start_cups() {
     return 0
   fi
 
-  local i
-  for i in $(seq 1 30); do
-    if cups_is_running; then
-      log OK "CUPS is running"
-      return 0
-    fi
-    sleep 0.5
-  done
-  log WARN "CUPS may not be fully up yet; continuing"
+  if wait_for_cups; then
+    log OK "CUPS is running"
+  else
+    log WARN "CUPS may not be fully up yet; continuing"
+  fi
 }
 
 enable_file_devices() {
@@ -377,12 +387,9 @@ enable_file_devices() {
     updated=1
   done
   if [[ "$updated" -eq 1 && "$DRY_RUN" -eq 0 ]]; then
-    if command -v cupsd >/dev/null 2>&1; then
-      # cupsd -H graceful is not universal; HUP the running daemon.
-      if pgrep -x cupsd >/dev/null 2>&1; then
-        run pkill -HUP -x cupsd || true
-        sleep 0.5
-      fi
+    if pgrep -x cupsd >/dev/null 2>&1; then
+      run pkill -HUP -x cupsd || true
+      wait_for_cups || true
     fi
   fi
 }
@@ -392,40 +399,63 @@ queue_exists() {
   lpstat -p "$name" >/dev/null 2>&1
 }
 
-pick_generic_model() {
-  if [[ -n "$DRIVER_MODEL" ]]; then
-    printf '%s\n' "$DRIVER_MODEL"
-    return 0
-  fi
-  # Prefer CUPS sample generic PPD, then everywhere-PDF, then first available.
-  local models
-  models="$(lpinfo -m 2>/dev/null || true)"
-  local candidate
-  for candidate in \
-      "lsb/usr/cups-pdf/CUPS-PDF_opt.ppd" \
-      "lsb/usr/cups-pdf/CUPS-PDF.ppd" \
-      "lsb/usr/cupsfilters/Generic-PDF_Printer-PDF.ppd" \
-      "drv:///sample.drv/generic.ppd" \
-      "everywhere"
-  do
-    if printf '%s\n' "$models" | grep -Fq "$candidate"; then
-      printf '%s\n' "$candidate"
+first_existing_file() {
+  local f
+  for f in "$@"; do
+    if [[ -f "$f" ]]; then
+      printf '%s\n' "$f"
       return 0
     fi
   done
-  printf '%s\n' "everywhere"
+  return 1
+}
+
+pdf_ppd_path() {
+  first_existing_file \
+    /usr/share/ppd/cups-pdf/CUPS-PDF_opt.ppd \
+    /usr/share/ppd/cups-pdf/CUPS-PDF_noopt.ppd \
+    /usr/share/ppd/cups-pdf/CUPS-PDF.ppd \
+    /usr/share/ppd/cupsfilters/Generic-PDF_Printer-PDF.ppd
+}
+
+cups_pdf_backend() {
+  first_existing_file \
+    /usr/lib/cups/backend/cups-pdf \
+    /usr/libexec/cups/backend/cups-pdf \
+    /usr/lib/cups/backend/cups-pdf.org
+}
+
+lpadmin_driver_args() {
+  local uri="$1"
+  if [[ -n "$PPD_FILE" ]]; then
+    printf '%s\n' -P "$PPD_FILE"
+    return 0
+  fi
+  if [[ -n "$DRIVER_MODEL" ]]; then
+    printf '%s\n' -m "$DRIVER_MODEL"
+    return 0
+  fi
+  case "$uri" in
+    ipp://*|ipps://*|http://*|https://*)
+      printf '%s\n' -m everywhere
+      ;;
+    *)
+      local ppd
+      ppd="$(pdf_ppd_path || true)"
+      if [[ -n "$ppd" ]]; then
+        printf '%s\n' -P "$ppd"
+      else
+        printf '%s\n' -m drv:///cupsfilters.drv/pwgrast.ppd
+      fi
+      ;;
+  esac
 }
 
 add_or_update_printer() {
   local name="$1"
   local uri="$2"
   local extra=()
-
-  if [[ -n "$PPD_FILE" ]]; then
-    extra+=(-P "$PPD_FILE")
-  else
-    extra+=(-m "$(pick_generic_model)")
-  fi
+  mapfile -t extra < <(lpadmin_driver_args "$uri")
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
     log INFO "dry-run: lpadmin -p $name -E -v $uri ${extra[*]}"
@@ -452,35 +482,30 @@ ensure_pdf_printer() {
 
   local name="${PDF_PRINTER_NAME:-PDF}"
   local uri="cups-pdf:/"
-  local model=""
-  local models
-  models="$(lpinfo -m 2>/dev/null || true)"
+  local extra=()
+  local ppd backend
 
-  if printf '%s\n' "$models" | grep -Fq "lsb/usr/cups-pdf/CUPS-PDF_opt.ppd"; then
-    model="lsb/usr/cups-pdf/CUPS-PDF_opt.ppd"
-  elif printf '%s\n' "$models" | grep -Fq "lsb/usr/cups-pdf/CUPS-PDF.ppd"; then
-    model="lsb/usr/cups-pdf/CUPS-PDF.ppd"
-  elif printf '%s\n' "$models" | grep -q 'cups-pdf/CUPS-PDF'; then
-    model="$(printf '%s\n' "$models" | awk '/cups-pdf\/CUPS-PDF/ {print $1; exit}')"
-  elif printf '%s\n' "$models" | grep -Fq "lsb/usr/cupsfilters/Generic-PDF_Printer-PDF.ppd"; then
-    model="lsb/usr/cupsfilters/Generic-PDF_Printer-PDF.ppd"
-  else
-    # Fallback: write PostScript/PDF to a spool file so the VM still has a queue.
+  ppd="$(pdf_ppd_path || true)"
+  backend="$(cups_pdf_backend || true)"
+
+  if [[ -n "$backend" && -n "$ppd" ]]; then
+    extra+=(-P "$ppd")
+  elif [[ -n "$ppd" ]]; then
     uri="file:///var/tmp/virtual-printer.ps"
-    model="$(pick_generic_model)"
-    log WARN "cups-pdf driver not found; using file URI $uri"
+    extra+=(-P "$ppd")
+    log WARN "cups-pdf backend not found; using file URI $uri"
     enable_file_devices
-  fi
-
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    log INFO "dry-run: lpadmin -p $name -E -v $uri -m $model"
-    return 0
+  else
+    uri="file:///var/tmp/virtual-printer.ps"
+    extra+=(-m drv:///cupsfilters.drv/pwgrast.ppd)
+    log WARN "No PDF PPD found; using file URI $uri"
+    enable_file_devices
   fi
 
   if queue_exists "$name" && [[ "$uri" == cups-pdf:/* ]]; then
     log OK "PDF printer already present: $name"
   else
-    run lpadmin -p "$name" -E -v "$uri" -m "$model"
+    run lpadmin -p "$name" -E -v "$uri" "${extra[@]}"
     run cupsenable "$name" || true
     run cupsaccept "$name" || true
     log OK "Virtual PDF printer ready: $name"
@@ -515,11 +540,9 @@ summarize() {
     log INFO "CUPS queues:"
     lpstat -p -d 2>/dev/null | tee -a "$LOG_FILE" || true
   fi
-  if command -v lpinfo >/dev/null 2>&1; then
-    local count
-    count="$(lpinfo -m 2>/dev/null | wc -l | tr -d ' ')"
-    log OK "Available CUPS models/drivers: $count"
-  fi
+  local ppd_count
+  ppd_count="$(find /usr/share/ppd -name '*.ppd' 2>/dev/null | wc -l | tr -d ' ')"
+  log OK "Installed PPD files: ${ppd_count:-0}"
   log OK "Done. Log: $LOG_FILE"
   if [[ "$PDF_PRINTER" -eq 1 ]]; then
     log INFO "PDF output (if cups-pdf is installed) is typically in ~/PDF or /var/spool/cups-pdf"
