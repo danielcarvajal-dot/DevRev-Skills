@@ -33,7 +33,8 @@ only with `--all-users` (Linux).
 ## Default Linux behavior
 
 1. Scan `/proc` for Firefox binaries (`firefox`, `firefox-bin`, `firefox-esr`,
-   Nightly / Dev Edition, snap, Flatpak)
+   Nightly / Dev Edition, snap, Flatpak) plus helper comms (`Web Content`,
+   `RDD Process`, …) and their child processes
 2. Send SIGTERM
 3. Wait up to 10 seconds
 4. Exit 0 if everything stopped, or error if leftovers remain
