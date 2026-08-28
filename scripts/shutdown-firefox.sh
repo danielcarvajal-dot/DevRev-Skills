@@ -76,7 +76,8 @@ parse_args() {
   fi
 }
 
-# Match Firefox binaries only — never this script or a random "firefox" string.
+# Match Firefox binaries and helper processes only — never this script
+# or a random command line that merely mentions "firefox".
 is_firefox_process() {
   local comm="$1"
   local exe="$2"
@@ -84,6 +85,9 @@ is_firefox_process() {
 
   case "$comm" in
     firefox|firefox-bin|firefox-esr|firefox-nightly|firefox-dev|firefox-developer-edition)
+      return 0
+      ;;
+    "Web Content"|"WebExtensions"|"Privileged Cont"|"Privileged Cont+"|"RDD Process"|"Socket Process"|"Utility Process"|"Isolated Web Co"|"Fork Server")
       return 0
       ;;
   esac
@@ -106,10 +110,22 @@ is_firefox_process() {
   return 1
 }
 
+proc_uid() {
+  awk '/^Uid:/{print $2; exit}' "/proc/$1/status" 2>/dev/null || true
+}
+
+proc_ppid() {
+  awk '/^PPid:/{print $2; exit}' "/proc/$1/status" 2>/dev/null || true
+}
+
 collect_pids() {
-  local pid comm exe cmdline uid
+  local pid comm exe cmdline uid ppid
   local my_uid
   my_uid="$(id -u)"
+  local -A matched=()
+  local -A comms=()
+  local -A exes=()
+  local -A ppids=()
 
   for pid in /proc/[0-9]*; do
     pid="${pid##*/}"
@@ -128,17 +144,38 @@ collect_pids() {
     if [[ -r "/proc/$pid/cmdline" ]]; then
       cmdline="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null || true)"
     fi
-    if [[ -r "/proc/$pid/status" ]]; then
-      uid="$(awk '/^Uid:/{print $2}' "/proc/$pid/status" 2>/dev/null || true)"
-    fi
+    uid="$(proc_uid "$pid")"
+    ppid="$(proc_ppid "$pid")"
 
     if [[ "$ALL_USERS" -eq 0 && -n "$uid" && "$uid" != "$my_uid" ]]; then
       continue
     fi
 
+    comms["$pid"]="$comm"
+    exes["$pid"]="${exe:-$cmdline}"
+    ppids["$pid"]="$ppid"
+
     if is_firefox_process "$comm" "$exe" "$cmdline"; then
-      printf '%s\t%s\t%s\n' "$pid" "$comm" "${exe:-$cmdline}"
+      matched["$pid"]=1
     fi
+  done
+
+  # Include children of Firefox (content processes that were not matched yet).
+  local changed=1
+  while [[ "$changed" -eq 1 ]]; do
+    changed=0
+    for pid in "${!ppids[@]}"; do
+      [[ -n "${matched[$pid]:-}" ]] && continue
+      ppid="${ppids[$pid]}"
+      if [[ -n "$ppid" && -n "${matched[$ppid]:-}" ]]; then
+        matched["$pid"]=1
+        changed=1
+      fi
+    done
+  done
+
+  for pid in "${!matched[@]}"; do
+    printf '%s\t%s\t%s\n' "$pid" "${comms[$pid]}" "${exes[$pid]}"
   done
 }
 
