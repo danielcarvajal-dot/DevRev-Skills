@@ -1,0 +1,77 @@
+version: "2"
+
+name: VM Script Runner
+description: >
+  Choose a cataloged script and have Computer run it on the VM via
+  python3 scripts/run_script.py. Add more scripts in scripts/catalog.json
+  without changing snap-in functions.
+
+service_account:
+  display_name: VM Script Runner
+  scopes:
+    self:
+
+inputs:
+  organization:
+    - name: vm_repo_path
+      description: Absolute or relative path to the repo checkout on the Computer VM.
+      field_type: text
+      default_value: "."
+      ui:
+        display_name: VM repo path
+    - name: python_bin
+      description: Python executable Computer should use on the VM.
+      field_type: text
+      default_value: "python3"
+      ui:
+        display_name: Python binary
+    - name: extra_catalog_json
+      description: >
+        Optional JSON object {"scripts":[...]} or a JSON array of extra catalog
+        entries. Use this to add scripts without shipping a new snap-in version.
+      field_type: text
+      default_value: ""
+      ui:
+        display_name: Extra catalog JSON
+    - name: computer_webhook_url
+      description: >
+        Optional HTTPS endpoint Computer or a custom runner listens on.
+        When set, the snap-in POSTs {script_id, command, extra_args} after
+        posting the Computer task on the timeline.
+      field_type: text
+      default_value: ""
+      ui:
+        display_name: Computer webhook URL
+
+keyrings:
+  organization:
+    - name: computer_webhook_secret
+      description: Optional bearer token sent as Authorization when posting to the Computer webhook.
+      display_name: Computer webhook secret
+      types:
+        - snap_in_secret
+
+functions:
+  - name: run_vm_script
+    description: Slash-command handler that lists scripts or queues one for Computer.
+  - name: on_script_chosen
+    description: SnapKit handler that runs the script the user picked from the picker.
+
+commands:
+  - name: vm-script
+    namespace: computer
+    description: List or run a cataloged VM script through Computer.
+    surfaces:
+      - surface: discussions
+        object_types:
+          - issue
+          - ticket
+          - conversation
+          - part
+    usage_hint: "[list | run <script-id> | extra args after --]"
+    function: run_vm_script
+
+snap_kit_actions:
+  - name: choose_vm_script
+    description: Pick a cataloged VM script to run on Computer.
+    function: on_script_chosen

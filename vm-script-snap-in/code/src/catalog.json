@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "scripts": [
+    {
+      "id": "install-printer-driver",
+      "name": "Install printer driver",
+      "description": "Install CUPS or Windows print drivers on the VM and add a virtual PDF printer.",
+      "platforms": {
+        "linux": {
+          "argv": ["bash", "scripts/install-printer-driver.sh"],
+          "default_args": ["--yes"],
+          "needs_root": true
+        },
+        "windows": {
+          "argv": ["powershell", "-ExecutionPolicy", "Bypass", "-File", "scripts/install-printer-driver.ps1"],
+          "default_args": [],
+          "needs_root": true
+        }
+      }
+    },
+    {
+      "id": "shutdown-firefox",
+      "name": "Shut down Firefox",
+      "description": "Gracefully stop Firefox on the VM; use extra args --force to kill leftovers.",
+      "platforms": {
+        "linux": {
+          "argv": ["bash", "scripts/shutdown-firefox.sh"],
+          "default_args": [],
+          "needs_root": false
+        },
+        "windows": {
+          "argv": ["powershell", "-ExecutionPolicy", "Bypass", "-File", "scripts/shutdown-firefox.ps1"],
+          "default_args": [],
+          "needs_root": false
+        }
+      }
+    },
+    {
+      "id": "hello-vm",
+      "name": "Hello VM",
+      "description": "Example catalog script. Copy this pattern to add more scripts.",
+      "platforms": {
+        "linux": {
+          "argv": ["python3", "scripts/hello_vm.py"],
+          "default_args": [],
+          "needs_root": false
+        },
+        "windows": {
+          "argv": ["python", "scripts/hello_vm.py"],
+          "default_args": [],
+          "needs_root": false
+        }
+      }
+    }
+  ]
+}
