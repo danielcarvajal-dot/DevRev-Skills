@@ -28,9 +28,11 @@ latest input schema.
 | `KeycloakUnlockAccount` | Clear lockout. No password change. | `{ "email": "user@example.com" }` |
 | `ResetPassword` | Send a Keycloak `UPDATE_PASSWORD` email | `{ "email": "user@example.com" }` |
 
-Do **not** pass `method`, `url`, `headers`, `body`, or a client secret. Those
-are stored on the skill workflow (token request included). Computer only
-needs the Keycloak email.
+Do **not** pass `method`, `url`, `headers`, `body`, a client secret, or an
+access token. Those stay on the skill workflow. Each run mints a **new**
+Keycloak token via client credentials against the public Keycloak URL
+(ngrok). A JWT copied from laptop Keycloak (`iss: localhost:8080`) is
+rejected on that public URL and is not stored on the skill.
 
 `KeycloakGetToken` is no longer attached. Each skill fetches its own token.
 
