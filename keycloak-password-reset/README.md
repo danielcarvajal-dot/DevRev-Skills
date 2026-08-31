@@ -18,10 +18,10 @@ Use these in the Discussions tab of a ticket, issue, or conversation:
 
 | Command | What it does |
 | --- | --- |
-| `/reset-password user@example.com` | Unlock if locked, enable if disabled, send a reset email |
-| `/reset-password user@example.com --temp` | Same recovery, then set a temporary password (commented internally) |
-| `/unlock-account user@example.com` | Unlock + enable only |
-| `/check-account user@example.com` | Report lockout and enabled status |
+| `/reset_password user@example.com` | Unlock if locked, enable if disabled, send a reset email |
+| `/reset_password user@example.com --temp` | Same recovery, then set a temporary password (commented internally) |
+| `/unlock_account user@example.com` | Unlock + enable only |
+| `/check_account user@example.com` | Report lockout and enabled status |
 
 If the email is omitted, the snap-in tries the ticket title, body, then reporter.
 
@@ -58,8 +58,8 @@ Admin console: [http://localhost:8080](http://localhost:8080) (`admin` / `admin`
 
 Demo user: `demo.user@example.com` / `DemoPass123!`.
 
-Fail the password a few times to lock the account, then run `/unlock-account`
-or `/reset-password` from DevRev.
+Fail the password a few times to lock the account, then run `/unlock_account`
+or `/reset_password` from DevRev.
 
 ## Develop and test the function code
 

@@ -18,10 +18,10 @@ discussion commands and a ticket-created automation.
 
 Use the commands on the ticket or conversation:
 
-- `/reset-password user@example.com` — unlock, enable, email a reset link
-- `/reset-password user@example.com --temp` — unlock, enable, set a temp password
-- `/unlock-account user@example.com` — unlock and enable only
-- `/check-account user@example.com` — report status only
+- `/reset_password user@example.com` — unlock, enable, email a reset link
+- `/reset_password user@example.com --temp` — unlock, enable, set a temp password
+- `/unlock_account user@example.com` — unlock and enable only
+- `/check_account user@example.com` — report status only
 
 If the customer already wrote an email on the ticket, the command can run
 without arguments.

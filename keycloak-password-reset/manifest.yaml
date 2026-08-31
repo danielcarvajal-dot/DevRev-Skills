@@ -102,7 +102,7 @@ event_sources:
 functions:
   - name: command_handler
     description: >
-      Handles /reset-password, /unlock-account, and /check-account. Looks up the
+      Handles /reset_password, /unlock_account, and /check_account. Looks up the
       Keycloak user, reports lockout status, unlocks and enables if needed, and
       sends a reset email or sets a temporary password.
   - name: on_ticket_created
@@ -118,7 +118,7 @@ automations:
     function: on_ticket_created
 
 commands:
-  - name: reset-password
+  - name: reset_password
     namespace: keycloak
     description: Unlock the account if needed and send a Keycloak password-reset email
     surfaces:
@@ -129,7 +129,7 @@ commands:
           - conversation
     usage_hint: "user@example.com [--temp]"
     function: command_handler
-  - name: unlock-account
+  - name: unlock_account
     namespace: keycloak
     description: Clear a Keycloak brute-force lockout and re-enable the user
     surfaces:
@@ -140,7 +140,7 @@ commands:
           - conversation
     usage_hint: "user@example.com"
     function: command_handler
-  - name: check-account
+  - name: check_account
     namespace: keycloak
     description: Look up a Keycloak user and report lockout and enabled status
     surfaces:

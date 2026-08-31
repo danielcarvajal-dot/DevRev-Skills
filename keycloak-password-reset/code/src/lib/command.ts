@@ -33,7 +33,7 @@ export function emailFromWork(work: {
 export function requireEmail(email: string | undefined): string {
   if (!email) {
     throw new KeycloakError(
-      'Please include the user email, for example `/reset-password user@example.com`.'
+      'Please include the user email, for example `/reset_password user@example.com`.'
     );
   }
   return email;

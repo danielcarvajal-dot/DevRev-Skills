@@ -42,7 +42,7 @@ export function formatRecoveryComment(result: RecoveryResult): string {
     lines.push(`Sent a password-reset email to ${result.email}. The user should use the Keycloak link to set a new password.`);
   } else if (result.resetEmailError) {
     lines.push(`Could not send the password-reset email: ${result.resetEmailError}`);
-    lines.push('The account was still unlocked/enabled. Use `/reset-password user@example.com --temp` if you need a temporary password for the demo.');
+    lines.push('The account was still unlocked/enabled. Use `/reset_password user@example.com --temp` if you need a temporary password for the demo.');
   }
 
   if (result.temporaryPassword) {
@@ -56,10 +56,10 @@ export function formatRecoveryComment(result: RecoveryResult): string {
 export function usageHint(): string {
   return [
     'I can recover a Keycloak account from this discussion:',
-    '- `/reset-password user@example.com` — unlock, enable, and email a reset link',
-    '- `/reset-password user@example.com --temp` — unlock, enable, and set a temporary password (posted internally)',
-    '- `/unlock-account user@example.com` — clear lockout and enable only',
-    '- `/check-account user@example.com` — report lockout and enabled status',
+    '- `/reset_password user@example.com` — unlock, enable, and email a reset link',
+    '- `/reset_password user@example.com --temp` — unlock, enable, and set a temporary password (posted internally)',
+    '- `/unlock_account user@example.com` — clear lockout and enable only',
+    '- `/check_account user@example.com` — report lockout and enabled status',
   ].join('\n');
 }
 

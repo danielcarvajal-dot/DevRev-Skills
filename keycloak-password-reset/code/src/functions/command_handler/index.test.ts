@@ -22,7 +22,7 @@ jest.mock('../../lib/keycloak', () => ({
 
 const baseEvent = {
   payload: {
-    command_id: 'don:integration:dvrv-us-1:devo/x:namespace/keycloak:command/reset-password',
+    command_id: 'don:integration:dvrv-us-1:devo/x:namespace/keycloak:command/reset_password',
     parameters: 'demo.user@example.com',
     source_id: 'don:core:dvrv-us-1:devo/x:ticket/18',
   },
@@ -122,7 +122,7 @@ describe('command_handler', () => {
       ...baseEvent,
       payload: {
         ...baseEvent.payload,
-        command_id: 'don:integration:dvrv-us-1:devo/x:namespace/keycloak:command/check-account',
+        command_id: 'don:integration:dvrv-us-1:devo/x:namespace/keycloak:command/check_account',
       },
     });
 
