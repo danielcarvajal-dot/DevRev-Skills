@@ -32,7 +32,10 @@ comment. `--temp` posts internally on purpose.
 ## Required configuration
 - Keycloak base URL (must be reachable from DevRev, not `localhost`, for hosted functions)
 - For a laptop Keycloak, expose it with ngrok: `ngrok http 8080`, then use the
-  `https://….ngrok-free.app/` URL (see `keycloak-password-reset/README.md`)
+  `https://….ngrok-free.app/` URL (see `keycloak-password-reset/README.md`).
+  Do not pin `KC_HOSTNAME` on a free/ephemeral URL — that 302s later tunnels
+  to a dead host and Chrome reports `net::ERR_ABORTED`. Verify with curl and
+  `ngrok-skip-browser-warning`, not by loading `/admin` in the browser.
 - Realm (demo default `account-unlock`)
 - Confidential client `unlock-agent` with service-account roles `manage-users`, `view-users`, `query-users`
 - Client secret stored as a Keycloak Admin connection

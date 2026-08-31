@@ -7,6 +7,11 @@ services:
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      # Required behind ngrok (TLS terminates at the tunnel). Without this,
+      # the admin console emits http:// asset URLs and Chrome reports
+      # net::ERR_ABORTED / mixed content.
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT: "false"
     volumes:
       - ./realm:/opt/keycloak/data/import
     healthcheck:

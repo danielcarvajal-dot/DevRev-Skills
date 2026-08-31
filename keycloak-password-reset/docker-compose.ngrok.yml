@@ -1,6 +1,9 @@
-# Optional override so Keycloak reset-email links use the public ngrok host.
+# Optional override. Only use this when the public host is stable
+# (reserved ngrok domain). Pinning KC_HOSTNAME to a free/ephemeral
+# *.ngrok-free.app URL will 302 later tunnels to the dead host and
+# Chrome reports net::ERR_ABORTED.
 # Usage:
-#   export KC_HOSTNAME=https://xxxx.ngrok-free.app
+#   export KC_HOSTNAME=https://your-reserved-name.ngrok-free.app
 #   docker compose -f docker-compose.yml -f docker-compose.ngrok.yml up
 services:
   keycloak:

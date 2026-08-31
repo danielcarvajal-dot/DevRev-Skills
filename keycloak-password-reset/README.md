@@ -151,12 +151,56 @@ Paste the public URL back here if you want the demo keyring updated for you.
 
 | Issue | What to do |
 | --- | --- |
-| Free tunnels show a browser warning page | The snap-in sends `ngrok-skip-browser-warning: true` on every Admin API call. Browsers still see the interstitial unless you click through. |
+| Free tunnels show a browser warning page | The snap-in sends `ngrok-skip-browser-warning: true` on every Admin API call. Browsers still see the interstitial unless you click **Visit Site**. |
 | URL changes every time you restart ngrok | Update the connection / `keycloak_url` each time, or reserve a domain on a paid plan (`ngrok http --url your-name.ngrok-free.app 8080`). |
 | Tunnel dies when the laptop sleeps | Keep ngrok and Docker running while you demo. |
-| `execute-actions-email` links still say localhost | Restart Keycloak with `KC_HOSTNAME` set to the ngrok HTTPS origin, or use `/reset_password user@example.com --temp`. |
+| `execute-actions-email` links still say localhost | Restart Keycloak with `KC_HOSTNAME` set to a **reserved** ngrok HTTPS origin, or use `/reset_password user@example.com --temp`. |
 
 Do not commit the ngrok URL, authtoken, or client secret.
+
+### Fix `net::ERR_ABORTED` on the ngrok URL
+
+Chrome reports `ERR_ABORTED` when the document request is cancelled. With Keycloak
+on a **new** free ngrok URL that is almost always one of these:
+
+1. **The free ngrok interstitial aborted the page.**  
+   Opening `https://….ngrok-free.app/admin` in a browser does **not** send
+   `ngrok-skip-browser-warning`. ngrok returns an HTML warning; Keycloak’s
+   admin SPA then loads JS as HTML and Chrome aborts those requests.
+
+   - Open the HTTPS URL once, click **Visit Site**, then go to `/admin`.
+   - Or verify the tunnel with curl (this is what the snap-in does):
+
+     ```bash
+     curl -sS -D- -o /tmp/kc.json -H 'ngrok-skip-browser-warning: true' \
+       https://<your-subdomain>.ngrok-free.app/realms/account-unlock/.well-known/openid-configuration
+     ```
+
+     You want `HTTP/2 200` and JSON. HTML from ngrok means the skip header is
+     missing; a 302 to a *different* ngrok host means Keycloak still has the
+     old hostname pinned.
+
+2. **Keycloak is still pinned to the previous ngrok host.**  
+   If you ever started compose with `KC_HOSTNAME=https://old.ngrok-free.app`,
+   Keycloak 302s the new URL to the dead tunnel and the browser aborts.
+
+   ```bash
+   unset KC_HOSTNAME
+   docker compose -f keycloak-password-reset/docker-compose.yml down
+   docker compose -f keycloak-password-reset/docker-compose.yml up
+   ngrok http 8080
+   ```
+
+   Do **not** pass `docker-compose.ngrok.yml` on a free/ephemeral URL. That
+   file is only for a reserved domain. `KC_PROXY_HEADERS=xforwarded` and
+   `KC_HOSTNAME_STRICT=false` are already in the base compose file.
+
+3. **You opened the `http://` ngrok URL.**  
+   Use only `https://….ngrok-free.app/` (trailing slash) as **Keycloak URL**.
+
+The snap-in does not need the admin console to load in Chrome. If curl returns
+JSON, paste the `https://….ngrok-free.app/` URL into the Keycloak Admin
+connection and click **Deploy**.
 
 ## Develop and test the function code
 
