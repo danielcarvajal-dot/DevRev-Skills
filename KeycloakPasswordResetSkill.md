@@ -1,0 +1,41 @@
+# Keycloak Password Reset Skill
+
+## Purpose
+Recover a Keycloak user from DevRev: look up the account, clear a brute-force
+lockout, re-enable the user, and send a password-reset email (or set a
+temporary password for a demo).
+
+## Trigger phrases
+- "reset their password"
+- "locked out of Keycloak"
+- "forgot password"
+- "unlock this account"
+- "build me a password reset snap-in"
+
+## How it works
+The **Keycloak Password Reset** snap-in (`keycloak-password-reset/`) exposes
+discussion commands and a ticket-created automation.
+
+Use the commands on the ticket or conversation:
+
+- `/reset-password user@example.com` — unlock, enable, email a reset link
+- `/reset-password user@example.com --temp` — unlock, enable, set a temp password
+- `/unlock-account user@example.com` — unlock and enable only
+- `/check-account user@example.com` — report status only
+
+If the customer already wrote an email on the ticket, the command can run
+without arguments.
+
+Do **not** paste a temporary password into an external / customer-visible
+comment. `--temp` posts internally on purpose.
+
+## Required configuration
+- Keycloak base URL (must be reachable from DevRev, not `localhost`, for hosted functions)
+- Realm (demo default `account-unlock`)
+- Confidential client `unlock-agent` with service-account roles `manage-users`, `view-users`, `query-users`
+- Client secret stored as a Keycloak Admin connection
+
+## Escalation
+If Keycloak returns 401/403, the client credentials or realm-management roles
+are wrong. If execute-actions-email fails, the realm SMTP settings are missing
+— use `--temp` for the demo instead.
