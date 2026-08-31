@@ -67,11 +67,14 @@ describe('command_handler', () => {
 
     await handleEvent(baseEvent);
 
-    expect(recoverAccount).toHaveBeenCalledWith('demo.user@example.com', {
-      action: 'reset',
-      sendResetEmail: true,
-      setTempPassword: false,
-    });
+    expect(recoverAccount).toHaveBeenCalledWith(
+      { email: 'demo.user@example.com', userId: undefined },
+      {
+        action: 'reset',
+        sendResetEmail: true,
+        setTempPassword: false,
+      }
+    );
     expect(postComment).toHaveBeenCalledWith(
       baseEvent,
       'don:core:dvrv-us-1:devo/x:ticket/18',
@@ -99,11 +102,14 @@ describe('command_handler', () => {
       payload: { ...baseEvent.payload, parameters: 'demo.user@example.com --temp' },
     });
 
-    expect(recoverAccount).toHaveBeenCalledWith('demo.user@example.com', {
-      action: 'reset',
-      sendResetEmail: false,
-      setTempPassword: true,
-    });
+    expect(recoverAccount).toHaveBeenCalledWith(
+      { email: 'demo.user@example.com', userId: undefined },
+      {
+        action: 'reset',
+        sendResetEmail: false,
+        setTempPassword: true,
+      }
+    );
     expect(postComment).toHaveBeenCalledWith(
       expect.any(Object),
       baseEvent.payload.source_id,
@@ -126,12 +132,39 @@ describe('command_handler', () => {
       },
     });
 
-    expect(getAccountStatus).toHaveBeenCalledWith('demo.user@example.com');
+    expect(getAccountStatus).toHaveBeenCalledWith({
+      email: 'demo.user@example.com',
+      userId: undefined,
+    });
     expect(recoverAccount).not.toHaveBeenCalled();
     expect(postComment).toHaveBeenCalledWith(
       expect.any(Object),
       baseEvent.payload.source_id,
       expect.stringContaining('Brute-force locked: no')
+    );
+  });
+
+  it('looks up a Keycloak user by id', async () => {
+    recoverAccount.mockResolvedValue({
+      action: 'reset',
+      email: 'demo.user@example.com',
+      user: { id: 'd6f8d294-805c-492c-a401-c3192af545bf', email: 'demo.user@example.com', enabled: true },
+      lockout: { disabled: false },
+      wasLocked: false,
+      wasDisabled: false,
+      unlocked: false,
+      enabled: true,
+      resetEmailSent: true,
+    });
+
+    await handleEvent({
+      ...baseEvent,
+      payload: { ...baseEvent.payload, parameters: 'd6f8d294-805c-492c-a401-c3192af545bf' },
+    });
+
+    expect(recoverAccount).toHaveBeenCalledWith(
+      { email: undefined, userId: 'd6f8d294-805c-492c-a401-c3192af545bf' },
+      expect.objectContaining({ action: 'reset' })
     );
   });
 

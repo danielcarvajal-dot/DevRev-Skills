@@ -30,17 +30,18 @@ export function emailFromWork(work: {
   );
 }
 
-export function requireEmail(email: string | undefined): string {
-  if (!email) {
+export function requireLookup(identity: { email?: string; userId?: string }): { email?: string; userId?: string } {
+  if (!identity.email && !identity.userId) {
     throw new KeycloakError(
-      'Please include the user email, for example `/reset_password user@example.com`.'
+      'Please include the user email or Keycloak user ID, for example `/reset_password user@example.com`.'
     );
   }
-  return email;
+  return identity;
 }
 
 export function commandOptions(event: { payload?: { parameters?: string } }): {
   email?: string;
+  userId?: string;
   temp: boolean;
 } {
   return parseCommandParameters(event.payload?.parameters);

@@ -194,20 +194,31 @@ export class KeycloakClient {
     }
   }
 
-  async getAccountStatus(email: string): Promise<AccountStatus> {
-    const user = await this.findUserByEmail(email);
+  async getAccountStatus(identity: { email?: string; userId?: string } | string): Promise<AccountStatus> {
+    const lookup = typeof identity === 'string' ? { email: identity } : identity;
+    let user: KeycloakUser | null = null;
+    if (lookup.userId) {
+      user = await this.getUser(lookup.userId);
+    } else if (lookup.email) {
+      user = await this.findUserByEmail(lookup.email);
+    }
     if (!user) {
-      throw new KeycloakError(`No Keycloak user found for ${email}.`, 404);
+      throw new KeycloakError(
+        `No Keycloak user found for ${lookup.email || lookup.userId || 'the given identity'}.`,
+        404
+      );
     }
     const lockout = await this.checkLockout(user.id);
     return { user, lockout };
   }
 
   async recoverAccount(
-    email: string,
+    identity: { email?: string; userId?: string } | string,
     options: { action: RecoveryAction; setTempPassword?: boolean; sendResetEmail?: boolean }
   ): Promise<RecoveryResult> {
-    const { user, lockout } = await this.getAccountStatus(email);
+    const { user, lockout } = await this.getAccountStatus(identity);
+    const email =
+      (typeof identity === 'string' ? identity : identity.email) || user.email || user.id;
     const wasLocked = Boolean(lockout.disabled);
     const wasDisabled = user.enabled === false;
     let unlocked = false;

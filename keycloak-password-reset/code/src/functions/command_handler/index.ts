@@ -1,4 +1,4 @@
-import { commandOptions, emailFromWork, inferAction, requireEmail } from '../../lib/command';
+import { commandOptions, emailFromWork, inferAction, requireLookup } from '../../lib/command';
 import { formatAccountStatus, formatRecoveryComment, postComment, usageHint } from '../../lib/comments';
 import { resolveConfig } from '../../lib/config';
 import { KeycloakClient } from '../../lib/keycloak';
@@ -34,19 +34,22 @@ export async function handleEvent(event: any, forcedAction?: RecoveryAction): Pr
   }
 
   const action = forcedAction ?? inferAction(event);
-  const { email: parameterEmail, temp } = commandOptions(event);
+  const { email: parameterEmail, userId, temp } = commandOptions(event);
 
   try {
-    const email = requireEmail(await resolveEmail(event, sourceId, parameterEmail));
+    const identity = requireLookup({
+      email: userId ? undefined : await resolveEmail(event, sourceId, parameterEmail),
+      userId,
+    });
     const client = new KeycloakClient(resolveConfig(event));
 
     if (action === 'check') {
-      const status = await client.getAccountStatus(email);
+      const status = await client.getAccountStatus(identity);
       await postComment(event, sourceId, `${formatAccountStatus(status)}\n\n${usageHint()}`);
       return;
     }
 
-    const result = await client.recoverAccount(email, {
+    const result = await client.recoverAccount(identity, {
       action,
       sendResetEmail: action === 'reset' && !temp,
       setTempPassword: action === 'reset' && temp,

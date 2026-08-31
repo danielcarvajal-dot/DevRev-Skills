@@ -8,12 +8,29 @@ export function extractEmail(text: string | undefined | null): string | undefine
   return match?.[0];
 }
 
-export function parseCommandParameters(params: string | undefined | null): { email?: string; temp: boolean } {
+const UUID_PATTERN = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+
+export function extractUserId(text: string | undefined | null): string | undefined {
+  if (!text) {
+    return undefined;
+  }
+  const match = text.match(UUID_PATTERN);
+  return match?.[0];
+}
+
+export function parseCommandParameters(params: string | undefined | null): {
+  email?: string;
+  userId?: string;
+  temp: boolean;
+} {
   const raw = (params ?? '').trim();
   const temp = /(?:^|\s)--temp(?:\s|$)/i.test(raw);
   const withoutFlags = raw.replace(/--temp/gi, ' ').replace(/\s+/g, ' ').trim();
-  const email = extractEmail(withoutFlags);
-  return { email, temp };
+  return {
+    email: extractEmail(withoutFlags),
+    userId: extractUserId(withoutFlags),
+    temp,
+  };
 }
 
 const PASSWORD_INTENT =

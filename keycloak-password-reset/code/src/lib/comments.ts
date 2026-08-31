@@ -56,7 +56,7 @@ export function formatRecoveryComment(result: RecoveryResult): string {
 export function usageHint(): string {
   return [
     'I can recover a Keycloak account from this discussion:',
-    '- `/reset_password user@example.com` — unlock, enable, and email a reset link',
+    '- `/reset_password user@example.com` — unlock, enable, and email a reset link (Keycloak user ID also works)',
     '- `/reset_password user@example.com --temp` — unlock, enable, and set a temporary password (posted internally)',
     '- `/unlock_account user@example.com` — clear lockout and enable only',
     '- `/check_account user@example.com` — report lockout and enabled status',

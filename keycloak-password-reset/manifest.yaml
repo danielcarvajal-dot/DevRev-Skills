@@ -46,6 +46,7 @@ keyrings:
     - name: keycloak
       display_name: Keycloak Admin
       description: Keycloak admin credentials used for unlock and password reset
+      optional: true
       types:
         - keycloak-admin
         - snap_in_secret

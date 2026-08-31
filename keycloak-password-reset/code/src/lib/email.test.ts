@@ -14,6 +14,7 @@ describe('parseCommandParameters', () => {
   it('parses an email and the temp flag', () => {
     expect(parseCommandParameters('demo.user@example.com --temp')).toEqual({
       email: 'demo.user@example.com',
+      userId: undefined,
       temp: true,
     });
   });
@@ -21,6 +22,15 @@ describe('parseCommandParameters', () => {
   it('treats a bare email as a reset without temp', () => {
     expect(parseCommandParameters('  demo.user@example.com  ')).toEqual({
       email: 'demo.user@example.com',
+      userId: undefined,
+      temp: false,
+    });
+  });
+
+  it('parses a Keycloak user id', () => {
+    expect(parseCommandParameters('d6f8d294-805c-492c-a401-c3192af545bf')).toEqual({
+      email: undefined,
+      userId: 'd6f8d294-805c-492c-a401-c3192af545bf',
       temp: false,
     });
   });
