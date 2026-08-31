@@ -17,19 +17,21 @@ The **Keycloak Password Reset** snap-in (`keycloak-password-reset/`) exposes
 discussion commands, a ticket-created automation, and an `agent_handler`
 function that Computer uses for chat (JSON in, JSON out — no ticket comment).
 
-From **Computer**, say "reset my password" or "check testuser@yourcompany.com".
-Computer skills take an email only (no HTTP method or client secret).
+From **Computer**, say "reset my password", "unlock danielcarvajal", or
+"check testuser@yourcompany.com". Skills accept an email **or** username
+(no HTTP method or client secret). `@devrev.ai` logins map to the
+`@devrev.com` Keycloak mailbox.
 See [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md).
 
 Use the commands on a ticket or conversation:
 
 - `/reset_password user@example.com` — unlock, enable, email a reset link
-- `/reset_password user@example.com --temp` — unlock, enable, set a temp password
-- `/unlock_account user@example.com` — unlock and enable only
+- `/reset_password danielcarvajal --temp` — unlock, enable, set a temp password
+- `/unlock_account danielcarvajal` — unlock and enable only
 - `/check_account user@example.com` — report status only
 
-If the customer already wrote an email on the ticket, the command can run
-without arguments.
+If the customer already wrote an email or username on the ticket, the command
+can run without arguments.
 
 Do **not** paste a temporary password into an external / customer-visible
 comment. `--temp` posts internally on purpose.

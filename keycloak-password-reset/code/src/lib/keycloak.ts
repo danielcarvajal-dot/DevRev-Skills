@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { generateTemporaryPassword } from './email';
+import { emailAliases, generateTemporaryPassword, usernameAliases } from './email';
 import { wrapHttpError } from './http-error';
 import {
   AccountStatus,
@@ -11,7 +11,10 @@ import {
   KeycloakUser,
   RecoveryAction,
   RecoveryResult,
+  UserLookup,
 } from './types';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type TokenResponse = {
   access_token: string;
@@ -66,22 +69,94 @@ export class KeycloakClient {
   }
 
   async findUserByEmail(email: string): Promise<KeycloakUser | null> {
+    return this.findUsers({ email, exact: true }, (user) => user.email?.toLowerCase() === email.toLowerCase());
+  }
+
+  async findUserByUsername(username: string): Promise<KeycloakUser | null> {
+    return this.findUsers({ username, exact: true }, (user) => user.username?.toLowerCase() === username.toLowerCase());
+  }
+
+  async findUserBySearch(query: string): Promise<KeycloakUser | null> {
+    const needle = query.toLowerCase();
+    return this.findUsers({ search: query }, (user) => {
+      return (
+        user.username?.toLowerCase() === needle ||
+        user.email?.toLowerCase() === needle ||
+        user.username?.toLowerCase().replace(/[-_.]/g, '') === needle.replace(/[-_.]/g, '')
+      );
+    });
+  }
+
+  async resolveUser(lookup: UserLookup | string): Promise<KeycloakUser | null> {
+    const identity = this.normalizeLookup(lookup);
+    if (identity.userId) {
+      return this.getUser(identity.userId);
+    }
+
+    if (identity.email) {
+      for (const email of emailAliases(identity.email)) {
+        const match = await this.findUserByEmail(email);
+        if (match) {
+          return match;
+        }
+      }
+    }
+
+    if (identity.username) {
+      for (const username of usernameAliases(identity.username)) {
+        const match = await this.findUserByUsername(username);
+        if (match) {
+          return match;
+        }
+      }
+    }
+
+    const searchTerms = [identity.email, identity.username].filter((value): value is string => Boolean(value));
+    for (const term of searchTerms) {
+      for (const alias of term.includes('@') ? emailAliases(term) : usernameAliases(term)) {
+        const match = await this.findUserBySearch(alias);
+        if (match) {
+          return match;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeLookup(lookup: UserLookup | string): UserLookup {
+    if (typeof lookup !== 'string') {
+      return lookup;
+    }
+    const value = lookup.trim();
+    if (UUID_PATTERN.test(value)) {
+      return { userId: value };
+    }
+    if (value.includes('@')) {
+      return { email: value };
+    }
+    return { username: value };
+  }
+
+  private async findUsers(
+    params: Record<string, string | number | boolean | undefined>,
+    prefer?: (user: KeycloakUser) => boolean
+  ): Promise<KeycloakUser | null> {
     const token = await this.getAccessToken();
     const url = `${this.config.url}admin/realms/${encodeURIComponent(this.config.realm)}/users`;
 
     try {
       const response = await this.http.get<KeycloakUser[]>(url, {
         headers: this.headers({ Authorization: `Bearer ${token}` }),
-        params: { email, exact: true },
+        params,
       });
       const users = Array.isArray(response.data) ? response.data : [];
       if (users.length === 0) {
         return null;
       }
-      const exact = users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
-      return exact ?? users[0];
+      return (prefer && users.find(prefer)) || users[0];
     } catch (error) {
-      throw wrapHttpError(error, `Failed to look up Keycloak user ${email}.`);
+      throw wrapHttpError(error, `Failed to look up Keycloak user ${JSON.stringify(params)}.`);
     }
   }
 
@@ -202,17 +277,12 @@ export class KeycloakClient {
     }
   }
 
-  async getAccountStatus(identity: { email?: string; userId?: string } | string): Promise<AccountStatus> {
-    const lookup = typeof identity === 'string' ? { email: identity } : identity;
-    let user: KeycloakUser | null = null;
-    if (lookup.userId) {
-      user = await this.getUser(lookup.userId);
-    } else if (lookup.email) {
-      user = await this.findUserByEmail(lookup.email);
-    }
+  async getAccountStatus(identity: UserLookup | string): Promise<AccountStatus> {
+    const lookup = this.normalizeLookup(identity);
+    const user = await this.resolveUser(lookup);
     if (!user) {
       throw new KeycloakError(
-        `No Keycloak user found for ${lookup.email || lookup.userId || 'the given identity'}.`,
+        `No Keycloak user found for ${lookup.email || lookup.username || lookup.userId || 'the given identity'}.`,
         404
       );
     }
@@ -221,12 +291,12 @@ export class KeycloakClient {
   }
 
   async recoverAccount(
-    identity: { email?: string; userId?: string } | string,
+    identity: UserLookup | string,
     options: { action: RecoveryAction; setTempPassword?: boolean; sendResetEmail?: boolean }
   ): Promise<RecoveryResult> {
     const { user, lockout } = await this.getAccountStatus(identity);
     const email =
-      (typeof identity === 'string' ? identity : identity.email) || user.email || user.id;
+      (typeof identity === 'string' ? identity : identity.email || identity.username) || user.email || user.id;
     const wasLocked = Boolean(lockout.disabled);
     const wasDisabled = user.enabled === false;
     let unlocked = false;

@@ -1,5 +1,5 @@
-import { extractEmail, parseCommandParameters } from './email';
-import { KeycloakError, RecoveryAction } from './types';
+import { extractEmail, extractUserId, extractUsername, parseCommandParameters } from './email';
+import { KeycloakError, RecoveryAction, UserLookup } from './types';
 
 export function inferAction(event: {
   execution_metadata?: { function_name?: string };
@@ -23,17 +23,32 @@ export function emailFromWork(work: {
   body?: string;
   reported_by?: Array<{ email?: string }>;
 }): string | undefined {
-  return (
-    extractEmail(work.title) ||
-    extractEmail(work.body) ||
-    work.reported_by?.map((reporter) => reporter.email).find((email) => Boolean(email))
-  );
+  return identityFromWork(work).email;
 }
 
-export function requireLookup(identity: { email?: string; userId?: string }): { email?: string; userId?: string } {
-  if (!identity.email && !identity.userId) {
+export function identityFromWork(work: {
+  title?: string;
+  body?: string;
+  reported_by?: Array<{ email?: string }>;
+}): UserLookup {
+  return {
+    email:
+      extractEmail(work.title) ||
+      extractEmail(work.body) ||
+      work.reported_by?.map((reporter) => reporter.email).find((email) => Boolean(email)),
+    userId: extractUserId(work.title) || extractUserId(work.body),
+    username: extractUsername(work.title) || extractUsername(work.body),
+  };
+}
+
+export function requireLookup(identity: { email?: string; userId?: string; username?: string }): {
+  email?: string;
+  userId?: string;
+  username?: string;
+} {
+  if (!identity.email && !identity.userId && !identity.username) {
     throw new KeycloakError(
-      'Please include the user email or Keycloak user ID, for example `/reset_password user@example.com`.'
+      'Please include the Keycloak email or username, for example `/reset_password user@example.com` or `/unlock_account danielcarvajal`.'
     );
   }
   return identity;
@@ -42,6 +57,7 @@ export function requireLookup(identity: { email?: string; userId?: string }): { 
 export function commandOptions(event: { payload?: { parameters?: string } }): {
   email?: string;
   userId?: string;
+  username?: string;
   temp: boolean;
 } {
   return parseCommandParameters(event.payload?.parameters);

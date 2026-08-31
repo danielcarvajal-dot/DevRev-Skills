@@ -60,6 +60,21 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "danielcarvajal",
+      "email": "daniel.carvajal@devrev.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Daniel",
+      "lastName": "Carvajal",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

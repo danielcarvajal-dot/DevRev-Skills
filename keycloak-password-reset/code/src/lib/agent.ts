@@ -1,10 +1,11 @@
-import { extractEmail, extractUserId } from './email';
+import { extractEmail, extractUserId, extractUsername } from './email';
 import { AccountStatus, RecoveryAction, RecoveryResult } from './types';
 
 export type AgentRequest = {
   action: RecoveryAction;
   email?: string;
   userId?: string;
+  username?: string;
   temp: boolean;
 };
 
@@ -99,6 +100,12 @@ export function parseAgentRequest(event: { payload?: Record<string, unknown> }):
     extractEmail(parametersText) ??
     extractEmail(readString(payload.user));
 
+  const username =
+    readString(payload.username) ??
+    readString(nested.username) ??
+    readString(body.username) ??
+    extractUsername(readString(payload.user) ?? parametersText);
+
   const userId =
     readString(payload.user_id) ??
     readString(payload.userId) ??
@@ -113,7 +120,7 @@ export function parseAgentRequest(event: { payload?: Record<string, unknown> }):
     readBool(body.temp) ||
     /(?:^|\s)--temp(?:\s|$)/i.test(parametersText ?? '');
 
-  return { action, email, userId, temp };
+  return { action, email, userId, username, temp };
 }
 
 export function accountFromStatus(status: AccountStatus): AgentAccount {

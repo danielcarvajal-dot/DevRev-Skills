@@ -1,4 +1,4 @@
-import { emailFromWork } from '../../lib/command';
+import { identityFromWork } from '../../lib/command';
 import { formatAccountStatus, postComment, usageHint } from '../../lib/comments';
 import { resolveConfig } from '../../lib/config';
 import { looksLikePasswordResetRequest } from '../../lib/email';
@@ -22,8 +22,8 @@ export async function handleEvent(event: any): Promise<void> {
     return;
   }
 
-  const email = emailFromWork(work);
-  if (!email) {
+  const identity = identityFromWork(work);
+  if (!identity.email && !identity.userId && !identity.username) {
     await postComment(
       event,
       work.id,
@@ -34,7 +34,7 @@ export async function handleEvent(event: any): Promise<void> {
 
   try {
     const client = new KeycloakClient(resolveConfig(event));
-    const status = await client.getAccountStatus(email);
+    const status = await client.getAccountStatus(identity);
     await postComment(
       event,
       work.id,
@@ -42,10 +42,11 @@ export async function handleEvent(event: any): Promise<void> {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error talking to Keycloak';
+    const label = identity.email || identity.username || identity.userId;
     await postComment(
       event,
       work.id,
-      `Looked up Keycloak for ${email} but could not finish the check: ${message}\n\n${usageHint()}`,
+      `Looked up Keycloak for ${label} but could not finish the check: ${message}\n\n${usageHint()}`,
       'internal'
     );
   }

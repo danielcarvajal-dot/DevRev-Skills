@@ -13,6 +13,7 @@ describe('parseAgentRequest', () => {
       action: 'check',
       email: 'testuser@yourcompany.com',
       userId: undefined,
+      username: undefined,
       temp: false,
     });
   });
@@ -28,7 +29,41 @@ describe('parseAgentRequest', () => {
       action: 'reset',
       email: 'demo.user@example.com',
       userId: undefined,
+      username: undefined,
       temp: true,
+    });
+  });
+
+  it('extracts a username from free text', () => {
+    expect(
+      parseAgentRequest({
+        payload: {
+          parameters: 'unlock danielcarvajal',
+        },
+      })
+    ).toEqual({
+      action: 'unlock',
+      email: undefined,
+      userId: undefined,
+      username: 'danielcarvajal',
+      temp: false,
+    });
+  });
+
+  it('accepts a Keycloak username', () => {
+    expect(
+      parseAgentRequest({
+        payload: {
+          username: 'danielcarvajal',
+          action: 'unlock',
+        },
+      })
+    ).toEqual({
+      action: 'unlock',
+      email: undefined,
+      userId: undefined,
+      username: 'danielcarvajal',
+      temp: false,
     });
   });
 
@@ -44,6 +79,7 @@ describe('parseAgentRequest', () => {
       action: 'unlock',
       email: undefined,
       userId: 'd6f8d294-805c-492c-a401-c3192af545bf',
+      username: undefined,
       temp: false,
     });
   });

@@ -6,7 +6,7 @@ export type CommentVisibility = 'internal' | 'external';
 
 export function displayName(user: { firstName?: string; lastName?: string; username?: string; email?: string }): string {
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
-  return name || user.username || user.email || user.username || 'the user';
+  return name || user.username || user.email || 'the user';
 }
 
 export function formatAccountStatus(status: AccountStatus): string {
@@ -55,11 +55,12 @@ export function formatRecoveryComment(result: RecoveryResult): string {
 
 export function usageHint(): string {
   return [
-    'I can recover a Keycloak account from this discussion:',
-    '- `/reset_password user@example.com` — unlock, enable, and email a reset link (Keycloak user ID also works)',
-    '- `/reset_password user@example.com --temp` — unlock, enable, and set a temporary password (posted internally)',
-    '- `/unlock_account user@example.com` — clear lockout and enable only',
+    'I can recover any Keycloak user from this discussion (email, username, or user ID):',
+    '- `/reset_password user@example.com` — unlock, enable, and email a reset link',
+    '- `/reset_password danielcarvajal --temp` — same recovery with a temporary password (posted internally)',
+    '- `/unlock_account danielcarvajal` — clear lockout and enable only',
     '- `/check_account user@example.com` — report lockout and enabled status',
+    'DevRev logins on @devrev.ai also match the @devrev.com Keycloak mailbox.',
   ].join('\n');
 }
 

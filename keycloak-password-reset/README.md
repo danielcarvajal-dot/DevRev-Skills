@@ -6,7 +6,7 @@ It implements the admin API flow from the attached Postman collection, then adds
 the missing password-reset step:
 
 1. **Access Token** — `POST /realms/{realm}/protocol/openid-connect/token` (client credentials, `unlock-agent`)
-2. **Find User** — `GET /admin/realms/{realm}/users?email=`
+2. **Find User** — email, username, user ID, or a `search=` query (also maps `@devrev.ai` ↔ `@devrev.com`)
 3. **Check Lockout** — `GET /admin/realms/{realm}/attack-detection/brute-force/users/{userId}`
 4. **Unlock User** — `DELETE` the same brute-force path
 5. **Enable User** — `PUT /admin/realms/{realm}/users/{userId}` with `enabled: true`
@@ -16,16 +16,16 @@ the missing password-reset step:
 
 After the snap-in is installed, Computer in the same org can reset a password
 in chat. Skills `KeycloakCheckAccount`, `KeycloakUnlockAccount`, and
-`ResetPassword` take `{ "email": "..." }` only — method, URL, and client
-credentials are stored on the skill. (`agent_handler` is the snap-in JSON
-entrypoint for a future function-backed skill.)
+`ResetPassword` take `{ "email": "..." }` or `{ "username": "..." }` — method,
+URL, and client credentials are stored on the skill. (`agent_handler` is the
+snap-in JSON entrypoint for a future function-backed skill.)
 
 See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).
 
 Open Computer and try:
 
-- `reset my password`
-- `check testuser@yourcompany.com`
+- `unlock my account` (uses your DevRev email, including `@devrev.ai` → `@devrev.com`)
+- `check danielcarvajal`
 - `unlock testuser@yourcompany.com`
 
 If realm SMTP is not configured, ask Computer for a temporary password.
@@ -37,11 +37,11 @@ Use these in the Discussions tab of a ticket, issue, or conversation:
 | Command | What it does |
 | --- | --- |
 | `/reset_password user@example.com` | Unlock if locked, enable if disabled, send a reset email |
-| `/reset_password user@example.com --temp` | Same recovery, then set a temporary password (commented internally) |
+| `/reset_password danielcarvajal --temp` | Same recovery, then set a temporary password (commented internally) |
 | `/unlock_account user@example.com` | Unlock + enable only |
-| `/check_account user@example.com` | Report lockout and enabled status |
+| `/check_account danielcarvajal` | Report lockout and enabled status |
 
-If the email is omitted, the snap-in tries the ticket title, body, then reporter.
+If the identity is omitted, the snap-in tries the ticket title, body, then reporter email. Username and Keycloak user ID also work.
 
 Creating a ticket whose title or body mentions a forgotten password or lockout
 also posts a Keycloak status comment and the command hints.
@@ -74,7 +74,8 @@ docker compose -f keycloak-password-reset/docker-compose.yml up
 
 Admin console: [http://localhost:8080](http://localhost:8080) (`admin` / `admin`).
 
-Demo user: `demo.user@example.com` / `DemoPass123!`.
+Demo users: `demo.user@example.com` / `DemoPass123!`, and `danielcarvajal`
+(`daniel.carvajal@devrev.com`).
 
 Fail the password a few times to lock the account, then run `/unlock_account`
 or `/reset_password` from DevRev.

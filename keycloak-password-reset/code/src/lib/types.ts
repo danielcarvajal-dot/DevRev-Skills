@@ -1,5 +1,11 @@
 export type RecoveryAction = 'reset' | 'unlock' | 'check';
 
+export type UserLookup = {
+  email?: string;
+  userId?: string;
+  username?: string;
+};
+
 export type KeycloakConfig = {
   url: string;
   realm: string;

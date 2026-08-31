@@ -51,7 +51,11 @@ describe('on_ticket_created', () => {
 
     await handleEvent(event);
 
-    expect(getAccountStatus).toHaveBeenCalledWith('demo.user@example.com');
+    expect(getAccountStatus).toHaveBeenCalledWith({
+      email: 'demo.user@example.com',
+      userId: undefined,
+      username: undefined,
+    });
     expect(postComment).toHaveBeenCalledWith(
       event,
       'don:core:dvrv-us-1:devo/0:ticket/12',

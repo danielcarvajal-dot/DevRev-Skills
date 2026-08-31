@@ -146,6 +146,39 @@ describe('KeycloakClient', () => {
     }
   });
 
+  it('finds a user by username or DevRev email alias', async () => {
+    const http = createHttp();
+    http.post.mockResolvedValue({ status: 200, data: { access_token: 'token-1', expires_in: 300 } });
+    http.get.mockImplementation(async (_url: string, config?: { params?: Record<string, string | number | boolean | undefined> }) => {
+      if (config?.params?.email === 'daniel.carvajal@devrev.ai') {
+        return { status: 200, data: [] };
+      }
+      if (config?.params?.email === 'daniel.carvajal@devrev.com' || config?.params?.username === 'danielcarvajal') {
+        return {
+          status: 200,
+          data: [
+            {
+              id: 'user-daniel',
+              username: 'danielcarvajal',
+              email: 'daniel.carvajal@devrev.com',
+              enabled: true,
+            },
+          ],
+        };
+      }
+      if (_url.includes('/attack-detection/')) {
+        return { status: 200, data: { disabled: false, numFailures: 0 } };
+      }
+      return { status: 200, data: [] };
+    });
+
+    const client = new KeycloakClient(config, http);
+    const byAlias = await client.getAccountStatus('daniel.carvajal@devrev.ai');
+    expect(byAlias.user.username).toBe('danielcarvajal');
+    const byUsername = await client.getAccountStatus({ username: 'danielcarvajal' });
+    expect(byUsername.user.email).toBe('daniel.carvajal@devrev.com');
+  });
+
   it('throws a not-found error when the user is missing', async () => {
     const http = createHttp();
     http.post.mockResolvedValue({ status: 200, data: { access_token: 'token-1', expires_in: 300 } });

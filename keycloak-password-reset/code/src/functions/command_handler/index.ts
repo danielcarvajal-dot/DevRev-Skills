@@ -34,12 +34,13 @@ export async function handleEvent(event: any, forcedAction?: RecoveryAction): Pr
   }
 
   const action = forcedAction ?? inferAction(event);
-  const { email: parameterEmail, userId, temp } = commandOptions(event);
+  const { email: parameterEmail, userId, username, temp } = commandOptions(event);
 
   try {
     const identity = requireLookup({
       email: userId ? undefined : await resolveEmail(event, sourceId, parameterEmail),
       userId,
+      username,
     });
     const client = new KeycloakClient(resolveConfig(event));
 

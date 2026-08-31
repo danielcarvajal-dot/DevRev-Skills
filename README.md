@@ -4,9 +4,9 @@ This repository holds DevRev Computer skills and snap-ins.
 
 ## Keycloak Password Reset
 
-Snap-in that unlocks a Keycloak account and sends a password-reset email from
-DevRev discussions, plus Computer skills so the main user can reset their
-password in chat.
+Snap-in that unlocks any Keycloak account and sends a password-reset email from
+DevRev discussions, plus Computer skills so users (including `danielcarvajal`)
+can check, unlock, and reset their own password in chat.
 
 - [keycloak-password-reset/README.md](keycloak-password-reset/README.md)
 - [KeycloakPasswordResetSkill.md](KeycloakPasswordResetSkill.md)

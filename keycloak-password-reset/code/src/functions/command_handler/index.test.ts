@@ -68,7 +68,7 @@ describe('command_handler', () => {
     await handleEvent(baseEvent);
 
     expect(recoverAccount).toHaveBeenCalledWith(
-      { email: 'demo.user@example.com', userId: undefined },
+      { email: 'demo.user@example.com', userId: undefined, username: undefined },
       {
         action: 'reset',
         sendResetEmail: true,
@@ -103,7 +103,7 @@ describe('command_handler', () => {
     });
 
     expect(recoverAccount).toHaveBeenCalledWith(
-      { email: 'demo.user@example.com', userId: undefined },
+      { email: 'demo.user@example.com', userId: undefined, username: undefined },
       {
         action: 'reset',
         sendResetEmail: false,
@@ -135,6 +135,7 @@ describe('command_handler', () => {
     expect(getAccountStatus).toHaveBeenCalledWith({
       email: 'demo.user@example.com',
       userId: undefined,
+      username: undefined,
     });
     expect(recoverAccount).not.toHaveBeenCalled();
     expect(postComment).toHaveBeenCalledWith(
@@ -163,8 +164,36 @@ describe('command_handler', () => {
     });
 
     expect(recoverAccount).toHaveBeenCalledWith(
-      { email: undefined, userId: 'd6f8d294-805c-492c-a401-c3192af545bf' },
+      { email: undefined, userId: 'd6f8d294-805c-492c-a401-c3192af545bf', username: undefined },
       expect.objectContaining({ action: 'reset' })
+    );
+  });
+
+  it('looks up a Keycloak user by username', async () => {
+    recoverAccount.mockResolvedValue({
+      action: 'unlock',
+      email: 'danielcarvajal',
+      user: { id: 'user-daniel', email: 'daniel.carvajal@devrev.com', username: 'danielcarvajal', enabled: true },
+      lockout: { disabled: true },
+      wasLocked: true,
+      wasDisabled: false,
+      unlocked: true,
+      enabled: true,
+      resetEmailSent: false,
+    });
+
+    await handleEvent({
+      ...baseEvent,
+      payload: {
+        ...baseEvent.payload,
+        command_id: 'don:integration:dvrv-us-1:devo/x:namespace/keycloak:command/unlock_account',
+        parameters: 'danielcarvajal',
+      },
+    });
+
+    expect(recoverAccount).toHaveBeenCalledWith(
+      { email: undefined, userId: undefined, username: 'danielcarvajal' },
+      expect.objectContaining({ action: 'unlock' })
     );
   });
 

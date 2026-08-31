@@ -12,6 +12,7 @@ export async function handleEvent(event: any): Promise<AgentResponse> {
     const identity = requireLookup({
       email: request.email,
       userId: request.userId,
+      username: request.username,
     });
     const client = new KeycloakClient(resolveConfig(event));
 

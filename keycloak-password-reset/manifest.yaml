@@ -114,8 +114,8 @@ functions:
       sends a reset email or sets a temporary password.
   - name: agent_handler
     description: >
-      Computer / agent entrypoint. Accepts {email|user_id, action, temp} and
-      returns JSON (check, unlock, or reset) without posting a discussion comment.
+      Computer / agent entrypoint. Accepts {email|username|user_id, action, temp}
+      and returns JSON (check, unlock, or reset) without posting a discussion comment.
   - name: on_ticket_created
     description: >
       When a new ticket looks like a forgotten-password or lockout request,
@@ -138,7 +138,7 @@ commands:
           - ticket
           - issue
           - conversation
-    usage_hint: "user@example.com [--temp]"
+    usage_hint: "user@example.com|username [--temp]"
     function: command_handler
   - name: unlock_account
     namespace: keycloak
@@ -149,7 +149,7 @@ commands:
           - ticket
           - issue
           - conversation
-    usage_hint: "user@example.com"
+    usage_hint: "user@example.com|username"
     function: command_handler
   - name: check_account
     namespace: keycloak
@@ -160,5 +160,5 @@ commands:
           - ticket
           - issue
           - conversation
-    usage_hint: "user@example.com"
+    usage_hint: "user@example.com|username"
     function: command_handler

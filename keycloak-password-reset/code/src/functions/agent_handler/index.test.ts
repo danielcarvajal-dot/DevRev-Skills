@@ -49,7 +49,7 @@ describe('agent_handler', () => {
     const response = await handleEvent(baseEvent);
 
     expect(recoverAccount).toHaveBeenCalledWith(
-      { email: 'demo.user@example.com', userId: undefined },
+      { email: 'demo.user@example.com', userId: undefined, username: undefined },
       {
         action: 'reset',
         sendResetEmail: true,
@@ -81,7 +81,7 @@ describe('agent_handler', () => {
     });
 
     expect(recoverAccount).toHaveBeenCalledWith(
-      { email: 'demo.user@example.com', userId: undefined },
+      { email: 'demo.user@example.com', userId: undefined, username: undefined },
       {
         action: 'reset',
         sendResetEmail: false,
