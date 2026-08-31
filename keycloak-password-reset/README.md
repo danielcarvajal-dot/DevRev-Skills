@@ -230,6 +230,11 @@ devrev snap_in draft
 
 Open the draft URL, attach the Keycloak connection, then deploy.
 
+Deploy creates the slash commands as the snap-in service account. The
+manifest requests `command:write` for that. If activate still errors with
+`Unauthorized` on `command` objects, grant the **Command Interactor** role
+to the snap-in bot (Settings → User management → Roles).
+
 A DevRev PAT and Keycloak URL / realm / client credentials are enough to install
 this into an org. Localhost Keycloak is only reachable from your machine, not
 from DevRev-hosted functions — use a public Keycloak URL for a live org demo.

@@ -20,6 +20,12 @@ service_account:
       - scope: conversation:write
         optional: true
         reason: Post account recovery results on plug conversations
+      - scope: command:write
+        optional: true
+        reason: >
+          ActivateSnapIn registers slash commands as the snap-in service
+          account. Without this scope (or a Command Interactor grant on the
+          snap-in bot), deploy fails with Unauthorized on command objects.
 
 keyring_types:
   - id: keycloak-admin

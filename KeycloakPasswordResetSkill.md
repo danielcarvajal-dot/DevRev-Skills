@@ -44,3 +44,7 @@ comment. `--temp` posts internally on purpose.
 If Keycloak returns 401/403, the client credentials or realm-management roles
 are wrong. If execute-actions-email fails, the realm SMTP settings are missing
 — use `--temp` for the demo instead.
+
+If snap-in activate fails with Unauthorized on `command` objects, grant
+**Command Interactor** to the snap-in bot (or include `command:write` in the
+manifest). ActivateSnapIn creates slash commands as that service account.
