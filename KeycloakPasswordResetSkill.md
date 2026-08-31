@@ -14,9 +14,13 @@ temporary password for a demo).
 
 ## How it works
 The **Keycloak Password Reset** snap-in (`keycloak-password-reset/`) exposes
-discussion commands and a ticket-created automation.
+discussion commands, a ticket-created automation, and an `agent_handler`
+function that Computer uses for chat (JSON in, JSON out — no ticket comment).
 
-Use the commands on the ticket or conversation:
+From **Computer**, say "reset my password" or "check testuser@yourcompany.com".
+See [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md).
+
+Use the commands on a ticket or conversation:
 
 - `/reset_password user@example.com` — unlock, enable, email a reset link
 - `/reset_password user@example.com --temp` — unlock, enable, set a temp password

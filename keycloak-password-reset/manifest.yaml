@@ -112,6 +112,10 @@ functions:
       Handles /reset_password, /unlock_account, and /check_account. Looks up the
       Keycloak user, reports lockout status, unlocks and enables if needed, and
       sends a reset email or sets a temporary password.
+  - name: agent_handler
+    description: >
+      Computer / agent entrypoint. Accepts {email|user_id, action, temp} and
+      returns JSON (check, unlock, or reset) without posting a discussion comment.
   - name: on_ticket_created
     description: >
       When a new ticket looks like a forgotten-password or lockout request,

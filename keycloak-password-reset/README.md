@@ -12,6 +12,23 @@ the missing password-reset step:
 5. **Enable User** — `PUT /admin/realms/{realm}/users/{userId}` with `enabled: true`
 6. **Password reset** — `PUT .../execute-actions-email` with `["UPDATE_PASSWORD"]`, or `--temp` to set a temporary password
 
+## Computer
+
+After the snap-in is installed, Computer in the same org can reset a password
+in chat. Skills `KeycloakGetToken`, `CheckAccount`, `UnlockAccount`, and
+`ResetPassword` call the same Keycloak Admin API as this snap-in
+(`agent_handler` is the JSON entrypoint).
+
+See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).
+
+Open Computer and try:
+
+- `reset my password`
+- `check testuser@yourcompany.com`
+- `unlock testuser@yourcompany.com`
+
+If realm SMTP is not configured, ask Computer for a temporary password.
+
 ## Commands
 
 Use these in the Discussions tab of a ticket, issue, or conversation:
