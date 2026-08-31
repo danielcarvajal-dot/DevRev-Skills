@@ -10,7 +10,8 @@ password in chat.
 
 - [keycloak-password-reset/README.md](keycloak-password-reset/README.md)
 - [KeycloakPasswordResetSkill.md](KeycloakPasswordResetSkill.md)
-- [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md)
+- [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md) —
+  Computer and the **Password Reset Assistant** agent in dcm-test
 
 ## Workflow Builder
 
