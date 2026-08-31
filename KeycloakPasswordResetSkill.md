@@ -18,6 +18,7 @@ discussion commands, a ticket-created automation, and an `agent_handler`
 function that Computer uses for chat (JSON in, JSON out — no ticket comment).
 
 From **Computer**, say "reset my password" or "check testuser@yourcompany.com".
+Computer skills take an email only (no HTTP method or client secret).
 See [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md).
 
 Use the commands on a ticket or conversation:

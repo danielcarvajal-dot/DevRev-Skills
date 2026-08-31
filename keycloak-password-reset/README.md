@@ -15,9 +15,10 @@ the missing password-reset step:
 ## Computer
 
 After the snap-in is installed, Computer in the same org can reset a password
-in chat. Skills `KeycloakGetToken`, `CheckAccount`, `UnlockAccount`, and
-`ResetPassword` call the same Keycloak Admin API as this snap-in
-(`agent_handler` is the JSON entrypoint).
+in chat. Skills `KeycloakCheckAccount`, `KeycloakUnlockAccount`, and
+`ResetPassword` take `{ "email": "..." }` only — method, URL, and client
+credentials are stored on the skill. (`agent_handler` is the snap-in JSON
+entrypoint for a future function-backed skill.)
 
 See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).
 
