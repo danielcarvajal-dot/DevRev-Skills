@@ -55,7 +55,10 @@ describe('KeycloakClient', () => {
       'http://localhost:8080/realms/account-unlock/protocol/openid-connect/token',
       expect.stringContaining('grant_type=client_credentials'),
       expect.objectContaining({
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'ngrok-skip-browser-warning': 'true',
+        },
       })
     );
     expect(http.get).toHaveBeenCalledWith(
@@ -115,6 +118,32 @@ describe('KeycloakClient', () => {
       expect.any(Object)
     );
     expect(result.resetEmailSent).toBe(false);
+  });
+
+  it('sends ngrok-skip-browser-warning on every Admin API call', async () => {
+    const http = createHttp();
+    http.post.mockResolvedValue({ status: 200, data: { access_token: 'token-1', expires_in: 300 } });
+    http.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/users')) {
+        return { status: 200, data: [{ ...demoUser, enabled: true }] };
+      }
+      if (url.includes('/attack-detection/')) {
+        return { status: 200, data: { disabled: true, numFailures: 1 } };
+      }
+      return { status: 200, data: { ...demoUser, enabled: true } };
+    });
+    http.delete.mockResolvedValue({ status: 204, data: '' });
+    http.put.mockResolvedValue({ status: 204, data: '' });
+
+    const client = new KeycloakClient(config, http);
+    await client.recoverAccount('demo.user@example.com', { action: 'reset', sendResetEmail: true });
+
+    const allCalls = [...http.post.mock.calls, ...http.get.mock.calls, ...http.put.mock.calls, ...http.delete.mock.calls];
+    expect(allCalls.length).toBeGreaterThan(0);
+    for (const call of allCalls) {
+      const options = call[call.length - 1] as { headers?: Record<string, string> };
+      expect(options.headers?.['ngrok-skip-browser-warning']).toBe('true');
+    }
   });
 
   it('throws a not-found error when the user is missing', async () => {

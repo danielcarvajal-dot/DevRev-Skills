@@ -23,6 +23,14 @@ export class KeycloakClient {
 
   constructor(private readonly config: KeycloakConfig, private readonly http: HttpClient = axios) {}
 
+  private headers(extra: Record<string, string> = {}): Record<string, string> {
+    return {
+      // Free ngrok interstitials break non-browser Admin API clients unless this is set.
+      'ngrok-skip-browser-warning': 'true',
+      ...extra,
+    };
+  }
+
   async getAccessToken(): Promise<string> {
     if (this.cachedToken && Date.now() < this.cachedToken.expiresAt - 5000) {
       return this.cachedToken.value;
@@ -37,7 +45,7 @@ export class KeycloakClient {
 
     try {
       const response = await this.http.post<TokenResponse>(tokenUrl, body.toString(), {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: this.headers({ 'Content-Type': 'application/x-www-form-urlencoded' }),
       });
       const accessToken = response.data?.access_token;
       if (!accessToken) {
@@ -63,7 +71,7 @@ export class KeycloakClient {
 
     try {
       const response = await this.http.get<KeycloakUser[]>(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: this.headers({ Authorization: `Bearer ${token}` }),
         params: { email, exact: true },
       });
       const users = Array.isArray(response.data) ? response.data : [];
@@ -83,7 +91,7 @@ export class KeycloakClient {
 
     try {
       const response = await this.http.get<KeycloakUser>(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: this.headers({ Authorization: `Bearer ${token}` }),
       });
       return response.data;
     } catch (error) {
@@ -99,7 +107,7 @@ export class KeycloakClient {
 
     try {
       const response = await this.http.get<BruteForceStatus>(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: this.headers({ Authorization: `Bearer ${token}` }),
       });
       return response.data ?? {};
     } catch (error) {
@@ -115,7 +123,7 @@ export class KeycloakClient {
 
     try {
       await this.http.delete(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: this.headers({ Authorization: `Bearer ${token}` }),
       });
     } catch (error) {
       throw wrapHttpError(error, 'Failed to clear the Keycloak brute-force lockout.');
@@ -132,10 +140,10 @@ export class KeycloakClient {
 
     try {
       await this.http.put(url, payload, {
-        headers: {
+        headers: this.headers({
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-        },
+        }),
       });
       return { ...current, enabled: true };
     } catch (error) {
@@ -158,10 +166,10 @@ export class KeycloakClient {
 
     try {
       await this.http.put(url, ['UPDATE_PASSWORD'], {
-        headers: {
+        headers: this.headers({
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-        },
+        }),
         params,
       });
     } catch (error) {
@@ -183,10 +191,10 @@ export class KeycloakClient {
         url,
         { type: 'password', temporary: true, value: password },
         {
-          headers: {
+          headers: this.headers({
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
-          },
+          }),
         }
       );
     } catch (error) {

@@ -1,0 +1,10 @@
+# Optional override so Keycloak reset-email links use the public ngrok host.
+# Usage:
+#   export KC_HOSTNAME=https://xxxx.ngrok-free.app
+#   docker compose -f docker-compose.yml -f docker-compose.ngrok.yml up
+services:
+  keycloak:
+    environment:
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME_STRICT: ${KC_HOSTNAME_STRICT:-false}
+      KC_PROXY_HEADERS: ${KC_PROXY_HEADERS:-xforwarded}

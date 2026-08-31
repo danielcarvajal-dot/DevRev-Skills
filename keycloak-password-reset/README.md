@@ -61,6 +61,103 @@ Demo user: `demo.user@example.com` / `DemoPass123!`.
 Fail the password a few times to lock the account, then run `/unlock_account`
 or `/reset_password` from DevRev.
 
+## Expose local Keycloak with ngrok
+
+DevRev-hosted snap-in functions cannot reach `http://localhost:8080`. Tunnel
+that port so the org can call your laptop Keycloak over HTTPS.
+
+### 1. Install ngrok and sign in
+
+Create a free account at [https://dashboard.ngrok.com](https://dashboard.ngrok.com)
+and copy your authtoken.
+
+```bash
+# macOS
+brew install ngrok
+
+# or download from https://ngrok.com/download
+```
+
+```bash
+ngrok config add-authtoken <your-authtoken>
+```
+
+### 2. Start Keycloak on port 8080
+
+Leave this running in one terminal:
+
+```bash
+docker compose -f keycloak-password-reset/docker-compose.yml up
+```
+
+Optional: if password-reset emails should link back through the tunnel, set the
+public hostname after the first `ngrok http` run, then restart compose with the
+ngrok override:
+
+```bash
+export KC_HOSTNAME=https://<random>.ngrok-free.app
+docker compose -f keycloak-password-reset/docker-compose.yml \
+  -f keycloak-password-reset/docker-compose.ngrok.yml up
+```
+
+`start-dev` is already host-lenient for Admin API calls. `KC_HOSTNAME` mainly
+matters for browser redirects and `execute-actions-email` links.
+
+### 3. Open the tunnel
+
+In a second terminal:
+
+```bash
+ngrok http 8080
+```
+
+The inspector prints a public URL, for example:
+
+```text
+Forwarding   https://a1b2c3d4.ngrok-free.app -> http://localhost:8080
+```
+
+Confirm it reaches Keycloak:
+
+```bash
+curl -sS -H 'ngrok-skip-browser-warning: true' \
+  https://a1b2c3d4.ngrok-free.app/realms/account-unlock/.well-known/openid-configuration \
+  | head
+```
+
+You should see JSON with `issuer` / `token_endpoint`, not an HTML interstitial.
+
+### 4. Point the snap-in at that URL
+
+Use the **https** origin **with a trailing slash** as **Keycloak URL**:
+
+```text
+https://a1b2c3d4.ngrok-free.app/
+```
+
+Realm, client id, and client secret stay the same (`account-unlock`,
+`unlock-agent`, your client secret).
+
+On the snap-in settings page:
+
+1. Edit the **Keycloak Admin** connection (or create one) and paste the ngrok URL.
+2. Set organization input **Keycloak URL** to the same value if you are not
+   storing the URL inside the connection JSON.
+3. Click **Deploy**.
+
+Paste the public URL back here if you want the demo keyring updated for you.
+
+### Free-tier gotchas
+
+| Issue | What to do |
+| --- | --- |
+| Free tunnels show a browser warning page | The snap-in sends `ngrok-skip-browser-warning: true` on every Admin API call. Browsers still see the interstitial unless you click through. |
+| URL changes every time you restart ngrok | Update the connection / `keycloak_url` each time, or reserve a domain on a paid plan (`ngrok http --url your-name.ngrok-free.app 8080`). |
+| Tunnel dies when the laptop sleeps | Keep ngrok and Docker running while you demo. |
+| `execute-actions-email` links still say localhost | Restart Keycloak with `KC_HOSTNAME` set to the ngrok HTTPS origin, or use `/reset_password user@example.com --temp`. |
+
+Do not commit the ngrok URL, authtoken, or client secret.
+
 ## Develop and test the function code
 
 ```bash
