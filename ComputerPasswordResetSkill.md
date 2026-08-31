@@ -14,11 +14,15 @@ chat. Computer uses the **Keycloak Password Reset** snap-in configuration
 - "reset the password for testuser@yourcompany.com"
 
 ## Skills on Computer
+In org **dcm-test**, Computer (`ai_agent-4`) and **Password Reset Assistant**
+(`ai_agent-6`) already have these skills. Open Computer (the search bar) or
+the Password Reset Assistant and ask in natural language.
+
 | Skill | When to use |
 | --- | --- |
 | `KeycloakGetToken` | First. Client-credentials token for the snap-in confidential client. |
-| `CheckAccount` | Read-only status (enabled / brute-force lockout). |
-| `UnlockAccount` | Clear lockout and re-enable. No password change. |
+| `KeycloakCheckAccount` | Read-only status (enabled / brute-force lockout). |
+| `KeycloakUnlockAccount` | Clear lockout and re-enable. No password change. |
 | `ResetPassword` | Unlock if needed, then send `UPDATE_PASSWORD` email or set a temp password. |
 
 ## Flow
