@@ -13,16 +13,22 @@ service_account:
 
 inputs:
   organization:
-    - name: vm_repo_path
-      description: Absolute or relative path to the repo checkout on the Computer VM.
+    - name: vm_os
+      description: Guest OS Computer will run scripts on. Use windows for the printer-driver demo VM.
       field_type: text
-      default_value: "."
+      default_value: "windows"
+      ui:
+        display_name: VM OS (windows or linux)
+    - name: vm_repo_path
+      description: Absolute path to the repo checkout on the Computer VM (e.g. C:\DevRev-Skills).
+      field_type: text
+      default_value: "C:\\DevRev-Skills"
       ui:
         display_name: VM repo path
     - name: python_bin
       description: Python executable Computer should use on the VM.
       field_type: text
-      default_value: "python3"
+      default_value: "python"
       ui:
         display_name: Python binary
     - name: extra_catalog_json

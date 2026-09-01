@@ -10,6 +10,7 @@ export interface SnapInEvent {
 }
 
 export function inputsFrom(event: SnapInEvent): {
+  vmOs: string;
   repoPath: string;
   pythonBin: string;
   extraCatalogJson: string;
@@ -18,9 +19,11 @@ export function inputsFrom(event: SnapInEvent): {
 } {
   const values = event.input_data?.global_values || {};
   const keyrings = event.input_data?.keyrings || {};
+  const vmOs = values.vm_os || 'windows';
   return {
-    repoPath: values.vm_repo_path || '.',
-    pythonBin: values.python_bin || 'python3',
+    vmOs,
+    repoPath: values.vm_repo_path || (vmOs === 'linux' ? '.' : 'C:\\DevRev-Skills'),
+    pythonBin: values.python_bin || (vmOs === 'linux' ? 'python3' : 'python'),
     extraCatalogJson: values.extra_catalog_json || '',
     webhookUrl: values.computer_webhook_url || '',
     webhookSecret: keyrings.computer_webhook_secret || '',
@@ -49,6 +52,7 @@ export async function queueScript(options: {
     scriptId: options.script.id,
     extraArgs: options.extraArgs,
     extraCatalogJson: inputs.extraCatalogJson,
+    vmOs: inputs.vmOs,
   });
   const client = clientFromEvent(options.event);
   const snapInId = options.event.context?.snap_in_id || options.event.payload?.parent_id;
@@ -56,7 +60,7 @@ export async function queueScript(options: {
   const body = {
     object: objectId,
     type: 'timeline_comment',
-    body: computerTaskBody({ script: options.script, command }),
+    body: computerTaskBody({ script: options.script, command, vmOs: inputs.vmOs }),
     snap_kit_body: queuedSnapKit({ snapInId, script: options.script, command }),
   };
 

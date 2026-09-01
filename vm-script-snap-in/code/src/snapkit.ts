@@ -32,8 +32,8 @@ export function scriptPickerSnapKit(options: {
                 {
                   type: 'plain_text',
                   text:
-                    'Pick a cataloged script. Computer will run it with ' +
-                    '`python3 scripts/run_script.py`. Add more entries in scripts/catalog.json.',
+                    'Pick a cataloged script. Computer will run it on the Windows VM with ' +
+                    '`python scripts\\run_script.py`. Add more entries in scripts/catalog.json.',
                 },
               ],
             },

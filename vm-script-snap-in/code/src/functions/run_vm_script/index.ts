@@ -8,7 +8,7 @@ const HELP = [
   '',
   '• `/vm-script` — pick a script',
   '• `/vm-script list` — show the catalog',
-  '• `/vm-script run <id>` — queue that script for Computer',
+  '• `/vm-script run install-printer-driver` — queue the Windows printer demo',
   '• `/vm-script run shutdown-firefox -- --force` — pass extra args through',
   '',
   'Add scripts in `scripts/catalog.json` (or Extra catalog JSON in snap-in config).',

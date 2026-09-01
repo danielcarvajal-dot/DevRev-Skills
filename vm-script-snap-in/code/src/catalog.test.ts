@@ -68,20 +68,26 @@ describe('parseCommandParameters', () => {
 });
 
 describe('computerCommand', () => {
-  it('builds the python dispatcher Computer should execute', () => {
+  it('defaults to an elevated Windows PowerShell command', () => {
     expect(
-      computerCommand({ pythonBin: 'python3', repoPath: '.', scriptId: 'hello-vm' })
-    ).toBe('python3 scripts/run_script.py run hello-vm');
+      computerCommand({
+        pythonBin: 'python',
+        repoPath: 'C:\\DevRev-Skills',
+        scriptId: 'install-printer-driver',
+        vmOs: 'windows',
+      })
+    ).toBe('Set-Location C:\\DevRev-Skills; python scripts\\run_script.py run install-printer-driver');
   });
 
-  it('cds into a configured repo path and forwards extra args', () => {
+  it('builds a linux command when vm_os is linux', () => {
     expect(
       computerCommand({
         pythonBin: 'python3',
         repoPath: '/opt/skills',
         scriptId: 'shutdown-firefox',
         extraArgs: ['--force'],
+        vmOs: 'linux',
       })
-    ).toBe("cd /opt/skills && python3 scripts/run_script.py run shutdown-firefox -- --force");
+    ).toBe('cd /opt/skills && python3 scripts/run_script.py run shutdown-firefox -- --force');
   });
 });

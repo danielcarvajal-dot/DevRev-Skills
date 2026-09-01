@@ -17,20 +17,23 @@ the printer installer or Firefox shutdown — add any script later.
 
 ## What Computer must run
 
-From the repo checkout on the VM, never a rewritten one-liner:
+The demo target is a **Windows VM**. From an **elevated** PowerShell in the repo checkout, never a rewritten one-liner:
 
-```bash
-python3 scripts/run_script.py run <script-id>
+```powershell
+Set-Location C:\DevRev-Skills
+python scripts\run_script.py run <script-id>
 ```
 
 Examples:
 
-```bash
-python3 scripts/run_script.py list
-python3 scripts/run_script.py run hello-vm
-python3 scripts/run_script.py run install-printer-driver
-python3 scripts/run_script.py run shutdown-firefox -- --force
+```powershell
+python scripts\run_script.py list
+python scripts\run_script.py run hello-vm
+python scripts\run_script.py run install-printer-driver
+python scripts\run_script.py run shutdown-firefox -- -Force
 ```
+
+On Linux VMs only, use `python3 scripts/run_script.py ...` instead.
 
 If the snap-in comment includes a `cd /path && ...` prefix or
 `--extra-catalog-json`, run that command exactly.
@@ -86,7 +89,7 @@ of output. Do not claim success if the exit code is non-zero.
 
 | id | Script |
 |---|---|
-| `install-printer-driver` | `scripts/install-printer-driver.sh` / `.ps1` |
+| `install-printer-driver` | Windows: `scripts/install-printer-driver.ps1` (Print to PDF). Linux: `.sh` |
 | `shutdown-firefox` | `scripts/shutdown-firefox.sh` / `.ps1` |
 | `hello-vm` | `scripts/hello_vm.py` (example) |
 
@@ -99,5 +102,8 @@ of output. Do not claim success if the exit code is non-zero.
 | `unknown script id` | `python3 scripts/run_script.py list`; catalog id typo |
 | `refusing path outside scripts/` | Catalog `argv` must stay under `scripts/` |
 | `script file not found` | File missing on the VM checkout |
-| Snap-in posts a task but nothing runs | Computer must execute the fenced command; or set Computer webhook URL |
+| Snap-in posts a task but nothing runs | Computer must execute the fenced PowerShell as Administrator; or set Computer webhook URL |
+| `#Requires -RunAsAdministrator` | Re-run the same command in an elevated PowerShell |
+| `python` not found | Install Python 3 from python.org and tick **Add python.exe to PATH** |
+| Print to PDF missing on Server SKUs | Add the Print Server / Print to PDF feature, or pass a vendor `-InfPath` |
 | Extra script missing from picker | Update bundled catalog.json or Extra catalog JSON, then reinstall |

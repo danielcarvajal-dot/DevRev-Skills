@@ -62,27 +62,39 @@ export function listScriptSummaries(catalog: Catalog): string {
     .join('\n');
 }
 
+export function normalizeVmOs(raw?: string | null): 'windows' | 'linux' {
+  const value = (raw || 'windows').trim().toLowerCase();
+  return value === 'linux' || value === 'macos' ? 'linux' : 'windows';
+}
+
 export function computerCommand(options: {
   pythonBin: string;
   repoPath: string;
   scriptId: string;
   extraArgs?: string[];
   extraCatalogJson?: string;
+  vmOs?: string;
 }): string {
-  const pythonBin = options.pythonBin || 'python3';
-  const repoPath = options.repoPath || '.';
-  const parts = [pythonBin, 'scripts/run_script.py'];
+  const vmOs = normalizeVmOs(options.vmOs);
+  const pythonBin = options.pythonBin || (vmOs === 'windows' ? 'python' : 'python3');
+  const repoPath = options.repoPath || (vmOs === 'windows' ? 'C:\\DevRev-Skills' : '.');
+  const quote = vmOs === 'windows' ? psQuote : shellQuote;
+  const scriptPath = vmOs === 'windows' ? 'scripts\\run_script.py' : 'scripts/run_script.py';
+  const parts = [quote(pythonBin), scriptPath];
   if (options.extraCatalogJson && options.extraCatalogJson.trim()) {
-    parts.push('--extra-catalog-json', shellQuote(options.extraCatalogJson.trim()));
+    parts.push('--extra-catalog-json', quote(options.extraCatalogJson.trim()));
   }
   parts.push('run', options.scriptId);
   const extra = options.extraArgs || [];
   if (extra.length) {
-    parts.push('--', ...extra.map(shellQuote));
+    parts.push('--', ...extra.map(quote));
   }
   const command = parts.join(' ');
   if (repoPath === '.' || repoPath === '') {
     return command;
+  }
+  if (vmOs === 'windows') {
+    return `Set-Location ${psQuote(repoPath)}; ${command}`;
   }
   return `cd ${shellQuote(repoPath)} && ${command}`;
 }
@@ -90,20 +102,30 @@ export function computerCommand(options: {
 export function computerTaskBody(options: {
   script: CatalogScript;
   command: string;
+  vmOs?: string;
 }): string {
+  const windows = normalizeVmOs(options.vmOs) === 'windows';
+  const fence = windows ? 'powershell' : 'bash';
   return [
-    '**Computer VM task** — run this cataloged script on the VM.',
+    windows
+      ? '**Computer VM task** — run this cataloged script on the Windows VM as Administrator.'
+      : '**Computer VM task** — run this cataloged script on the VM.',
     '',
     `**Script:** ${options.script.name} (\`${options.script.id}\`)`,
     options.script.description ? `**What it does:** ${options.script.description}` : '',
     '',
-    'Computer, execute this from the repo checkout (do not rewrite the command):',
+    windows
+      ? 'Computer, execute this in an elevated PowerShell on the VM (do not rewrite the command):'
+      : 'Computer, execute this from the repo checkout (do not rewrite the command):',
     '',
-    '```bash',
+    '```' + fence,
     options.command,
     '```',
     '',
     'Then reply with the exit code and the last 30 lines of output.',
+    windows
+      ? 'Success for the printer demo: `Get-Printer` shows **Microsoft Print to PDF**.'
+      : '',
     'To add more scripts later, append an entry to `scripts/catalog.json` (or Extra catalog JSON in this snap-in).',
   ]
     .filter((line) => line !== '')
@@ -154,4 +176,11 @@ function shellQuote(value: string): string {
     return value;
   }
   return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function psQuote(value: string): string {
+  if (/^[A-Za-z0-9_.:\\/@+=,-]+$/.test(value)) {
+    return value;
+  }
+  return `'${value.replace(/'/g, "''")}'`;
 }

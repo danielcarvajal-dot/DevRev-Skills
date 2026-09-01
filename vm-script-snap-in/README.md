@@ -28,9 +28,11 @@ devrev snap_in_version create-one --path .
 devrev snap_in draft
 ```
 
-4. In the snap-in config UI, set **VM repo path** to the checkout Computer uses
-   (`.` if Computer starts in the repo). Optionally set **Extra catalog JSON**
-   and a **Computer webhook URL**.
+4. In the snap-in config UI (Windows printer demo):
+   - **VM OS** = `windows`
+   - **VM repo path** = `C:\DevRev-Skills` (or wherever you cloned this repo)
+   - **Python binary** = `python`
+   - Leave Extra catalog JSON and Computer webhook URL empty unless you have them
 5. Deploy the snap-in.
 
 ## Use
@@ -41,7 +43,7 @@ On an issue, ticket, conversation, or part:
 |---|---|
 | `/vm-script` | SnapKit picker |
 | `/vm-script list` | Catalog on the timeline |
-| `/vm-script run hello-vm` | Posts a Computer VM task |
+| `/vm-script run install-printer-driver` | Posts an elevated PowerShell Computer task |
 | `/vm-script run shutdown-firefox -- --force` | Same, with extra args |
 
 Computer should execute the fenced command in that comment. See

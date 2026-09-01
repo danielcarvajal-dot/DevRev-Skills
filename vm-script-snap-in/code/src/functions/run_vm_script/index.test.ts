@@ -29,7 +29,7 @@ describe('run_vm_script', () => {
 
   it('queues a Computer task for a named script', async () => {
     await run([{ ...baseEvent, payload: { ...baseEvent.payload, parameters: 'run hello-vm' } }]);
-    expect(posted[0].body.body).toMatch(/python3 scripts\/run_script.py run hello-vm/);
+    expect(posted[0].body.body).toMatch(/Set-Location C:\\DevRev-Skills; python scripts\\run_script.py run hello-vm/);
     expect(posted[0].body.body).toMatch(/Computer VM task/);
   });
 
