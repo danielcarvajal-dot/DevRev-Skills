@@ -12,6 +12,14 @@ the missing password-reset step:
 5. **Enable User** — `PUT /admin/realms/{realm}/users/{userId}` with `enabled: true`
 6. **Password reset** — `PUT .../execute-actions-email` with `["UPDATE_PASSWORD"]`, or `--temp` to set a temporary password
 
+## Sales engineer enablement
+
+Train SEs with these two documents. The configuration guide stands up the
+**dcm-test** lab. The demo script is the customer talk track.
+
+- [Configure the Computer identity recovery demo](docs/se-configuration-guide.md)
+- [Demo Computer as the service desk teammate](docs/se-demo-script.md)
+
 ## Computer
 
 After the snap-in is installed, Computer in the same org can reset a password
