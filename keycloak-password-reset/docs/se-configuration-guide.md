@@ -124,6 +124,47 @@ The imported realm already grants those roles.
 Do **not** set `KC_HOSTNAME` to a free, ephemeral ngrok URL. That pins
 Keycloak to a dead host the next time the tunnel changes.
 
+### Brute-force lockout must stay locked until the API
+
+Keycloak 26 has three brute-force **modes**. The imported realm used
+**Lockout temporarily**: after three failed passwords the user stayed
+`enabled: true`, and Keycloak cleared the lockout after **Wait Increment**
+(60 seconds). That looks like the account unlocked itself.
+
+For this demo, use **Lockout permanently**. Keycloak then sets
+`enabled: false` after three failures. The account stays disabled until
+an administrator or the snap-in / Computer skill re-enables it.
+
+In the admin console (realm `account-unlock`):
+
+1. **Realm settings → Security defenses → Brute force detection**
+2. Set **Brute force mode** to **Lockout permanently**
+3. Set **Max login failures** to `3`
+4. Leave **Quick login check milliseconds** at `1000` and **Minimum
+   quick login wait** at `1 minute` (or raise the check so rapid demo
+   clicks do not trigger the short quick-login wait)
+
+Do **not** choose **Lockout temporarily**. Do **not** choose **Lockout
+permanently after temporary lockout** unless you want one or more
+time-limited lockouts first.
+
+A running container does not re-import the realm. Change the live realm
+in the console, or recreate the volume after updating
+`realm/account-unlock-realm.json` (`permanentLockout` is `true`).
+
+Unlock is two Admin API calls. The snap-in already does both:
+
+1. `DELETE /admin/realms/account-unlock/attack-detection/brute-force/users/{id}`
+2. `PUT /admin/realms/account-unlock/users/{id}` with `enabled: true`
+
+A Computer skill that only deletes lockout will leave the user disabled.
+The Password Reset snap-in `/unlock_account` path re-enables the user.
+
+Wait more than one second between failed logins when you stage the demo.
+Failures faster than **Quick login check milliseconds** use the temporary
+**Minimum quick login wait**, even in permanent mode, until the failure
+count reaches three.
+
 ## Part 2. Expose Keycloak to DevRev
 
 DevRev-hosted skills and snap-in functions cannot call `localhost`. Tunnel
@@ -324,6 +365,8 @@ connection **and** the three skill workflows before you join.
 | Token 200, users 401 | Quoted or missing `Authorization`. Confirm jq `.access_token` and the `$replace` header. |
 | “No Keycloak user” for Daniel | You searched `@devrev.ai` only. Use alias or username `danielcarvajal`. |
 | Reset email fails | Realm SMTP is not configured. Use `/reset_password <user> --temp` for the demo. |
+| Lockout clears after ~60s and user stays enabled | Realm is **Lockout temporarily**. Set **Lockout permanently** (see [Brute-force lockout](#brute-force-lockout-must-stay-locked-until-the-api)). |
+| Computer unlocks lockout but user is still disabled | Permanent lockout set `enabled: false`. The skill must `PUT` the user with `enabled: true`, not only `DELETE` the brute-force record. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 
 ## Language for enablement

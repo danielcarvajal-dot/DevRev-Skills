@@ -93,8 +93,13 @@ Admin console: [http://localhost:8080](http://localhost:8080) (`admin` / `admin`
 Demo users: `demo.user@example.com` / `DemoPass123!`, and `danielcarvajal`
 (`daniel.carvajal@devrev.com`).
 
-Fail the password a few times to lock the account, then run `/unlock_account`
-or `/reset_password` from DevRev.
+Realm brute-force mode must be **Lockout permanently** (three failures).
+Temporary mode auto-clears the lockout after the wait increment and leaves
+the user `enabled`. See
+[se-configuration-guide.md](docs/se-configuration-guide.md#brute-force-lockout-must-stay-locked-until-the-api).
+
+Fail the password three times (wait more than one second between tries) to
+lock the account, then run `/unlock_account` or `/reset_password` from DevRev.
 
 ## Expose local Keycloak with ngrok
 

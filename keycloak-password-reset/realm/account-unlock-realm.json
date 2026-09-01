@@ -7,7 +7,7 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
   "bruteForceProtected": true,
-  "permanentLockout": false,
+  "permanentLockout": true,
   "maxTemporaryLockouts": 0,
   "failureFactor": 3,
   "waitIncrementSeconds": 60,
