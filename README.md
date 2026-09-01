@@ -19,7 +19,9 @@ Use these two documents to train SEs on the **dcm-test** identity recovery demo.
 The configuration guide stands the lab up. The demo script is the talk track.
 
 - [Configure the Computer identity recovery demo](keycloak-password-reset/docs/se-configuration-guide.md)
+  ([PDF](keycloak-password-reset/docs/se-configuration-guide.pdf))
 - [Demo Computer as the service desk teammate](keycloak-password-reset/docs/se-demo-script.md)
+  ([PDF](keycloak-password-reset/docs/se-demo-script.pdf))
 
 ## Workflow Builder
 

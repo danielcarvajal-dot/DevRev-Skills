@@ -4,7 +4,9 @@ Talk track for DevRev sales engineers.
 
 Use this script when you train another SE or run the **identity recovery**
 demo for a customer. The environment steps live in
-[se-configuration-guide.md](se-configuration-guide.md). Do not walk a
+[se-configuration-guide.md](se-configuration-guide.md)
+([PDF](se-configuration-guide.pdf)). A print PDF of this talk track is
+[se-demo-script.pdf](se-demo-script.pdf). Do not walk a
 customer through Docker, ngrok, or client secrets.
 
 Computer is the AI teammate that remembers the business and **acts** inside

@@ -8,7 +8,9 @@ unlock, and reset a Keycloak account in chat, and a ticket can do the same
 with slash commands.
 
 Use this guide in a lab or the night before a meeting. In the meeting, use the
-companion talk track: [se-demo-script.md](se-demo-script.md).
+companion talk track: [se-demo-script.md](se-demo-script.md)
+([PDF](se-demo-script.pdf)). A print PDF of this guide is
+[se-configuration-guide.pdf](se-configuration-guide.pdf).
 
 Follow [DevRev language guidelines](https://devrev.standard-projects.com/language)
 when you write or present this demo: knowledgeable, approachable, and

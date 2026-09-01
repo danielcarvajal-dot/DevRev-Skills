@@ -18,7 +18,15 @@ Train SEs with these two documents. The configuration guide stands up the
 **dcm-test** lab. The demo script is the customer talk track.
 
 - [Configure the Computer identity recovery demo](docs/se-configuration-guide.md)
+  ([PDF](docs/se-configuration-guide.pdf))
 - [Demo Computer as the service desk teammate](docs/se-demo-script.md)
+  ([PDF](docs/se-demo-script.pdf))
+
+Regenerate the PDFs after you edit the markdown:
+
+```bash
+python3 keycloak-password-reset/docs/export-pdfs.py
+```
 
 ## Computer
 
