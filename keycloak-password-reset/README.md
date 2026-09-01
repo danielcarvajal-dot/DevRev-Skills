@@ -174,6 +174,7 @@ Paste the public URL back here if you want the demo keyring updated for you.
 | URL changes every time you restart ngrok | Update the connection / `keycloak_url` each time, or reserve a domain on a paid plan (`ngrok http --url your-name.ngrok-free.app 8080`). |
 | Tunnel dies when the laptop sleeps | Keep ngrok and Docker running while you demo. |
 | `execute-actions-email` links still say localhost | Restart Keycloak with `KC_HOSTNAME` set to a **reserved** ngrok HTTPS origin, or use `/reset_password user@example.com --temp`. |
+| Token `200` then Admin API `401`, lockout URL ends at `/users/` | Computer sent a bad/missing Bearer token. Skills 33.7+ strip jq quotes around `access_token`. Start a new Computer chat. Confirm with curl: `Authorization: Bearer $(jq -r .access_token)` — not `Bearer "eyJ..."`. |
 
 Do not commit the ngrok URL, authtoken, or client secret.
 

@@ -64,3 +64,46 @@ looked up this way.
 ## Demo accounts (realm `account-unlock`)
 - `danielcarvajal` / `daniel.carvajal@devrev.com` (DevRev login is `@devrev.ai`)
 - `testuser` / `testuser@yourcompany.com`
+
+## ngrok: token 200 then Admin API 401
+
+If the ngrok inspector shows this sequence:
+
+```text
+POST /realms/account-unlock/protocol/openid-connect/token             200 OK
+GET  /admin/realms/account-unlock/users                               401 Unauthorized
+GET  /admin/realms/account-unlock/attack-detection/brute-force/users/ 401 Unauthorized
+```
+
+the token mint worked. The next calls were sent **without a usable Bearer token**
+(often `Bearer "eyJ..."` with extra quotes, or a missing `Authorization` header).
+The lockout path ending in `users/` means Find User did not return a user id.
+
+Computer skills **33.7 / 35.7 / 36.7** send a cleaned `Authorization: Bearer <token>`.
+Start a **new** Computer chat and try `check danielcarvajal`. In ngrok you want:
+
+```text
+POST /realms/.../token                                               200
+GET  /admin/realms/account-unlock/users?search=danielcarvajal        200
+GET  /admin/realms/.../brute-force/users/<uuid>                      200
+```
+
+Confirm Keycloak itself accepts the service account (from the laptop):
+
+```bash
+TOKEN=$(curl -sS -H 'ngrok-skip-browser-warning: true' \
+  -d 'grant_type=client_credentials&client_id=unlock-agent&client_secret=<secret>' \
+  https://<your-ngrok-host>/realms/account-unlock/protocol/openid-connect/token \
+  | jq -r .access_token)
+
+curl -sS -D- -o /tmp/users.json \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'ngrok-skip-browser-warning: true' \
+  "https://<your-ngrok-host>/admin/realms/account-unlock/users?search=danielcarvajal"
+```
+
+You want `HTTP/2 200` and a JSON array. `401` with a quoted `Bearer "eyJ..."` is
+the same Computer-skill bug. `401` with a raw token means the `unlock-agent`
+service account is missing `view-users` / `manage-users` (usually `403`) or
+Keycloak was restarted onto a new hostname — update the snap-in **Keycloak URL**
+and the Computer skill HTTP URLs to the current `https://….ngrok-free.dev/` origin.
