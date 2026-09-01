@@ -77,7 +77,7 @@ describe('KeycloakClient', () => {
     );
     expect(http.put).toHaveBeenCalledWith(
       'http://localhost:8080/admin/realms/account-unlock/users/user-1',
-      expect.objectContaining({ id: 'user-1', enabled: true }),
+      { enabled: true },
       expect.any(Object)
     );
     expect(http.put).toHaveBeenCalledWith(
@@ -216,7 +216,7 @@ describe('KeycloakClient', () => {
     expect(http.delete).toHaveBeenCalled();
     expect(http.put).toHaveBeenCalledWith(
       'http://localhost:8080/admin/realms/account-unlock/users/user-1',
-      expect.objectContaining({ id: 'user-1', enabled: true }),
+      { enabled: true },
       expect.any(Object)
     );
     expect(result.wasDisabled).toBe(true);

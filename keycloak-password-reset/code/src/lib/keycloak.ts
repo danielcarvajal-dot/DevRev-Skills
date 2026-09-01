@@ -206,12 +206,13 @@ export class KeycloakClient {
   }
 
   async enableUser(user: KeycloakUser): Promise<KeycloakUser> {
-    const current = await this.getUser(user.id);
     const token = await this.getAccessToken();
     const url = `${this.config.url}admin/realms/${encodeURIComponent(this.config.realm)}/users/${encodeURIComponent(
       user.id
     )}`;
-    const payload = { ...current, enabled: true };
+    // Keycloak merges this representation. Do not $merge / stringify the
+    // Find User body — that is a JSON string and breaks skill workflows.
+    const payload = { enabled: true };
 
     try {
       await this.http.put(url, payload, {
@@ -220,7 +221,7 @@ export class KeycloakClient {
           'Content-Type': 'application/json',
         }),
       });
-      return { ...current, enabled: true };
+      return { ...user, enabled: true };
     } catch (error) {
       throw wrapHttpError(error, 'Failed to enable the Keycloak user.');
     }

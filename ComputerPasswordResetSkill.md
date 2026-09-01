@@ -52,8 +52,9 @@ rejected on that public URL and is not stored on the skill.
    re-enables, then sends `UPDATE_PASSWORD` via `execute-actions-email`).
 5. Confirm the account is enabled. Do not dump client secrets, tokens, or API internals.
 
-Published skill versions in **dcm-test**: Check **35.9**, Unlock **36.10**,
-Reset **33.9**. Start a new Computer chat after those publishes.
+Published skill versions in **dcm-test**: Check **35.9**, Unlock **36.11**,
+Reset **33.10**. Enable User sends literal `{"enabled":true}` — do not `$merge`
+the Find User body. Start a new Computer chat after those publishes.
 
 The realm is not limited to `testuser`. Any user in `account-unlock` can be
 looked up this way.
