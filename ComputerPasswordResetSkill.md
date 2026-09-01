@@ -79,7 +79,10 @@ the token mint worked. The next calls were sent **without a usable Bearer token*
 (often `Bearer "eyJ..."` with extra quotes, or a missing `Authorization` header).
 The lockout path ending in `users/` means Find User did not return a user id.
 
-Computer skills **33.7 / 35.7 / 36.7** send a cleaned `Authorization: Bearer <token>`.
+Computer skills **33.8 / 35.8 / 36.8** send
+`"Bearer " & $replace($string($get('get_token','output').body), '"', '')`.
+Do not use `$eval` — DevRev JSONata does not implement it, and Find User
+fails while building headers (`cannot call non-function $eval`).
 Start a **new** Computer chat and try `check danielcarvajal`. In ngrok you want:
 
 ```text
