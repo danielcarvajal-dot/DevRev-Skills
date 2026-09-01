@@ -1,0 +1,22 @@
+[
+  {
+    "payload": {
+      "parameters": "run hello-vm",
+      "source_id": "don:core:dvrv-us-1:devo/0:issue/1"
+    },
+    "context": {
+      "snap_in_id": "don:integration:dvrv-us-1:devo/0:snap_in/1",
+      "secrets": {
+        "service_account_token": "test-token"
+      }
+    },
+    "execution_metadata": {
+      "devrev_endpoint": "https://api.devrev.ai",
+      "function_name": "run_vm_script"
+    },
+    "input_data": {
+      "global_values": {},
+      "keyrings": {}
+    }
+  }
+]
