@@ -80,7 +80,7 @@ anything.
 | Computer | `ai_agent/4`, slug `computer` |
 | Password Reset Assistant | `ai_agent/6` |
 | Skills | `KeycloakCheckAccount` (workflow 35), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
-| Published skill versions | **33.10 / 35.9 / 36.11** (or later) |
+| Published skill versions | **33.11 / 35.9 / 36.12** (or later) |
 | Realm | `account-unlock` |
 | Client | `unlock-agent` (confidential, service account) |
 
@@ -157,9 +157,11 @@ Unlock is two Admin API calls. The snap-in already does both:
 1. `DELETE /admin/realms/account-unlock/attack-detection/brute-force/users/{id}`
 2. `PUT /admin/realms/account-unlock/users/{id}` with `enabled: true`
 
-Skills **36.11+** and **33.10+** both `PUT` the user with body `{"enabled":true}`.
-Do not `$merge` the Find User response into that body — Find User `body` is a
-JSON string and the Enable step fails with “argument must be an object”.
+Skills **36.12+** and **33.11+** `PUT` the user with body `{"enabled":true}`
+and take the user id from Find User’s jq (`.[0].id`), the same way Get Token
+uses `.access_token`. Do not `$merge` Find User `body` or read `.body.id` —
+that body is a JSON string, so `$merge` throws “argument must be an object”
+and `.body.id` is empty (Keycloak then returns **405** on `PUT .../users/`).
 The snap-in `/unlock_account` and `/reset_password` paths do the same.
 Do not tell a customer that a permanent lockout is an admin hold Computer
 cannot lift.
@@ -236,8 +238,8 @@ workflow.
 | Skill | Workflow | What it does |
 | --- | --- | --- |
 | `KeycloakCheckAccount` | 35 | Find user, report enabled/lockout; `enabled: false` means call unlock |
-| `KeycloakUnlockAccount` | 36 | Find user, `DELETE` lockout, `PUT` `enabled: true` |
-| `ResetPassword` | 33 | Find user, unlock, re-enable, then `PUT execute-actions-email` |
+| `KeycloakUnlockAccount` | 36 | Find user (jq `.id`), `DELETE` lockout, `PUT` `{"enabled":true}` |
+| `ResetPassword` | 33 | Find user (jq `.id`), unlock, re-enable, then `PUT execute-actions-email` |
 
 Keep **WebSearch** on Computer when you replace the skill list. A
 `skills.set` call replaces the entire list.
@@ -370,8 +372,8 @@ connection **and** the three skill workflows before you join.
 | “No Keycloak user” for Daniel | You searched `@devrev.ai` only. Use alias or username `danielcarvajal`. |
 | Reset email fails | Realm SMTP is not configured. Use `/reset_password <user> --temp` for the demo. |
 | Lockout clears after ~60s and user stays enabled | Realm is **Lockout temporarily**. Set **Lockout permanently** (see [Brute-force lockout](#brute-force-lockout-must-stay-locked-until-the-api)). |
-| Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.11+ / 33.10+** and a **new** Computer chat. Unlock now re-enables the user. |
-| Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.11+ / 33.10+** send literal `{"enabled":true}`. |
+| Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.12+ / 33.11+** and a **new** Computer chat. Unlock now re-enables the user. |
+| Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.12+ / 33.11+** send literal `{"enabled":true}` and jq the user id. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 
 ## Language for enablement
