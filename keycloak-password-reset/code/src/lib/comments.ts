@@ -15,27 +15,34 @@ export function formatAccountStatus(status: AccountStatus): string {
   const enabled = user.enabled === false ? 'no' : 'yes';
   const failures = typeof lockout.numFailures === 'number' ? String(lockout.numFailures) : 'unknown';
 
-  return [
+  const lines = [
     `Keycloak account for **${user.email || displayName(user)}**`,
     `- Username: ${user.username ?? 'n/a'}`,
     `- Enabled: ${enabled}`,
     `- Brute-force locked: ${locked}`,
     `- Failed login attempts: ${failures}`,
     `- User ID: ${user.id}`,
-  ].join('\n');
+  ];
+  if (user.enabled === false) {
+    lines.push(
+      '- Permanent lockout: yes (Keycloak disabled the user after failed logins)',
+      '- Recovery: `/unlock_account` or `/reset_password` re-enables the user. Clearing the lockout counter alone is not enough.'
+    );
+  }
+  return lines.join('\n');
 }
 
 export function formatRecoveryComment(result: RecoveryResult): string {
   const lines = [formatAccountStatus({ user: result.user, lockout: result.lockout })];
 
   if (result.wasLocked && result.unlocked) {
-    lines.push('\nCleared the brute-force lockout.');
+    lines.push('\nCleared the brute-force lockout counter.');
   } else if (!result.wasLocked && result.action !== 'check') {
     lines.push('\nAccount was not brute-force locked.');
   }
 
   if (result.wasDisabled && result.enabled) {
-    lines.push('Re-enabled the user.');
+    lines.push('Re-enabled the user (lifted permanent lockout).');
   }
 
   if (result.resetEmailSent) {
@@ -58,7 +65,7 @@ export function usageHint(): string {
     'I can recover any Keycloak user from this discussion (email, username, or user ID):',
     '- `/reset_password user@example.com` — unlock, enable, and email a reset link',
     '- `/reset_password danielcarvajal --temp` — same recovery with a temporary password (posted internally)',
-    '- `/unlock_account danielcarvajal` — clear lockout and enable only',
+    '- `/unlock_account danielcarvajal` — clear lockout and re-enable a permanent lockout',
     '- `/check_account user@example.com` — report lockout and enabled status',
     'DevRev logins on @devrev.ai also match the @devrev.com Keycloak mailbox.',
   ].join('\n');

@@ -116,6 +116,19 @@ describe('formatAgentResponse', () => {
     expect(response.account?.locked).toBe(true);
   });
 
+  it('tells Computer that a permanent lockout is recoverable', () => {
+    const response = formatAgentResponse({
+      action: 'check',
+      status: {
+        user: { id: 'user-1', email: 'demo.user@example.com', username: 'demo.user', enabled: false },
+        lockout: { disabled: false, numFailures: 0 },
+      },
+    });
+    expect(response.message).toMatch(/permanent lockout/i);
+    expect(response.message).toMatch(/re-enable/i);
+    expect(response.account?.enabled).toBe(false);
+  });
+
   it('returns a structured error without throwing', () => {
     const response = formatAgentResponse({
       action: 'check',

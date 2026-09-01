@@ -33,7 +33,9 @@ python3 keycloak-password-reset/docs/export-pdfs.py
 After the snap-in is installed, Computer in the same org can reset a password
 in chat. Skills `KeycloakCheckAccount`, `KeycloakUnlockAccount`, and
 `ResetPassword` take `{ "email": "..." }` or `{ "username": "..." }` — method,
-URL, and client credentials are stored on the skill. (`agent_handler` is the
+URL, and client credentials are stored on the skill. Unlock and reset
+**re-enable** a permanent lockout (`enabled: false`). Clearing the
+brute-force counter alone is not enough. (`agent_handler` is the
 snap-in JSON entrypoint for a future function-backed skill.)
 
 See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).

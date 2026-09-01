@@ -25,9 +25,9 @@ latest input schema.
 
 | Skill | When to use | What to pass |
 | --- | --- | --- |
-| `KeycloakCheckAccount` | Read-only status (enabled / brute-force lockout) | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
-| `KeycloakUnlockAccount` | Clear lockout. No password change. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
-| `ResetPassword` | Send a Keycloak `UPDATE_PASSWORD` email | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
+| `KeycloakCheckAccount` | Read-only status (enabled / brute-force lockout). `enabled: false` is a permanent lockout — call unlock next. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
+| `KeycloakUnlockAccount` | Clear lockout **and** re-enable the user (`PUT enabled: true`). Lifts permanent lockout. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
+| `ResetPassword` | Re-enable if needed, then send a Keycloak `UPDATE_PASSWORD` email | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
 
 Do **not** pass `method`, `url`, `headers`, `body`, a client secret, or an
 access token. Those stay on the skill workflow. Each run mints a **new**
@@ -45,10 +45,15 @@ rejected on that public URL and is not stored on the skill.
    - username `danielcarvajal` when the requester is Daniel
    - the DevRev display name with hyphens stripped (`daniel-carvajal` → `danielcarvajal`)
 2. Call `KeycloakCheckAccount` with that email **or** username.
-3. If locked: `KeycloakUnlockAccount` with the same identity.
-4. For a password reset: `ResetPassword` with the same identity (sends
-   `UPDATE_PASSWORD` via `execute-actions-email`).
-5. Confirm what changed. Do not dump client secrets, tokens, or API internals.
+3. If `enabled` is false or the account is brute-force locked, call
+   `KeycloakUnlockAccount` with the same identity. That skill re-enables
+   the user. Do not treat `enabled: false` as an admin hold you cannot lift.
+4. For a password reset: `ResetPassword` with the same identity (also
+   re-enables, then sends `UPDATE_PASSWORD` via `execute-actions-email`).
+5. Confirm the account is enabled. Do not dump client secrets, tokens, or API internals.
+
+Published skill versions in **dcm-test**: Check **35.9**, Unlock **36.10**,
+Reset **33.9**. Start a new Computer chat after those publishes.
 
 The realm is not limited to `testuser`. Any user in `account-unlock` can be
 looked up this way.

@@ -20,7 +20,8 @@ function that Computer uses for chat (JSON in, JSON out — no ticket comment).
 From **Computer**, say "reset my password", "unlock danielcarvajal", or
 "check testuser@yourcompany.com". Skills accept an email **or** username
 (no HTTP method or client secret). `@devrev.ai` logins map to the
-`@devrev.com` Keycloak mailbox.
+`@devrev.com` Keycloak mailbox. Unlock and reset re-enable a permanent
+lockout (`enabled: false`) — they do not only clear the brute-force counter.
 See [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md).
 
 Use the commands on a ticket or conversation:

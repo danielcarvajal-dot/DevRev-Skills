@@ -29,7 +29,7 @@ org skills. Credentials never enter the chat.
 Employee  →  Computer chat
                  │
                  ├─ KeycloakCheckAccount   (read status)
-                 ├─ KeycloakUnlockAccount  (clear brute-force lockout)
+                 ├─ KeycloakUnlockAccount  (clear lockout and re-enable)
                  └─ ResetPassword          (send UPDATE_PASSWORD email)
                         │
                         ▼
@@ -80,7 +80,7 @@ anything.
 | Computer | `ai_agent/4`, slug `computer` |
 | Password Reset Assistant | `ai_agent/6` |
 | Skills | `KeycloakCheckAccount` (workflow 35), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
-| Published skill versions | **33.8 / 35.8 / 36.8** (or later) |
+| Published skill versions | **33.9 / 35.9 / 36.10** (or later) |
 | Realm | `account-unlock` |
 | Client | `unlock-agent` (confidential, service account) |
 
@@ -157,8 +157,10 @@ Unlock is two Admin API calls. The snap-in already does both:
 1. `DELETE /admin/realms/account-unlock/attack-detection/brute-force/users/{id}`
 2. `PUT /admin/realms/account-unlock/users/{id}` with `enabled: true`
 
-A Computer skill that only deletes lockout will leave the user disabled.
-The Password Reset snap-in `/unlock_account` path re-enables the user.
+Skills **36.10** and **33.9** both `PUT` the user with `enabled: true`.
+The snap-in `/unlock_account` and `/reset_password` paths do the same.
+Do not tell a customer that a permanent lockout is an admin hold Computer
+cannot lift.
 
 Wait more than one second between failed logins when you stage the demo.
 Failures faster than **Quick login check milliseconds** use the temporary
@@ -231,9 +233,9 @@ workflow.
 
 | Skill | Workflow | What it does |
 | --- | --- | --- |
-| `KeycloakCheckAccount` | 35 | Find user, read brute-force lockout |
-| `KeycloakUnlockAccount` | 36 | Find user, `DELETE` lockout |
-| `ResetPassword` | 33 | Find user, `PUT execute-actions-email` with `UPDATE_PASSWORD` |
+| `KeycloakCheckAccount` | 35 | Find user, report enabled/lockout; `enabled: false` means call unlock |
+| `KeycloakUnlockAccount` | 36 | Find user, `DELETE` lockout, `PUT` `enabled: true` |
+| `ResetPassword` | 33 | Find user, unlock, re-enable, then `PUT execute-actions-email` |
 
 Keep **WebSearch** on Computer when you replace the skill list. A
 `skills.set` call replaces the entire list.
@@ -366,7 +368,7 @@ connection **and** the three skill workflows before you join.
 | “No Keycloak user” for Daniel | You searched `@devrev.ai` only. Use alias or username `danielcarvajal`. |
 | Reset email fails | Realm SMTP is not configured. Use `/reset_password <user> --temp` for the demo. |
 | Lockout clears after ~60s and user stays enabled | Realm is **Lockout temporarily**. Set **Lockout permanently** (see [Brute-force lockout](#brute-force-lockout-must-stay-locked-until-the-api)). |
-| Computer unlocks lockout but user is still disabled | Permanent lockout set `enabled: false`. The skill must `PUT` the user with `enabled: true`, not only `DELETE` the brute-force record. |
+| Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.10+ / 33.9+** and a **new** Computer chat. Unlock now re-enables the user. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 
 ## Language for enablement

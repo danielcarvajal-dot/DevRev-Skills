@@ -214,8 +214,9 @@ instead, use `unlock testuser` and say you are helping a named employee.
 
 > This is the difference between an assistant that writes a reply and a
 > teammate that acts. Computer called KeycloakUnlockAccount, cleared the
-> lockout, and left an audit trail you can inspect. Consequential actions
-> stay on skills your org tested and published.
+> lockout counter, and re-enabled the user. Permanent lockout here is
+> `enabled: false` after three failed logins — unlock lifts that.
+> Consequential actions stay on skills your org tested and published.
 
 **If a technical buyer asks “prove it”**
 

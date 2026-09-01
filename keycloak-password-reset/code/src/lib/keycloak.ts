@@ -301,23 +301,24 @@ export class KeycloakClient {
     const wasDisabled = user.enabled === false;
     let unlocked = false;
     let enabled = user.enabled !== false;
+    let currentUser = user;
+    let currentLockout = lockout;
 
-    if (wasLocked) {
+    // Permanent lockout sets enabled: false. Clearing the brute-force counter
+    // alone leaves the user disabled. Always unlock and re-enable on recover.
+    if (options.action !== 'check') {
       await this.unlockUser(user.id);
       unlocked = true;
-    }
-
-    let currentUser = user;
-    if (wasDisabled) {
       currentUser = await this.enableUser(user);
       enabled = true;
+      currentLockout = await this.checkLockout(currentUser.id);
     }
 
     const result: RecoveryResult = {
       action: options.action,
       email,
       user: currentUser,
-      lockout,
+      lockout: currentLockout,
       wasLocked,
       wasDisabled,
       unlocked,

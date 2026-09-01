@@ -151,13 +151,20 @@ export function formatAgentResponse(input: {
 
   if (input.status) {
     const account = accountFromStatus(input.status);
+    const state = account.enabled
+      ? account.locked
+        ? 'enabled and brute-force locked'
+        : 'enabled and not locked'
+      : 'disabled by permanent lockout (enabled: false)';
+    const hint = account.enabled
+      ? account.locked
+        ? ' Call unlock to clear the lockout counter and keep the user enabled.'
+        : ''
+      : ' Clearing the brute-force counter is not enough. Call unlock or reset — those skills re-enable the user.';
     return {
       ok: true,
       action: 'check',
-      message: [
-        `Keycloak account ${account.email || account.user_id} is ${account.enabled ? 'enabled' : 'disabled'}`,
-        `and ${account.locked ? 'brute-force locked' : 'not locked'}.`,
-      ].join(' '),
+      message: `Keycloak account ${account.email || account.username || account.user_id} is ${state}.${hint}`,
       account,
     };
   }
@@ -171,10 +178,12 @@ export function formatAgentResponse(input: {
   const parts: string[] = [];
 
   if (result.wasLocked && result.unlocked) {
-    parts.push('Cleared the brute-force lockout.');
+    parts.push('Cleared the brute-force lockout counter.');
   }
   if (result.wasDisabled && result.enabled) {
-    parts.push('Re-enabled the user.');
+    parts.push('Re-enabled the user (lifted permanent lockout).');
+  } else if (result.enabled && result.action === 'unlock') {
+    parts.push('Confirmed the user is enabled.');
   }
   if (result.resetEmailSent) {
     parts.push(`Sent a password-reset email to ${result.email}.`);
