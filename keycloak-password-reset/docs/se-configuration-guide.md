@@ -80,7 +80,7 @@ anything.
 | Computer | `ai_agent/4`, slug `computer` |
 | Password Reset Assistant | `ai_agent/6` |
 | Skills | `KeycloakCheckAccount` (35), `KeycloakSendUnlockOtp` (41), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
-| Published skill versions | **33.12 / 35.9 / 36.13 / 41.2** (or later) |
+| Published skill versions | **33.12 / 35.9 / 36.13 / 41.4** (or later) |
 | Realm | `account-unlock` |
 | Client | `unlock-agent` (confidential, service account) |
 
@@ -382,7 +382,7 @@ connection **and** the three skill workflows before you join.
 | Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.13+ / 33.12+** and a **new** Computer chat. Unlock now re-enables after OTP. |
 | Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.13+ / 33.12+** send literal `{"enabled":true}` and jq the user id. |
 | Unlock runs with no OTP | Old session. Start a new Computer chat. Unlock **36.13+** requires `otp`. |
-| OTP email never arrives | Use Send OTP **41.2+**. The sender is DevRev Notify, not FormSubmit. Check the notification bell and `daniel.carvajal@devrev.ai`. Start a new Computer chat. |
+| OTP email never arrives | Use Send OTP **41.4+**. The sender is DevRev Notify to Daniel. Check the notification bell and `daniel.carvajal@devrev.ai`. Start a new Computer chat. **41.2** failed with an empty receiver. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 
 ## Language for enablement
