@@ -112,7 +112,7 @@ That realm turns on brute-force protection and creates:
 | Username | Email | Password |
 | --- | --- | --- |
 | `demo.user` | `demo.user@example.com` | `DemoPass123!` |
-| `danielcarvajal` | `daniel.carvajal@devrev.com` | `DemoPass123!` |
+| `danielcarvajal` | `daniel.carvajal@devrev.ai` | `DemoPass123!` |
 
 Live **dcm-test** Keycloak also has `testuser` / `testuser@yourcompany.com`.
 Create that user in the admin console if your import does not include it.
@@ -271,21 +271,23 @@ Find User must search, not exact-email only:
 GET /admin/realms/account-unlock/users?search=<identity>
 ```
 
-Map `@devrev.ai` to `@devrev.com` in that search string. Strip hyphens from
-a username that has no `@` (`daniel-carvajal` → `danielcarvajal`).
+If a lab user still has a `@devrev.com` mailbox, also search the `@devrev.ai`
+alias, and the reverse. Strip hyphens from a username that has no `@`
+(`daniel-carvajal` → `danielcarvajal`). Daniel’s live mailbox is
+`daniel.carvajal@devrev.ai`.
 
 After you publish a skill version, start a **new** Computer chat. An old
 session keeps the previous input schema.
 
 ## Part 5. Identity mapping
 
-DevRev login and Keycloak are not the same mailbox. Teach Computer (and
-yourself) this table.
+Daniel’s Keycloak email is his DevRev login. Teach Computer (and yourself)
+this table.
 
 | What the employee says | What Keycloak has | How lookup works |
 | --- | --- | --- |
-| “Unlock my account” (Daniel) | Username `danielcarvajal`, email `daniel.carvajal@devrev.com` | Try DevRev email, then `@devrev.com`, then username |
-| `daniel.carvajal@devrev.ai` | `daniel.carvajal@devrev.com` | Alias `@devrev.ai` → `@devrev.com` |
+| “Unlock my account” (Daniel) | Username `danielcarvajal`, email `daniel.carvajal@devrev.ai` | Try DevRev email, then username |
+| `daniel.carvajal@devrev.ai` | Same mailbox | Exact email or search |
 | `danielcarvajal` | Same user | Username search |
 | `daniel-carvajal` | `danielcarvajal` | Hyphens stripped |
 | `testuser@yourcompany.com` | Username `testuser` | Exact email or search |
@@ -374,7 +376,7 @@ connection **and** the three skill workflows before you join.
 | Snap-in or Computer cannot reach Keycloak | Tunnel down, laptop asleep, or stale URL in the connection / skill. |
 | Find User: `cannot call non-function $eval` | Header used `$eval`. Publish skills 33.8+ with `$replace` only. |
 | Token 200, users 401 | Quoted or missing `Authorization`. Confirm jq `.access_token` and the `$replace` header. |
-| “No Keycloak user” for Daniel | You searched `@devrev.ai` only. Use alias or username `danielcarvajal`. |
+| “No Keycloak user” for Daniel | Pass `daniel.carvajal@devrev.ai` or username `danielcarvajal`. |
 | Reset email fails | Realm SMTP is not configured. Use `/reset_password <user> --temp` for the demo. |
 | Lockout clears after ~60s and user stays enabled | Realm is **Lockout temporarily**. Set **Lockout permanently** (see [Brute-force lockout](#brute-force-lockout-must-stay-locked-until-the-api)). |
 | Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.13+ / 33.12+** and a **new** Computer chat. Unlock now re-enables after OTP. |

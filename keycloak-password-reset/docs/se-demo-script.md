@@ -37,11 +37,10 @@ reset email after the same OTP. Credentials never enter the chat.
 That is [service desk automation](https://devrev.ai/use-cases/service-desk-automation):
 Computer handles the reset so IT can spend time on work that needs a human.
 
-Name the employee **Daniel**. His DevRev login is
-`daniel.carvajal@devrev.ai`. Keycloak stores him as username
-`danielcarvajal` with email `daniel.carvajal@devrev.com`. If someone asks
-why those differ, use [Identity mapping](#identity-mapping). Do not open
-with that detail.
+Name the employee **Daniel**. His DevRev login and Keycloak email are
+both `daniel.carvajal@devrev.ai`. Keycloak username is `danielcarvajal`.
+If Computer needs a name, use that email or username. Do not open with
+identity-mapping detail.
 
 ## Brand voice in the room
 
@@ -314,17 +313,15 @@ train an SE who will operate **dcm-test**.
 
 **Say**
 
-> DevRev login and Keycloak are not the same mailbox in this lab.
-> Daniel signs in to DevRev as `daniel.carvajal@devrev.ai`. Keycloak
-> stores `daniel.carvajal@devrev.com` and username `danielcarvajal`.
-> Computer tries the DevRev email, then the `@devrev.com` alias, then
-> the username, including a hyphen-stripped form of the display name.
-> A search for `@devrev.ai` alone returns no user. That is expected.
+> Daniel’s Keycloak email is the same as his DevRev login:
+> `daniel.carvajal@devrev.ai`. Username is `danielcarvajal`. Computer
+> also tries a `@devrev.com` alias and a hyphen-stripped display name
+> if someone still types those.
 
 | What Daniel says | What you type if Computer needs help | What Keycloak has |
 | --- | --- | --- |
-| Unlock my account | `unlock danielcarvajal`, then paste the emailed code | Username `danielcarvajal` |
-| Check my email | `check daniel.carvajal@devrev.com` | Email on `@devrev.com` |
+| Unlock my account | `unlock danielcarvajal` or `unlock daniel.carvajal@devrev.ai`, then paste the emailed code | Username `danielcarvajal`, email `daniel.carvajal@devrev.ai` |
+| Check my email | `check daniel.carvajal@devrev.ai` | Email on `@devrev.ai` |
 | Unlock Daniel-Carvajal | `unlock daniel-carvajal` | Same user; hyphens stripped |
 
 A requester may manage **their own** account. Do not reset a different

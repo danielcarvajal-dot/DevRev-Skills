@@ -41,8 +41,8 @@ rejected on that public URL and is not stored on the skill.
 ## Flow
 1. Identify the Keycloak user. Accept an email, username, or user UUID.
    If the user says "my password" / "unlock me", try in this order:
-   - their DevRev email
-   - the same mailbox on `@devrev.com` when the login is `@devrev.ai`
+   - their DevRev email (`daniel.carvajal@devrev.ai` for Daniel)
+   - the same local part on `@devrev.com` if a lab user still has that mailbox
    - username `danielcarvajal` when the requester is Daniel
    - the DevRev display name with hyphens stripped (`daniel-carvajal` → `danielcarvajal`)
 2. Call `KeycloakCheckAccount` with that email **or** username.
@@ -70,7 +70,7 @@ looked up this way.
 - If Keycloak is unreachable, tell the user to keep the laptop tunnel up.
 
 ## Demo accounts (realm `account-unlock`)
-- `danielcarvajal` / `daniel.carvajal@devrev.com` (DevRev login is `@devrev.ai`)
+- `danielcarvajal` / `daniel.carvajal@devrev.ai`
 - `testuser` / `testuser@yourcompany.com`
 
 ## ngrok: token 200 then Admin API 401

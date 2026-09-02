@@ -85,7 +85,7 @@ export function usageHint(): string {
     '- `/reset_password user@example.com 123456` — verify the code, unlock, then email a reset link',
     '- `/reset_password danielcarvajal 123456 --temp` — same recovery with a temporary password (posted internally)',
     '- `/check_account user@example.com` — report lockout and enabled status (no OTP)',
-    'Unlock and reset require the email OTP. DevRev logins on @devrev.ai also match the @devrev.com Keycloak mailbox.',
+    'Unlock and reset require the email OTP. Daniel\'s mailbox is daniel.carvajal@devrev.ai. @devrev.ai and @devrev.com aliases still match.',
   ].join('\n');
 }
 

@@ -94,7 +94,7 @@ docker compose -f keycloak-password-reset/docker-compose.yml up
 Admin console: [http://localhost:8080](http://localhost:8080) (`admin` / `admin`).
 
 Demo users: `demo.user@example.com` / `DemoPass123!`, and `danielcarvajal`
-(`daniel.carvajal@devrev.com`).
+(`daniel.carvajal@devrev.ai`).
 
 Realm brute-force mode must be **Lockout permanently** (three failures).
 Temporary mode auto-clears the lockout after the wait increment and leaves
