@@ -1,0 +1,174 @@
+version: "2"
+
+name: Keycloak Password Reset
+description: >
+  Demo snap-in that looks up a Keycloak user, clears brute-force lockouts,
+  re-enables the account, and sends a password-reset email from DevRev
+  discussions. Built from the Keycloak admin API collection (token, find user,
+  check lockout, unlock, enable, verify).
+
+service_account:
+  display_name: Keycloak Password Reset Bot
+  scopes:
+    self:
+      - scope: ticket:write
+        optional: false
+        reason: Post account recovery results on tickets
+      - scope: issue:write
+        optional: false
+        reason: Post account recovery results on issues
+      - scope: conversation:write
+        optional: true
+        reason: Post account recovery results on plug conversations
+      - scope: command:write
+        optional: true
+        reason: >
+          ActivateSnapIn registers slash commands as the snap-in service
+          account. Without this scope (or a Command Interactor grant on the
+          snap-in bot), deploy fails with Unauthorized on command objects.
+
+keyring_types:
+  - id: keycloak-admin
+    name: Keycloak Admin
+    description: Confidential client used to call the Keycloak Admin API
+    kind: Secret
+    secret_config:
+      fields:
+        - id: url
+          name: Keycloak URL
+          description: Base URL including scheme, for example https://keycloak.example.com/
+        - id: realm
+          name: Realm
+          description: Realm name (the collection uses account-unlock)
+        - id: client_id
+          name: Client ID
+          description: Confidential client with a service account (unlock-agent)
+        - id: client_secret
+          name: Client Secret
+          description: Client secret for the confidential client
+
+keyrings:
+  organization:
+    - name: keycloak
+      display_name: Keycloak Admin
+      description: Keycloak admin credentials used for unlock and password reset
+      optional: true
+      types:
+        - keycloak-admin
+        - snap_in_secret
+
+inputs:
+  organization:
+    - name: keycloak_url
+      description: >
+        Keycloak base URL when the connection is a snap-in secret (not the
+        multi-field Keycloak Admin connection). Example http://localhost:8080/
+      field_type: text
+      is_required: false
+      ui:
+        display_name: Keycloak URL
+    - name: realm
+      description: Keycloak realm. Defaults to account-unlock from the demo collection.
+      field_type: text
+      is_required: false
+      default_value: account-unlock
+      ui:
+        display_name: Realm
+    - name: client_id
+      description: Confidential client ID used for the client-credentials grant.
+      field_type: text
+      is_required: false
+      default_value: unlock-agent
+      ui:
+        display_name: Client ID
+    - name: email_action_client_id
+      description: >
+        Optional login client used as client_id on execute-actions-email so the
+        reset link returns the user to the right app.
+      field_type: text
+      is_required: false
+      ui:
+        display_name: Password-reset email client ID
+    - name: redirect_uri
+      description: Optional redirect URI passed to execute-actions-email.
+      field_type: text
+      is_required: false
+      ui:
+        display_name: Password-reset redirect URI
+
+event_sources:
+  organization:
+    - name: devrev-webhook
+      display_name: DevRev
+      description: Ticket events used to detect password-reset and lockout requests
+      type: devrev-webhook
+      config:
+        event_types:
+          - work_created
+
+functions:
+  - name: command_handler
+    description: >
+      Handles /send_otp, /reset_password, /unlock_account, and /check_account.
+      Emails a 6-digit OTP, then unlocks only after the code is verified.
+  - name: agent_handler
+    description: >
+      Computer / agent entrypoint. Accepts {email|username|user_id, action, otp, temp}
+      and returns JSON (check, send_otp, unlock, or reset) without posting a discussion comment.
+  - name: on_ticket_created
+    description: >
+      When a new ticket looks like a forgotten-password or lockout request,
+      looks up the Keycloak account and comments status plus the slash commands.
+
+automations:
+  - name: password_reset_ticket_triage
+    source: devrev-webhook
+    event_types:
+      - work_created
+    function: on_ticket_created
+
+commands:
+  - name: send_otp
+    namespace: keycloak
+    description: Email a 6-digit MFA code that must be verified before unlock
+    surfaces:
+      - surface: discussions
+        object_types:
+          - ticket
+          - issue
+          - conversation
+    usage_hint: "user@example.com|username"
+    function: command_handler
+  - name: reset_password
+    namespace: keycloak
+    description: Verify the email OTP, unlock if needed, and send a Keycloak password-reset email
+    surfaces:
+      - surface: discussions
+        object_types:
+          - ticket
+          - issue
+          - conversation
+    usage_hint: "user@example.com|username 123456 [--temp]"
+    function: command_handler
+  - name: unlock_account
+    namespace: keycloak
+    description: Verify the email OTP, then clear lockout and re-enable the user
+    surfaces:
+      - surface: discussions
+        object_types:
+          - ticket
+          - issue
+          - conversation
+    usage_hint: "user@example.com|username 123456"
+    function: command_handler
+  - name: check_account
+    namespace: keycloak
+    description: Look up a Keycloak user and report lockout and enabled status
+    surfaces:
+      - surface: discussions
+        object_types:
+          - ticket
+          - issue
+          - conversation
+    usage_hint: "user@example.com|username"
+    function: command_handler
