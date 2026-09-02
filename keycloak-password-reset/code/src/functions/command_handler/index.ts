@@ -1,7 +1,11 @@
+import axios from 'axios';
+
 import { commandOptions, emailFromWork, inferAction, requireLookup } from '../../lib/command';
 import { formatAccountStatus, formatRecoveryComment, postComment, usageHint } from '../../lib/comments';
 import { resolveConfig } from '../../lib/config';
 import { KeycloakClient } from '../../lib/keycloak';
+import { notifyContextFromEvent } from '../../lib/notify';
+import { deliverUnlockOtp } from '../../lib/otp';
 import { KeycloakError, RecoveryAction } from '../../lib/types';
 
 type DevRevWorkClient = {
@@ -42,7 +46,9 @@ export async function handleEvent(event: any, forcedAction?: RecoveryAction): Pr
       userId,
       username,
     });
-    const client = new KeycloakClient(resolveConfig(event));
+    const client = new KeycloakClient(resolveConfig(event), axios, (to, otp) =>
+      deliverUnlockOtp(to, otp, notifyContextFromEvent(event))
+    );
 
     if (action === 'check') {
       const status = await client.getAccountStatus(identity);

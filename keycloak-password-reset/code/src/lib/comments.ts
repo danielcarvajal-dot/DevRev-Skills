@@ -37,8 +37,9 @@ export function formatRecoveryComment(result: RecoveryResult): string {
     const destination = result.otpDestination || result.email;
     if (result.otpSent) {
       return [
-        `Sent a 6-digit unlock code to **${destination}**.`,
-        'It expires in 10 minutes. Paste the code here, then run `/unlock_account <user> <code>`.',
+        `Sent a 6-digit unlock code to **${destination}** via DevRev Notify.`,
+        'Check the DevRev notification bell and that inbox. It expires in 10 minutes.',
+        'Paste the code here, then run `/unlock_account <user> <code>`.',
       ].join('\n');
     }
     return [

@@ -54,9 +54,13 @@ rejected on that public URL and is not stored on the skill.
    an admin hold you cannot lift.
 5. Confirm the account is enabled. Do not dump client secrets, tokens, or API internals.
 
-Published skill versions in **dcm-test**: Check **35.9**, Send OTP **41.1**,
+Published skill versions in **dcm-test**: Check **35.9**, Send OTP **41.2**,
 Unlock **36.13**, Reset **33.12**. Unlock and reset require `otp`.
 Start a new Computer chat after those publishes.
+
+`KeycloakSendUnlockOtp` **41.2** sends the code with **DevRev Notify**
+(in-app bell + email from DevRev). Version **41.1** used FormSubmit, which
+never delivered to `@devrev.ai` (Cloudflare challenge + activation mail).
 
 The realm is not limited to `testuser`. Any user in `account-unlock` can be
 looked up this way.

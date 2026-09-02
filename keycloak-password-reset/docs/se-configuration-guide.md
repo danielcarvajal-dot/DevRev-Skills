@@ -80,7 +80,7 @@ anything.
 | Computer | `ai_agent/4`, slug `computer` |
 | Password Reset Assistant | `ai_agent/6` |
 | Skills | `KeycloakCheckAccount` (35), `KeycloakSendUnlockOtp` (41), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
-| Published skill versions | **33.12 / 35.9 / 36.13 / 41.1** (or later) |
+| Published skill versions | **33.12 / 35.9 / 36.13 / 41.2** (or later) |
 | Realm | `account-unlock` |
 | Client | `unlock-agent` (confidential, service account) |
 
@@ -242,7 +242,7 @@ workflow.
 | Skill | Workflow | What it does |
 | --- | --- | --- |
 | `KeycloakCheckAccount` | 35 | Find user, report enabled/lockout; `enabled: false` means send OTP, then unlock |
-| `KeycloakSendUnlockOtp` | 41 | Email a 6-digit MFA code and store it on the Keycloak user |
+| `KeycloakSendUnlockOtp` | 41 | Store a 6-digit MFA code and send it with DevRev Notify (in-app + email from DevRev) |
 | `KeycloakUnlockAccount` | 36 | Verify the pasted OTP, then `DELETE` lockout and `PUT` `{"enabled":true}` |
 | `ResetPassword` | 33 | Verify the pasted OTP, re-enable, then `PUT execute-actions-email` |
 
@@ -382,7 +382,7 @@ connection **and** the three skill workflows before you join.
 | Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.13+ / 33.12+** and a **new** Computer chat. Unlock now re-enables after OTP. |
 | Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.13+ / 33.12+** send literal `{"enabled":true}` and jq the user id. |
 | Unlock runs with no OTP | Old session. Start a new Computer chat. Unlock **36.13+** requires `otp`. |
-| OTP email never arrives | First FormSubmit delivery asks the inbox to confirm. Click that mail once, then send a new OTP. Also confirm unmanaged attributes are enabled. |
+| OTP email never arrives | Use Send OTP **41.2+**. The sender is DevRev Notify, not FormSubmit. Check the notification bell and `daniel.carvajal@devrev.ai`. Start a new Computer chat. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 
 ## Language for enablement

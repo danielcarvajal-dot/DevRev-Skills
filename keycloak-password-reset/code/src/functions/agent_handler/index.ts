@@ -1,7 +1,11 @@
+import axios from 'axios';
+
 import { AgentResponse, formatAgentResponse, parseAgentRequest } from '../../lib/agent';
 import { requireLookup } from '../../lib/command';
 import { resolveConfig } from '../../lib/config';
 import { KeycloakClient } from '../../lib/keycloak';
+import { notifyContextFromEvent } from '../../lib/notify';
+import { deliverUnlockOtp } from '../../lib/otp';
 import { RecoveryAction } from '../../lib/types';
 
 export async function handleEvent(event: any): Promise<AgentResponse> {
@@ -14,7 +18,9 @@ export async function handleEvent(event: any): Promise<AgentResponse> {
       userId: request.userId,
       username: request.username,
     });
-    const client = new KeycloakClient(resolveConfig(event));
+    const client = new KeycloakClient(resolveConfig(event), axios, (to, otp) =>
+      deliverUnlockOtp(to, otp, notifyContextFromEvent(event))
+    );
 
     if (action === 'check') {
       const status = await client.getAccountStatus(identity);

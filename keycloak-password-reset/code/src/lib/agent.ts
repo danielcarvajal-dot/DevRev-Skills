@@ -208,7 +208,7 @@ export function formatAgentResponse(input: {
   if (result.action === 'send_otp') {
     const destination = result.otpDestination || result.email;
     const message = result.otpSent
-      ? `Sent a 6-digit unlock code to ${destination}. Ask the user to paste the code here. Do not invent a code and do not unlock yet.`
+      ? `Sent a 6-digit unlock code to ${destination} via DevRev Notify (in-app + email from DevRev). Ask the user to paste the code here. Do not invent a code and do not unlock yet.`
       : `Generated an unlock code for ${destination}, but the email did not send${
           result.otpEmailError ? ` (${result.otpEmailError})` : ''
         }. Ask the user to confirm their email or try again. Do not unlock.`;
