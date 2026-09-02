@@ -31,20 +31,20 @@ python3 keycloak-password-reset/docs/export-pdfs.py
 ## Computer
 
 After the snap-in is installed, Computer in the same org can reset a password
-in chat. Skills `KeycloakCheckAccount`, `KeycloakUnlockAccount`, and
-`ResetPassword` take `{ "email": "..." }` or `{ "username": "..." }` — method,
-URL, and client credentials are stored on the skill. Unlock and reset
-**re-enable** a permanent lockout (`enabled: false`). Clearing the
-brute-force counter alone is not enough. (`agent_handler` is the
-snap-in JSON entrypoint for a future function-backed skill.)
+in chat. Skills `KeycloakCheckAccount`, `KeycloakSendUnlockOtp`,
+`KeycloakUnlockAccount`, and `ResetPassword` take `{ "email": "..." }` or
+`{ "username": "..." }`. Unlock and reset also require `{ "otp": "123456" }`.
+Computer emails a 6-digit code, waits for the user to paste it, then
+re-enables a permanent lockout (`enabled: false`). (`agent_handler` is the
+snap-in JSON entrypoint for check, send_otp, unlock, and reset.)
 
 See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).
 
 Open Computer and try:
 
-- `unlock my account` (uses your DevRev email, including `@devrev.ai` → `@devrev.com`)
+- `unlock my account` (Computer emails an OTP, then waits for you to paste it)
 - `check danielcarvajal`
-- `unlock testuser@yourcompany.com`
+- `unlock testuser@yourcompany.com` (same MFA gate)
 
 If realm SMTP is not configured, ask Computer for a temporary password.
 
@@ -54,10 +54,11 @@ Use these in the Discussions tab of a ticket, issue, or conversation:
 
 | Command | What it does |
 | --- | --- |
-| `/reset_password user@example.com` | Unlock if locked, enable if disabled, send a reset email |
-| `/reset_password danielcarvajal --temp` | Same recovery, then set a temporary password (commented internally) |
-| `/unlock_account user@example.com` | Unlock + enable only |
-| `/check_account danielcarvajal` | Report lockout and enabled status |
+| `/send_otp user@example.com` | Email a 6-digit MFA code |
+| `/unlock_account user@example.com 123456` | Verify the code, then unlock + enable |
+| `/reset_password user@example.com 123456` | Verify the code, unlock, send a reset email |
+| `/reset_password danielcarvajal 123456 --temp` | Same recovery, then set a temporary password (commented internally) |
+| `/check_account danielcarvajal` | Report lockout and enabled status (no OTP) |
 
 If the identity is omitted, the snap-in tries the ticket title, body, then reporter email. Username and Keycloak user ID also work.
 

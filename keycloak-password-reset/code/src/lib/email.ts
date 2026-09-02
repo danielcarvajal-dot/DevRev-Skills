@@ -25,6 +25,7 @@ const USERNAME_RESERVED = new Set([
   'an',
   'and',
   'check',
+  'code',
   'email',
   'for',
   'forgot',
@@ -39,6 +40,7 @@ const USERNAME_RESERVED = new Set([
   'my',
   'of',
   'or',
+  'otp',
   'out',
   'passcode',
   'passwd',
@@ -52,6 +54,9 @@ const USERNAME_RESERVED = new Set([
   'unlock',
   'user',
   'username',
+  'validate',
+  'verification',
+  'verify',
 ]);
 
 export function extractUsername(text: string | undefined | null): string | undefined {
@@ -59,7 +64,7 @@ export function extractUsername(text: string | undefined | null): string | undef
     return undefined;
   }
   for (const token of text.trim().split(/\s+/)) {
-    if (!token || token.includes('@') || UUID_PATTERN.test(token) || token.startsWith('--')) {
+    if (!token || token.includes('@') || UUID_PATTERN.test(token) || token.startsWith('--') || /^\d{6}$/.test(token)) {
       continue;
     }
     if (USERNAME_RESERVED.has(token.toLowerCase())) {
@@ -90,10 +95,19 @@ export function usernameAliases(username: string): string[] {
   return compact && compact.toLowerCase() !== trimmed.toLowerCase() ? [trimmed, compact] : [trimmed];
 }
 
+export function extractOtp(text: string | undefined | null): string | undefined {
+  if (!text) {
+    return undefined;
+  }
+  const match = text.match(/\b(\d{6})\b/);
+  return match?.[1];
+}
+
 export function parseCommandParameters(params: string | undefined | null): {
   email?: string;
   userId?: string;
   username?: string;
+  otp?: string;
   temp: boolean;
 } {
   const raw = (params ?? '').trim();
@@ -103,6 +117,7 @@ export function parseCommandParameters(params: string | undefined | null): {
     email: extractEmail(withoutFlags),
     userId: extractUserId(withoutFlags),
     username: extractUsername(withoutFlags),
+    otp: extractOtp(withoutFlags),
     temp,
   };
 }

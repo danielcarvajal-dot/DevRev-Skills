@@ -23,6 +23,7 @@ describe('parseCommandParameters', () => {
       email: 'demo.user@example.com',
       userId: undefined,
       username: undefined,
+      otp: undefined,
       temp: true,
     });
   });
@@ -32,6 +33,7 @@ describe('parseCommandParameters', () => {
       email: 'demo.user@example.com',
       userId: undefined,
       username: undefined,
+      otp: undefined,
       temp: false,
     });
   });
@@ -41,6 +43,7 @@ describe('parseCommandParameters', () => {
       email: undefined,
       userId: 'd6f8d294-805c-492c-a401-c3192af545bf',
       username: undefined,
+      otp: undefined,
       temp: false,
     });
   });
@@ -50,6 +53,17 @@ describe('parseCommandParameters', () => {
       email: undefined,
       userId: undefined,
       username: 'danielcarvajal',
+      otp: undefined,
+      temp: false,
+    });
+  });
+
+  it('parses a 6-digit OTP', () => {
+    expect(parseCommandParameters('danielcarvajal 482193')).toEqual({
+      email: undefined,
+      userId: undefined,
+      username: 'danielcarvajal',
+      otp: '482193',
       temp: false,
     });
   });
@@ -59,6 +73,7 @@ describe('extractUsername', () => {
   it('skips command verbs and picks the Keycloak username', () => {
     expect(extractUsername('unlock danielcarvajal')).toBe('danielcarvajal');
     expect(extractUsername('check my account')).toBeUndefined();
+    expect(extractUsername('unlock danielcarvajal 482193')).toBe('danielcarvajal');
   });
 });
 

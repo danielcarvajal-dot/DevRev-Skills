@@ -34,7 +34,7 @@ export async function handleEvent(event: any, forcedAction?: RecoveryAction): Pr
   }
 
   const action = forcedAction ?? inferAction(event);
-  const { email: parameterEmail, userId, username, temp } = commandOptions(event);
+  const { email: parameterEmail, userId, username, otp, temp } = commandOptions(event);
 
   try {
     const identity = requireLookup({
@@ -50,7 +50,19 @@ export async function handleEvent(event: any, forcedAction?: RecoveryAction): Pr
       return;
     }
 
-    const result = await client.recoverAccount(identity, {
+    if (action === 'send_otp') {
+      const result = await client.sendUnlockOtp(identity);
+      await postComment(event, sourceId, `${formatRecoveryComment(result)}\n\n${usageHint()}`);
+      return;
+    }
+
+    if (!otp) {
+      throw new KeycloakError(
+        'Unlock and reset require the 6-digit email OTP. Run `/send_otp user@example.com`, then `/unlock_account user@example.com 123456`.'
+      );
+    }
+
+    const result = await client.verifyAndRecover(identity, otp, {
       action,
       sendResetEmail: action === 'reset' && !temp,
       setTempPassword: action === 'reset' && temp,

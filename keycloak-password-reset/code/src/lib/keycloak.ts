@@ -3,6 +3,18 @@ import axios from 'axios';
 import { emailAliases, generateTemporaryPassword, usernameAliases } from './email';
 import { wrapHttpError } from './http-error';
 import {
+  OTP_ATTRIBUTE,
+  OTP_EXPIRES_ATTRIBUTE,
+  OTP_TTL_MS,
+  OtpMailer,
+  codesEqual,
+  generateOtp,
+  maskEmail,
+  readAttribute,
+  sendOtpEmail,
+  userWritePayload,
+} from './otp';
+import {
   AccountStatus,
   BruteForceStatus,
   HttpClient,
@@ -24,7 +36,11 @@ type TokenResponse = {
 export class KeycloakClient {
   private cachedToken?: { value: string; expiresAt: number };
 
-  constructor(private readonly config: KeycloakConfig, private readonly http: HttpClient = axios) {}
+  constructor(
+    private readonly config: KeycloakConfig,
+    private readonly http: HttpClient = axios,
+    private readonly mailer: OtpMailer = sendOtpEmail
+  ) {}
 
   private headers(extra: Record<string, string> = {}): Record<string, string> {
     return {
@@ -291,6 +307,114 @@ export class KeycloakClient {
     return { user, lockout };
   }
 
+  async writeUserAttributes(
+    user: KeycloakUser,
+    attributes: Record<string, string[] | string>
+  ): Promise<KeycloakUser> {
+    const token = await this.getAccessToken();
+    const url = `${this.config.url}admin/realms/${encodeURIComponent(this.config.realm)}/users/${encodeURIComponent(
+      user.id
+    )}`;
+    const payload = userWritePayload(user, attributes);
+    try {
+      await this.http.put(url, payload, {
+        headers: this.headers({
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }),
+      });
+      return { ...user, attributes };
+    } catch (error) {
+      throw wrapHttpError(error, 'Failed to update Keycloak user attributes.');
+    }
+  }
+
+  async sendUnlockOtp(identity: UserLookup | string): Promise<RecoveryResult> {
+    const user = await this.resolveUser(this.normalizeLookup(identity));
+    if (!user) {
+      const lookup = this.normalizeLookup(identity);
+      throw new KeycloakError(
+        `No Keycloak user found for ${lookup.email || lookup.username || lookup.userId || 'the given identity'}.`,
+        404
+      );
+    }
+    const current = await this.getUser(user.id);
+    if (!current.email) {
+      throw new KeycloakError('This Keycloak user has no email address, so an OTP cannot be sent.');
+    }
+
+    const otp = generateOtp();
+    const expiresAt = Date.now() + OTP_TTL_MS;
+    const attributes = { ...(current.attributes || {}) };
+    attributes[OTP_ATTRIBUTE] = [otp];
+    attributes[OTP_EXPIRES_ATTRIBUTE] = [String(expiresAt)];
+    await this.writeUserAttributes(current, attributes);
+
+    const result: RecoveryResult = {
+      action: 'send_otp',
+      email: current.email,
+      user: current,
+      lockout: {},
+      wasLocked: false,
+      wasDisabled: current.enabled === false,
+      unlocked: false,
+      enabled: current.enabled !== false,
+      resetEmailSent: false,
+      otpSent: false,
+      otpDestination: maskEmail(current.email),
+    };
+
+    try {
+      await this.mailer(current.email, otp);
+      result.otpSent = true;
+    } catch (error) {
+      result.otpEmailError = error instanceof Error ? error.message : 'Unknown error sending the OTP email';
+    }
+
+    return result;
+  }
+
+  async verifyUnlockOtp(identity: UserLookup | string, otp: string): Promise<KeycloakUser> {
+    const code = (otp || '').trim();
+    if (!/^\d{6}$/.test(code)) {
+      throw new KeycloakError('Enter the 6-digit code from the email, then I can unlock the account.');
+    }
+
+    const user = await this.resolveUser(this.normalizeLookup(identity));
+    if (!user) {
+      const lookup = this.normalizeLookup(identity);
+      throw new KeycloakError(
+        `No Keycloak user found for ${lookup.email || lookup.username || lookup.userId || 'the given identity'}.`,
+        404
+      );
+    }
+    const current = await this.getUser(user.id);
+    const stored = readAttribute(current.attributes, OTP_ATTRIBUTE);
+    const expiresAt = Number(readAttribute(current.attributes, OTP_EXPIRES_ATTRIBUTE) || '0');
+    const valid = codesEqual(code, stored) && expiresAt > Date.now();
+
+    const attributes = { ...(current.attributes || {}) };
+    delete attributes[OTP_ATTRIBUTE];
+    delete attributes[OTP_EXPIRES_ATTRIBUTE];
+    await this.writeUserAttributes(current, attributes);
+
+    if (!valid) {
+      throw new KeycloakError('That verification code is invalid or expired. Ask me to send a new OTP to the account email.');
+    }
+    return current;
+  }
+
+  async verifyAndRecover(
+    identity: UserLookup | string,
+    otp: string,
+    options: { action: RecoveryAction; setTempPassword?: boolean; sendResetEmail?: boolean }
+  ): Promise<RecoveryResult> {
+    await this.verifyUnlockOtp(identity, otp);
+    const result = await this.recoverAccount(identity, options);
+    result.otpVerified = true;
+    return result;
+  }
+
   async recoverAccount(
     identity: UserLookup | string,
     options: { action: RecoveryAction; setTempPassword?: boolean; sendResetEmail?: boolean }
@@ -307,7 +431,7 @@ export class KeycloakClient {
 
     // Permanent lockout sets enabled: false. Clearing the brute-force counter
     // alone leaves the user disabled. Always unlock and re-enable on recover.
-    if (options.action !== 'check') {
+    if (options.action !== 'check' && options.action !== 'send_otp') {
       await this.unlockUser(user.id);
       unlocked = true;
       currentUser = await this.enableUser(user);

@@ -14,6 +14,7 @@ describe('parseAgentRequest', () => {
       email: 'testuser@yourcompany.com',
       userId: undefined,
       username: undefined,
+      otp: undefined,
       temp: false,
     });
   });
@@ -30,6 +31,7 @@ describe('parseAgentRequest', () => {
       email: 'demo.user@example.com',
       userId: undefined,
       username: undefined,
+      otp: undefined,
       temp: true,
     });
   });
@@ -46,8 +48,29 @@ describe('parseAgentRequest', () => {
       email: undefined,
       userId: undefined,
       username: 'danielcarvajal',
+      otp: undefined,
       temp: false,
     });
+  });
+
+  it('reads an OTP from structured fields or free text', () => {
+    expect(
+      parseAgentRequest({
+        payload: {
+          email: 'demo.user@example.com',
+          action: 'unlock',
+          otp: '482193',
+        },
+      })
+    ).toEqual({
+      action: 'unlock',
+      email: 'demo.user@example.com',
+      userId: undefined,
+      username: undefined,
+      otp: '482193',
+      temp: false,
+    });
+    expect(parseAgentRequest({ payload: { parameters: 'unlock danielcarvajal 482193' } }).otp).toBe('482193');
   });
 
   it('accepts a Keycloak username', () => {
@@ -63,6 +86,7 @@ describe('parseAgentRequest', () => {
       email: undefined,
       userId: undefined,
       username: 'danielcarvajal',
+      otp: undefined,
       temp: false,
     });
   });
@@ -80,6 +104,7 @@ describe('parseAgentRequest', () => {
       email: undefined,
       userId: 'd6f8d294-805c-492c-a401-c3192af545bf',
       username: undefined,
+      otp: undefined,
       temp: false,
     });
   });
@@ -90,6 +115,8 @@ describe('parseAction', () => {
     expect(parseAction('check_account')).toBe('check');
     expect(parseAction('UnlockAccount')).toBe('unlock');
     expect(parseAction('reset_password')).toBe('reset');
+    expect(parseAction('send_otp')).toBe('send_otp');
+    expect(parseAction('KeycloakSendUnlockOtp')).toBe('send_otp');
   });
 });
 

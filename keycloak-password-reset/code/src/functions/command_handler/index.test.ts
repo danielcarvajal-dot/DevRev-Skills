@@ -3,6 +3,8 @@ import { handleEvent } from './index';
 const postComment = jest.fn();
 const recoverAccount = jest.fn();
 const getAccountStatus = jest.fn();
+const sendUnlockOtp = jest.fn();
+const verifyAndRecover = jest.fn();
 
 jest.mock('../../lib/comments', () => {
   const actual = jest.requireActual('../../lib/comments');
@@ -17,13 +19,15 @@ jest.mock('../../lib/keycloak', () => ({
   KeycloakClient: jest.fn().mockImplementation(() => ({
     recoverAccount: (...args: unknown[]) => recoverAccount(...args),
     getAccountStatus: (...args: unknown[]) => getAccountStatus(...args),
+    sendUnlockOtp: (...args: unknown[]) => sendUnlockOtp(...args),
+    verifyAndRecover: (...args: unknown[]) => verifyAndRecover(...args),
   })),
 }));
 
 const baseEvent = {
   payload: {
     command_id: 'don:integration:dvrv-us-1:devo/x:namespace/keycloak:command/reset_password',
-    parameters: 'demo.user@example.com',
+    parameters: 'demo.user@example.com 482193',
     source_id: 'don:core:dvrv-us-1:devo/x:ticket/18',
   },
   context: {
@@ -50,10 +54,12 @@ describe('command_handler', () => {
     postComment.mockReset();
     recoverAccount.mockReset();
     getAccountStatus.mockReset();
+    sendUnlockOtp.mockReset();
+    verifyAndRecover.mockReset();
   });
 
   it('resets a password and comments the result', async () => {
-    recoverAccount.mockResolvedValue({
+    verifyAndRecover.mockResolvedValue({
       action: 'reset',
       email: 'demo.user@example.com',
       user: { id: 'user-1', email: 'demo.user@example.com', username: 'demo.user', enabled: true },
@@ -63,12 +69,14 @@ describe('command_handler', () => {
       unlocked: true,
       enabled: true,
       resetEmailSent: true,
+      otpVerified: true,
     });
 
     await handleEvent(baseEvent);
 
-    expect(recoverAccount).toHaveBeenCalledWith(
+    expect(verifyAndRecover).toHaveBeenCalledWith(
       { email: 'demo.user@example.com', userId: undefined, username: undefined },
+      '482193',
       {
         action: 'reset',
         sendResetEmail: true,
@@ -84,7 +92,7 @@ describe('command_handler', () => {
   });
 
   it('posts a temporary password as an internal comment', async () => {
-    recoverAccount.mockResolvedValue({
+    verifyAndRecover.mockResolvedValue({
       action: 'reset',
       email: 'demo.user@example.com',
       user: { id: 'user-1', email: 'demo.user@example.com', enabled: true },
@@ -95,15 +103,17 @@ describe('command_handler', () => {
       enabled: true,
       resetEmailSent: false,
       temporaryPassword: 'TempPass123!',
+      otpVerified: true,
     });
 
     await handleEvent({
       ...baseEvent,
-      payload: { ...baseEvent.payload, parameters: 'demo.user@example.com --temp' },
+      payload: { ...baseEvent.payload, parameters: 'demo.user@example.com 482193 --temp' },
     });
 
-    expect(recoverAccount).toHaveBeenCalledWith(
+    expect(verifyAndRecover).toHaveBeenCalledWith(
       { email: 'demo.user@example.com', userId: undefined, username: undefined },
+      '482193',
       {
         action: 'reset',
         sendResetEmail: false,
@@ -146,7 +156,7 @@ describe('command_handler', () => {
   });
 
   it('looks up a Keycloak user by id', async () => {
-    recoverAccount.mockResolvedValue({
+    verifyAndRecover.mockResolvedValue({
       action: 'reset',
       email: 'demo.user@example.com',
       user: { id: 'd6f8d294-805c-492c-a401-c3192af545bf', email: 'demo.user@example.com', enabled: true },
@@ -156,21 +166,23 @@ describe('command_handler', () => {
       unlocked: false,
       enabled: true,
       resetEmailSent: true,
+      otpVerified: true,
     });
 
     await handleEvent({
       ...baseEvent,
-      payload: { ...baseEvent.payload, parameters: 'd6f8d294-805c-492c-a401-c3192af545bf' },
+      payload: { ...baseEvent.payload, parameters: 'd6f8d294-805c-492c-a401-c3192af545bf 482193' },
     });
 
-    expect(recoverAccount).toHaveBeenCalledWith(
+    expect(verifyAndRecover).toHaveBeenCalledWith(
       { email: undefined, userId: 'd6f8d294-805c-492c-a401-c3192af545bf', username: undefined },
+      '482193',
       expect.objectContaining({ action: 'reset' })
     );
   });
 
   it('looks up a Keycloak user by username', async () => {
-    recoverAccount.mockResolvedValue({
+    verifyAndRecover.mockResolvedValue({
       action: 'unlock',
       email: 'danielcarvajal',
       user: { id: 'user-daniel', email: 'daniel.carvajal@devrev.com', username: 'danielcarvajal', enabled: true },
@@ -180,6 +192,7 @@ describe('command_handler', () => {
       unlocked: true,
       enabled: true,
       resetEmailSent: false,
+      otpVerified: true,
     });
 
     await handleEvent({
@@ -187,12 +200,13 @@ describe('command_handler', () => {
       payload: {
         ...baseEvent.payload,
         command_id: 'don:integration:dvrv-us-1:devo/x:namespace/keycloak:command/unlock_account',
-        parameters: 'danielcarvajal',
+        parameters: 'danielcarvajal 482193',
       },
     });
 
-    expect(recoverAccount).toHaveBeenCalledWith(
+    expect(verifyAndRecover).toHaveBeenCalledWith(
       { email: undefined, userId: undefined, username: 'danielcarvajal' },
+      '482193',
       expect.objectContaining({ action: 'unlock' })
     );
   });

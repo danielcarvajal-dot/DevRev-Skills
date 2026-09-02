@@ -2,19 +2,24 @@ import { handleEvent } from './index';
 
 const recoverAccount = jest.fn();
 const getAccountStatus = jest.fn();
+const sendUnlockOtp = jest.fn();
+const verifyAndRecover = jest.fn();
 
 jest.mock('../../lib/keycloak', () => ({
   KeycloakClient: jest.fn().mockImplementation(() => ({
     recoverAccount: (...args: unknown[]) => recoverAccount(...args),
     getAccountStatus: (...args: unknown[]) => getAccountStatus(...args),
+    sendUnlockOtp: (...args: unknown[]) => sendUnlockOtp(...args),
+    verifyAndRecover: (...args: unknown[]) => verifyAndRecover(...args),
   })),
 }));
 
 const baseEvent = {
-  payload: {
-    email: 'demo.user@example.com',
-    action: 'reset',
-  },
+    payload: {
+      email: 'demo.user@example.com',
+      action: 'reset',
+      otp: '482193',
+    },
   input_data: {
     global_values: {
       keycloak_url: 'http://localhost:8080/',
@@ -31,10 +36,12 @@ describe('agent_handler', () => {
   beforeEach(() => {
     recoverAccount.mockReset();
     getAccountStatus.mockReset();
+    sendUnlockOtp.mockReset();
+    verifyAndRecover.mockReset();
   });
 
   it('returns JSON for a Computer password reset', async () => {
-    recoverAccount.mockResolvedValue({
+    verifyAndRecover.mockResolvedValue({
       action: 'reset',
       email: 'demo.user@example.com',
       user: { id: 'user-1', email: 'demo.user@example.com', username: 'demo.user', enabled: true },
@@ -44,12 +51,14 @@ describe('agent_handler', () => {
       unlocked: false,
       enabled: true,
       resetEmailSent: true,
+      otpVerified: true,
     });
 
     const response = await handleEvent(baseEvent);
 
-    expect(recoverAccount).toHaveBeenCalledWith(
+    expect(verifyAndRecover).toHaveBeenCalledWith(
       { email: 'demo.user@example.com', userId: undefined, username: undefined },
+      '482193',
       {
         action: 'reset',
         sendResetEmail: true,
@@ -62,7 +71,7 @@ describe('agent_handler', () => {
   });
 
   it('sets a temporary password when temp is true', async () => {
-    recoverAccount.mockResolvedValue({
+    verifyAndRecover.mockResolvedValue({
       action: 'reset',
       email: 'demo.user@example.com',
       user: { id: 'user-1', email: 'demo.user@example.com', enabled: true },
@@ -73,15 +82,17 @@ describe('agent_handler', () => {
       enabled: true,
       resetEmailSent: false,
       temporaryPassword: 'TempPass123!',
+      otpVerified: true,
     });
 
     const response = await handleEvent({
       ...baseEvent,
-      payload: { email: 'demo.user@example.com', action: 'reset', temp: true },
+      payload: { email: 'demo.user@example.com', action: 'reset', temp: true, otp: '482193' },
     });
 
-    expect(recoverAccount).toHaveBeenCalledWith(
+    expect(verifyAndRecover).toHaveBeenCalledWith(
       { email: 'demo.user@example.com', userId: undefined, username: undefined },
+      '482193',
       {
         action: 'reset',
         sendResetEmail: false,

@@ -1,4 +1,4 @@
-export type RecoveryAction = 'reset' | 'unlock' | 'check';
+export type RecoveryAction = 'reset' | 'unlock' | 'check' | 'send_otp';
 
 export type UserLookup = {
   email?: string;
@@ -23,6 +23,7 @@ export type KeycloakUser = {
   emailVerified?: boolean;
   firstName?: string;
   lastName?: string;
+  attributes?: Record<string, string[] | string>;
 };
 
 export type BruteForceStatus = {
@@ -49,6 +50,10 @@ export type RecoveryResult = {
   resetEmailSent: boolean;
   temporaryPassword?: string;
   resetEmailError?: string;
+  otpSent?: boolean;
+  otpDestination?: string;
+  otpEmailError?: string;
+  otpVerified?: boolean;
 };
 
 export type HttpResponse<T = unknown> = {

@@ -254,4 +254,67 @@ describe('KeycloakClient', () => {
     expect(result.resetEmailSent).toBe(false);
     expect(result.resetEmailError).toMatch(/smtp not configured/);
   });
+
+  it('stores an OTP on the user with a full representation PUT and emails it', async () => {
+    const mailer = jest.fn().mockResolvedValue(undefined);
+    const http = createHttp();
+    http.post.mockResolvedValue({ status: 200, data: { access_token: 'token-1', expires_in: 300 } });
+    http.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/users')) {
+        return { status: 200, data: [{ ...demoUser, enabled: true, email: 'demo.user@example.com' }] };
+      }
+      if (url.endsWith('/users/user-1')) {
+        return { status: 200, data: { ...demoUser, enabled: true, email: 'demo.user@example.com' } };
+      }
+      return { status: 200, data: {} };
+    });
+    http.put.mockResolvedValue({ status: 204, data: '' });
+
+    const client = new KeycloakClient(config, http, mailer);
+    const result = await client.sendUnlockOtp('demo.user@example.com');
+
+    expect(result.otpSent).toBe(true);
+    expect(result.otpDestination).toContain('***@');
+    expect(mailer).toHaveBeenCalledWith('demo.user@example.com', expect.stringMatching(/^\d{6}$/));
+    const put = http.put.mock.calls.find((call) => String(call[0]).endsWith('/users/user-1'));
+    expect(put?.[1]).toEqual(
+      expect.objectContaining({
+        username: 'demo.user',
+        email: 'demo.user@example.com',
+        attributes: expect.objectContaining({
+          devrevUnlockOtp: [expect.stringMatching(/^\d{6}$/)],
+          devrevUnlockOtpExp: [expect.any(String)],
+        }),
+      })
+    );
+  });
+
+  it('rejects a wrong OTP and does not unlock', async () => {
+    const http = createHttp();
+    http.post.mockResolvedValue({ status: 200, data: { access_token: 'token-1', expires_in: 300 } });
+    http.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/users')) {
+        return { status: 200, data: [{ ...demoUser, enabled: true }] };
+      }
+      if (url.endsWith('/users/user-1')) {
+        return {
+          status: 200,
+          data: {
+            ...demoUser,
+            enabled: true,
+            attributes: { devrevUnlockOtp: ['123456'], devrevUnlockOtpExp: [String(Date.now() + 60_000)] },
+          },
+        };
+      }
+      return { status: 200, data: {} };
+    });
+    http.put.mockResolvedValue({ status: 204, data: '' });
+    http.delete.mockResolvedValue({ status: 204, data: '' });
+
+    const client = new KeycloakClient(config, http, jest.fn());
+    await expect(client.verifyAndRecover('demo.user@example.com', '000000', { action: 'unlock' })).rejects.toThrow(
+      /invalid or expired/
+    );
+    expect(http.delete).not.toHaveBeenCalled();
+  });
 });

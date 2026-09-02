@@ -109,13 +109,12 @@ event_sources:
 functions:
   - name: command_handler
     description: >
-      Handles /reset_password, /unlock_account, and /check_account. Looks up the
-      Keycloak user, reports lockout status, unlocks and enables if needed, and
-      sends a reset email or sets a temporary password.
+      Handles /send_otp, /reset_password, /unlock_account, and /check_account.
+      Emails a 6-digit OTP, then unlocks only after the code is verified.
   - name: agent_handler
     description: >
-      Computer / agent entrypoint. Accepts {email|username|user_id, action, temp}
-      and returns JSON (check, unlock, or reset) without posting a discussion comment.
+      Computer / agent entrypoint. Accepts {email|username|user_id, action, otp, temp}
+      and returns JSON (check, send_otp, unlock, or reset) without posting a discussion comment.
   - name: on_ticket_created
     description: >
       When a new ticket looks like a forgotten-password or lockout request,
@@ -129,20 +128,9 @@ automations:
     function: on_ticket_created
 
 commands:
-  - name: reset_password
+  - name: send_otp
     namespace: keycloak
-    description: Unlock the account if needed and send a Keycloak password-reset email
-    surfaces:
-      - surface: discussions
-        object_types:
-          - ticket
-          - issue
-          - conversation
-    usage_hint: "user@example.com|username [--temp]"
-    function: command_handler
-  - name: unlock_account
-    namespace: keycloak
-    description: Clear a Keycloak brute-force lockout and re-enable the user
+    description: Email a 6-digit MFA code that must be verified before unlock
     surfaces:
       - surface: discussions
         object_types:
@@ -150,6 +138,28 @@ commands:
           - issue
           - conversation
     usage_hint: "user@example.com|username"
+    function: command_handler
+  - name: reset_password
+    namespace: keycloak
+    description: Verify the email OTP, unlock if needed, and send a Keycloak password-reset email
+    surfaces:
+      - surface: discussions
+        object_types:
+          - ticket
+          - issue
+          - conversation
+    usage_hint: "user@example.com|username 123456 [--temp]"
+    function: command_handler
+  - name: unlock_account
+    namespace: keycloak
+    description: Verify the email OTP, then clear lockout and re-enable the user
+    surfaces:
+      - surface: discussions
+        object_types:
+          - ticket
+          - issue
+          - conversation
+    usage_hint: "user@example.com|username 123456"
     function: command_handler
   - name: check_account
     namespace: keycloak

@@ -79,8 +79,8 @@ anything.
 | Snap-in | Keycloak Password Reset, bot **Keycloak Password Reset Bot** (SVCACC-69) |
 | Computer | `ai_agent/4`, slug `computer` |
 | Password Reset Assistant | `ai_agent/6` |
-| Skills | `KeycloakCheckAccount` (workflow 35), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
-| Published skill versions | **33.11 / 35.9 / 36.12** (or later) |
+| Skills | `KeycloakCheckAccount` (35), `KeycloakSendUnlockOtp` (41), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
+| Published skill versions | **33.12 / 35.9 / 36.13 / 41.1** (or later) |
 | Realm | `account-unlock` |
 | Client | `unlock-agent` (confidential, service account) |
 
@@ -157,12 +157,16 @@ Unlock is two Admin API calls. The snap-in already does both:
 1. `DELETE /admin/realms/account-unlock/attack-detection/brute-force/users/{id}`
 2. `PUT /admin/realms/account-unlock/users/{id}` with `enabled: true`
 
-Skills **36.12+** and **33.11+** `PUT` the user with body `{"enabled":true}`
-and take the user id from Find User’s jq (`.[0].id`), the same way Get Token
-uses `.access_token`. Do not `$merge` Find User `body` or read `.body.id` —
-that body is a JSON string, so `$merge` throws “argument must be an object”
-and `.body.id` is empty (Keycloak then returns **405** on `PUT .../users/`).
-The snap-in `/unlock_account` and `/reset_password` paths do the same.
+Skills **36.13+** and **33.12+** verify a 6-digit email OTP, then `PUT`
+`{"enabled":true}`. They take the user id from Find User’s jq (`.[0].id`).
+Do not `$merge` Find User `body` or read `.body.id`. Computer must call
+`KeycloakSendUnlockOtp` first and wait for the user to paste the code.
+The snap-in `/send_otp` then `/unlock_account user 123456` path is the
+same gate.
+
+Keycloak 26 ignores custom attributes unless unmanaged attributes are
+enabled. In the realm: **Realm settings → User profile → Unmanaged
+attributes → Enabled**. The live `account-unlock` realm is already set.
 Do not tell a customer that a permanent lockout is an admin hold Computer
 cannot lift.
 
@@ -237,9 +241,10 @@ workflow.
 
 | Skill | Workflow | What it does |
 | --- | --- | --- |
-| `KeycloakCheckAccount` | 35 | Find user, report enabled/lockout; `enabled: false` means call unlock |
-| `KeycloakUnlockAccount` | 36 | Find user (jq `.id`), `DELETE` lockout, `PUT` `{"enabled":true}` |
-| `ResetPassword` | 33 | Find user (jq `.id`), unlock, re-enable, then `PUT execute-actions-email` |
+| `KeycloakCheckAccount` | 35 | Find user, report enabled/lockout; `enabled: false` means send OTP, then unlock |
+| `KeycloakSendUnlockOtp` | 41 | Email a 6-digit MFA code and store it on the Keycloak user |
+| `KeycloakUnlockAccount` | 36 | Verify the pasted OTP, then `DELETE` lockout and `PUT` `{"enabled":true}` |
+| `ResetPassword` | 33 | Verify the pasted OTP, re-enable, then `PUT execute-actions-email` |
 
 Keep **WebSearch** on Computer when you replace the skill list. A
 `skills.set` call replaces the entire list.
@@ -372,8 +377,10 @@ connection **and** the three skill workflows before you join.
 | “No Keycloak user” for Daniel | You searched `@devrev.ai` only. Use alias or username `danielcarvajal`. |
 | Reset email fails | Realm SMTP is not configured. Use `/reset_password <user> --temp` for the demo. |
 | Lockout clears after ~60s and user stays enabled | Realm is **Lockout temporarily**. Set **Lockout permanently** (see [Brute-force lockout](#brute-force-lockout-must-stay-locked-until-the-api)). |
-| Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.12+ / 33.11+** and a **new** Computer chat. Unlock now re-enables the user. |
-| Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.12+ / 33.11+** send literal `{"enabled":true}` and jq the user id. |
+| Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.13+ / 33.12+** and a **new** Computer chat. Unlock now re-enables after OTP. |
+| Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.13+ / 33.12+** send literal `{"enabled":true}` and jq the user id. |
+| Unlock runs with no OTP | Old session. Start a new Computer chat. Unlock **36.13+** requires `otp`. |
+| OTP email never arrives | First FormSubmit delivery asks the inbox to confirm. Click that mail once, then send a new OTP. Also confirm unmanaged attributes are enabled. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 
 ## Language for enablement

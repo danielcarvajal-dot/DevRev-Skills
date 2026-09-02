@@ -9,6 +9,9 @@ export function inferAction(event: {
   const functionName = event.execution_metadata?.function_name ?? '';
   const haystack = `${commandId} ${functionName}`.toLowerCase();
 
+  if (haystack.includes('send-otp') || haystack.includes('send_otp')) {
+    return 'send_otp';
+  }
   if (haystack.includes('unlock-account') || haystack.includes('unlock_account')) {
     return 'unlock';
   }
@@ -58,6 +61,7 @@ export function commandOptions(event: { payload?: { parameters?: string } }): {
   email?: string;
   userId?: string;
   username?: string;
+  otp?: string;
   temp: boolean;
 } {
   return parseCommandParameters(event.payload?.parameters);

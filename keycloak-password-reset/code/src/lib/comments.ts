@@ -33,6 +33,23 @@ export function formatAccountStatus(status: AccountStatus): string {
 }
 
 export function formatRecoveryComment(result: RecoveryResult): string {
+  if (result.action === 'send_otp') {
+    const destination = result.otpDestination || result.email;
+    if (result.otpSent) {
+      return [
+        `Sent a 6-digit unlock code to **${destination}**.`,
+        'It expires in 10 minutes. Paste the code here, then run `/unlock_account <user> <code>`.',
+      ].join('\n');
+    }
+    return [
+      `Could not email the unlock code to **${destination}**.`,
+      result.otpEmailError ? `Error: ${result.otpEmailError}` : '',
+      'Confirm the Keycloak user has an email address and try `/send_otp` again.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
   const lines = [formatAccountStatus({ user: result.user, lockout: result.lockout })];
 
   if (result.wasLocked && result.unlocked) {
@@ -63,11 +80,12 @@ export function formatRecoveryComment(result: RecoveryResult): string {
 export function usageHint(): string {
   return [
     'I can recover any Keycloak user from this discussion (email, username, or user ID):',
-    '- `/reset_password user@example.com` — unlock, enable, and email a reset link',
-    '- `/reset_password danielcarvajal --temp` — same recovery with a temporary password (posted internally)',
-    '- `/unlock_account danielcarvajal` — clear lockout and re-enable a permanent lockout',
-    '- `/check_account user@example.com` — report lockout and enabled status',
-    'DevRev logins on @devrev.ai also match the @devrev.com Keycloak mailbox.',
+    '- `/send_otp user@example.com` — email a 6-digit unlock code',
+    '- `/unlock_account user@example.com 123456` — verify the code, then unlock and re-enable',
+    '- `/reset_password user@example.com 123456` — verify the code, unlock, then email a reset link',
+    '- `/reset_password danielcarvajal 123456 --temp` — same recovery with a temporary password (posted internally)',
+    '- `/check_account user@example.com` — report lockout and enabled status (no OTP)',
+    'Unlock and reset require the email OTP. DevRev logins on @devrev.ai also match the @devrev.com Keycloak mailbox.',
   ].join('\n');
 }
 

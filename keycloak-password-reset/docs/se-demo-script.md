@@ -30,8 +30,9 @@ are training another SE.
 
 An employee is locked out of SSO. They do not open a ticket and they do not
 wait on a queue. They ask Computer. Computer finds the Keycloak account,
-reports lockout, and unlocks it. If the password also needs to change,
-Computer sends a Keycloak reset email. Credentials never enter the chat.
+emails a one-time code, waits for the employee to paste it in chat, then
+unlocks. If the password also needs to change, Computer sends a Keycloak
+reset email after the same OTP. Credentials never enter the chat.
 
 That is [service desk automation](https://devrev.ai/use-cases/service-desk-automation):
 Computer handles the reset so IT can spend time on work that needs a human.
@@ -114,7 +115,7 @@ You play two roles. Say which one you are in before each scene.
 
 Primary surface: Computer in the DevRev web app (search bar, slug
 `computer`). Optional surface: a ticket discussion with
-`/check_account`, `/unlock_account`, and `/reset_password`.
+`/send_otp`, `/unlock_account user 123456`, and `/reset_password`.
 
 Leave the Keycloak admin console off the shared screen unless you need
 proof that the account changed.
@@ -191,7 +192,7 @@ If Computer asks for a method, URL, or secret, **stop the scene**. The
 skill is stale or the chat is old. Start a new chat. If that fails, move
 to the ticket command in Scene 6 and book a lab follow-up.
 
-### Scene 4. Unlock (3 minutes)
+### Scene 4. Unlock with MFA (3 minutes)
 
 **Type**
 
@@ -205,18 +206,23 @@ or, if Computer needs a name:
 unlock danielcarvajal
 ```
 
+Computer emails a 6-digit code and **waits**. Open the inbox, copy the
+code, and paste it in the same chat.
+
 **Show**
 
-Computer confirms the lockout is cleared. If you locked `testuser`
-instead, use `unlock testuser` and say you are helping a named employee.
+Computer confirms the lockout is cleared only after that code. If you
+locked `testuser` instead, use `unlock testuser` and say you are helping
+a named employee.
 
 **Say**
 
 > This is the difference between an assistant that writes a reply and a
-> teammate that acts. Computer called KeycloakUnlockAccount, cleared the
-> lockout counter, and re-enabled the user. Permanent lockout here is
-> `enabled: false` after three failed logins — unlock lifts that.
-> Consequential actions stay on skills your org tested and published.
+> teammate that acts. Computer sent a one-time code, waited for Daniel to
+> paste it here, then called KeycloakUnlockAccount. Permanent lockout
+> here is `enabled: false` after three failed logins — unlock lifts that
+> after MFA. Consequential actions stay on skills your org tested and
+> published.
 
 **If a technical buyer asks “prove it”**
 
@@ -271,7 +277,8 @@ Open any ticket in **dcm-test**. Open **Discussions**.
 
 ```text
 /check_account danielcarvajal
-/unlock_account danielcarvajal
+/send_otp danielcarvajal
+/unlock_account danielcarvajal 123456
 ```
 
 **Say**
@@ -316,7 +323,7 @@ train an SE who will operate **dcm-test**.
 
 | What Daniel says | What you type if Computer needs help | What Keycloak has |
 | --- | --- | --- |
-| Unlock my account | `unlock danielcarvajal` | Username `danielcarvajal` |
+| Unlock my account | `unlock danielcarvajal`, then paste the emailed code | Username `danielcarvajal` |
 | Check my email | `check daniel.carvajal@devrev.com` | Email on `@devrev.com` |
 | Unlock Daniel-Carvajal | `unlock daniel-carvajal` | Same user; hyphens stripped |
 

@@ -21,7 +21,20 @@ export async function handleEvent(event: any): Promise<AgentResponse> {
       return formatAgentResponse({ action, status });
     }
 
-    const result = await client.recoverAccount(identity, {
+    if (action === 'send_otp') {
+      const result = await client.sendUnlockOtp(identity);
+      return formatAgentResponse({ action, result });
+    }
+
+    if (!request.otp) {
+      return formatAgentResponse({
+        action,
+        error:
+          'Send a 6-digit OTP to the account email first (KeycloakSendUnlockOtp). Then call unlock or reset with that code. Do not invent a code.',
+      });
+    }
+
+    const result = await client.verifyAndRecover(identity, request.otp, {
       action,
       sendResetEmail: action === 'reset' && !request.temp,
       setTempPassword: action === 'reset' && request.temp,

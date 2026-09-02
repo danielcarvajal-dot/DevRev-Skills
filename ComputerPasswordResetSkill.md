@@ -25,9 +25,10 @@ latest input schema.
 
 | Skill | When to use | What to pass |
 | --- | --- | --- |
-| `KeycloakCheckAccount` | Read-only status (enabled / brute-force lockout). `enabled: false` is a permanent lockout — call unlock next. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
-| `KeycloakUnlockAccount` | Clear lockout **and** re-enable the user (`PUT enabled: true`). Lifts permanent lockout. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
-| `ResetPassword` | Re-enable if needed, then send a Keycloak `UPDATE_PASSWORD` email | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
+| `KeycloakCheckAccount` | Read-only status (enabled / brute-force lockout). `enabled: false` is a permanent lockout. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
+| `KeycloakSendUnlockOtp` | Email a 6-digit MFA code. Always call this before unlock or reset, then wait. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
+| `KeycloakUnlockAccount` | Verify the code the user pasted, then clear lockout and re-enable. | `{ "email": "..." }` or `{ "username": "..." }` **and** `{ "otp": "123456" }` |
+| `ResetPassword` | Verify the same code, re-enable if needed, then send `UPDATE_PASSWORD` | `{ "email": "..." }` or `{ "username": "..." }` **and** `{ "otp": "123456" }` |
 
 Do **not** pass `method`, `url`, `headers`, `body`, a client secret, or an
 access token. Those stay on the skill workflow. Each run mints a **new**
@@ -45,16 +46,16 @@ rejected on that public URL and is not stored on the skill.
    - username `danielcarvajal` when the requester is Daniel
    - the DevRev display name with hyphens stripped (`daniel-carvajal` → `danielcarvajal`)
 2. Call `KeycloakCheckAccount` with that email **or** username.
-3. If `enabled` is false or the account is brute-force locked, call
-   `KeycloakUnlockAccount` with the same identity. That skill re-enables
-   the user. Do not treat `enabled: false` as an admin hold you cannot lift.
-4. For a password reset: `ResetPassword` with the same identity (also
-   re-enables, then sends `UPDATE_PASSWORD` via `execute-actions-email`).
+3. Call `KeycloakSendUnlockOtp` with the same identity. Tell the user a
+   6-digit code is on the way. **Stop and wait** for them to paste it.
+4. Only after they type the code in this chat, call
+   `KeycloakUnlockAccount` (or `ResetPassword`) with the same identity
+   **and** `otp`. Do not invent a code. Do not treat `enabled: false` as
+   an admin hold you cannot lift.
 5. Confirm the account is enabled. Do not dump client secrets, tokens, or API internals.
 
-Published skill versions in **dcm-test**: Check **35.9**, Unlock **36.12**,
-Reset **33.11**. Enable User sends literal `{"enabled":true}` and Find User
-jq returns the user id (do not `$merge` or `.body.id` on the HTTP string).
+Published skill versions in **dcm-test**: Check **35.9**, Send OTP **41.1**,
+Unlock **36.13**, Reset **33.12**. Unlock and reset require `otp`.
 Start a new Computer chat after those publishes.
 
 The realm is not limited to `testuser`. Any user in `account-unlock` can be

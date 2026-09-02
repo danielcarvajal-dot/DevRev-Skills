@@ -6,6 +6,7 @@ export type AgentRequest = {
   email?: string;
   userId?: string;
   username?: string;
+  otp?: string;
   temp: boolean;
 };
 
@@ -25,6 +26,9 @@ export type AgentResponse = {
   account?: AgentAccount;
   reset_email_sent?: boolean;
   temporary_password?: string;
+  otp_sent?: boolean;
+  otp_destination?: string;
+  otp_verified?: boolean;
   error?: string;
 };
 
@@ -51,6 +55,9 @@ function inferActionFromText(text: string): RecoveryAction | undefined {
   if (/\b(check|status|lookup|look\s*up)\b/.test(haystack)) {
     return 'check';
   }
+  if (/\b(otp|mfa|verification code|send code)\b/.test(haystack) && !/\b(unlock|reset)\b/.test(haystack)) {
+    return 'send_otp';
+  }
   if (/\bunlock\b/.test(haystack) && !/\breset\b/.test(haystack)) {
     return 'unlock';
   }
@@ -68,6 +75,15 @@ export function parseAction(value: unknown): RecoveryAction | undefined {
   const compact = raw.replace(/[_\s-]/g, '');
   if (compact === 'check' || compact === 'checkaccount' || compact === 'status') {
     return 'check';
+  }
+  if (
+    compact === 'sendotp' ||
+    compact === 'otp' ||
+    compact === 'mfa' ||
+    compact.includes('sendotp') ||
+    compact.includes('sendunlockotp')
+  ) {
+    return 'send_otp';
   }
   if (compact === 'unlock' || compact === 'unlockaccount') {
     return 'unlock';
@@ -113,6 +129,13 @@ export function parseAgentRequest(event: { payload?: Record<string, unknown> }):
     readString(body.user_id) ??
     extractUserId(parametersText);
 
+  const otp =
+    readString(payload.otp) ??
+    readString(payload.code) ??
+    readString(nested.otp) ??
+    readString(body.otp) ??
+    extractOtp(parametersText);
+
   const temp =
     readBool(payload.temp) ||
     readBool(payload.set_temp_password) ||
@@ -120,7 +143,15 @@ export function parseAgentRequest(event: { payload?: Record<string, unknown> }):
     readBool(body.temp) ||
     /(?:^|\s)--temp(?:\s|$)/i.test(parametersText ?? '');
 
-  return { action, email, userId, username, temp };
+  return { action, email, userId, username, otp, temp };
+}
+
+function extractOtp(text: string | undefined): string | undefined {
+  if (!text) {
+    return undefined;
+  }
+  const match = text.match(/\b(\d{6})\b/);
+  return match?.[1];
 }
 
 export function accountFromStatus(status: AccountStatus): AgentAccount {
@@ -174,9 +205,30 @@ export function formatAgentResponse(input: {
     return { ok: false, action: input.action, message: 'No Keycloak result', error: 'No Keycloak result' };
   }
 
+  if (result.action === 'send_otp') {
+    const destination = result.otpDestination || result.email;
+    const message = result.otpSent
+      ? `Sent a 6-digit unlock code to ${destination}. Ask the user to paste the code here. Do not invent a code and do not unlock yet.`
+      : `Generated an unlock code for ${destination}, but the email did not send${
+          result.otpEmailError ? ` (${result.otpEmailError})` : ''
+        }. Ask the user to confirm their email or try again. Do not unlock.`;
+    return {
+      ok: Boolean(result.otpSent),
+      action: 'send_otp',
+      message,
+      account: accountFromStatus({ user: result.user, lockout: result.lockout }),
+      otp_sent: result.otpSent,
+      otp_destination: destination,
+      error: result.otpSent ? undefined : result.otpEmailError || 'OTP email did not send',
+    };
+  }
+
   const account = accountFromStatus({ user: result.user, lockout: result.lockout });
   const parts: string[] = [];
 
+  if (result.otpVerified) {
+    parts.push('Verified the email OTP.');
+  }
   if (result.wasLocked && result.unlocked) {
     parts.push('Cleared the brute-force lockout counter.');
   }
@@ -208,5 +260,6 @@ export function formatAgentResponse(input: {
     account,
     reset_email_sent: result.resetEmailSent || undefined,
     temporary_password: result.temporaryPassword,
+    otp_verified: result.otpVerified || undefined,
   };
 }
