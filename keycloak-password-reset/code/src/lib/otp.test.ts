@@ -1,4 +1,4 @@
-import { codesEqual, generateOtp, maskEmail, readAttribute, userWritePayload } from './otp';
+import { DANIEL_OTP_INBOX, codesEqual, generateOtp, maskEmail, otpInboxFor, readAttribute, userWritePayload } from './otp';
 
 describe('otp helpers', () => {
   it('generates a 6-digit code', () => {
@@ -7,6 +7,14 @@ describe('otp helpers', () => {
 
   it('masks an email for Computer output', () => {
     expect(maskEmail('daniel.carvajal@devrev.com')).toBe('d***@devrev.com');
+  });
+
+  it('sends Daniel unlock codes to the Gmail inbox', () => {
+    expect(otpInboxFor('daniel.carvajal@devrev.ai', 'danielcarvajal')).toBe(DANIEL_OTP_INBOX);
+    expect(otpInboxFor('daniel.carvajal@devrev.com')).toBe(DANIEL_OTP_INBOX);
+    expect(otpInboxFor(undefined, 'danielcarvajal')).toBe(DANIEL_OTP_INBOX);
+    expect(otpInboxFor('demo.user@example.com')).toBe('demo.user@example.com');
+    expect(otpInboxFor('testuser@yourcompany.com', 'testuser')).toBe('testuser@yourcompany.com');
   });
 
   it('compares codes without leaking length mismatches', () => {

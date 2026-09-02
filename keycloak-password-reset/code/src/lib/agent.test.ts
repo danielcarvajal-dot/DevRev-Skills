@@ -156,6 +156,33 @@ describe('formatAgentResponse', () => {
     expect(response.account?.enabled).toBe(false);
   });
 
+  it('tells Computer that Daniel codes go to Gmail', () => {
+    const response = formatAgentResponse({
+      action: 'send_otp',
+      result: {
+        action: 'send_otp',
+        email: 'daniel.carvajal@devrev.ai',
+        user: {
+          id: 'user-daniel',
+          email: 'daniel.carvajal@devrev.ai',
+          username: 'danielcarvajal',
+          enabled: false,
+        },
+        lockout: {},
+        wasLocked: false,
+        wasDisabled: true,
+        unlocked: false,
+        enabled: false,
+        resetEmailSent: false,
+        otpSent: true,
+        otpDestination: 'c***@gmail.com',
+      },
+    });
+    expect(response.ok).toBe(true);
+    expect(response.otp_destination).toBe('c***@gmail.com');
+    expect(response.message).toContain('carvajaldae@gmail.com');
+  });
+
   it('returns a structured error without throwing', () => {
     const response = formatAgentResponse({
       action: 'check',

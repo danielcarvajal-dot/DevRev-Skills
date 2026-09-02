@@ -34,16 +34,16 @@ After the snap-in is installed, Computer in the same org can reset a password
 in chat. Skills `KeycloakCheckAccount`, `KeycloakSendUnlockOtp`,
 `KeycloakUnlockAccount`, and `ResetPassword` take `{ "email": "..." }` or
 `{ "username": "..." }`. Unlock and reset also require `{ "otp": "123456" }`.
-Computer sends a 6-digit code with DevRev Notify (in-app + email from
-DevRev), waits for the user to paste it, then re-enables a permanent
-lockout (`enabled: false`). (`agent_handler` is the snap-in JSON
-entrypoint for check, send_otp, unlock, and reset.)
+Computer emails a 6-digit code (Daniel’s inbox is
+`carvajaldae@gmail.com`), waits for the user to paste it, then re-enables
+a permanent lockout (`enabled: false`). (`agent_handler` is the snap-in
+JSON entrypoint for check, send_otp, unlock, and reset.)
 
 See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).
 
 Open Computer and try:
 
-- `unlock my account` (Computer sends an OTP via DevRev Notify, then waits)
+- `unlock my account` (Computer emails Daniel’s OTP to `carvajaldae@gmail.com`, then waits)
 - `check danielcarvajal`
 - `unlock testuser@yourcompany.com` (same MFA gate)
 

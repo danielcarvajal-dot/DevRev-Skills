@@ -10,6 +10,7 @@ import {
   codesEqual,
   generateOtp,
   maskEmail,
+  otpInboxFor,
   readAttribute,
   sendOtpEmail,
   userWritePayload,
@@ -361,11 +362,11 @@ export class KeycloakClient {
       enabled: current.enabled !== false,
       resetEmailSent: false,
       otpSent: false,
-      otpDestination: maskEmail(current.email),
+      otpDestination: maskEmail(otpInboxFor(current.email, current.username)),
     };
 
     try {
-      await this.mailer(current.email, otp);
+      await this.mailer(otpInboxFor(current.email, current.username), otp);
       result.otpSent = true;
     } catch (error) {
       result.otpEmailError = error instanceof Error ? error.message : 'Unknown error sending the OTP email';

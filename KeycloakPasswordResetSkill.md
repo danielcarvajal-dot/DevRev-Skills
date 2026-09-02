@@ -20,7 +20,9 @@ function that Computer uses for chat (JSON in, JSON out — no ticket comment).
 From **Computer**, say "reset my password", "unlock danielcarvajal", or
 "check testuser@yourcompany.com". Skills accept an email **or** username
 (no HTTP method or client secret). Daniel's Keycloak email is
-`daniel.carvajal@devrev.ai` — the OTP goes there. Unlock and reset re-enable a permanent
+`daniel.carvajal@devrev.ai` — Computer emails his OTP to
+`carvajaldae@gmail.com` (it cannot Notify the same DevRev account that
+opened the chat). Unlock and reset re-enable a permanent
 lockout (`enabled: false`) — they do not only clear the brute-force counter.
 See [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md).
 

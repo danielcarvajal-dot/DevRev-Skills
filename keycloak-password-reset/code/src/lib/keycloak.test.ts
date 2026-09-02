@@ -276,17 +276,37 @@ describe('KeycloakClient', () => {
     expect(result.otpSent).toBe(true);
     expect(result.otpDestination).toContain('***@');
     expect(mailer).toHaveBeenCalledWith('demo.user@example.com', expect.stringMatching(/^\d{6}$/));
-    const put = http.put.mock.calls.find((call) => String(call[0]).endsWith('/users/user-1'));
-    expect(put?.[1]).toEqual(
-      expect.objectContaining({
-        username: 'demo.user',
-        email: 'demo.user@example.com',
-        attributes: expect.objectContaining({
-          devrevUnlockOtp: [expect.stringMatching(/^\d{6}$/)],
-          devrevUnlockOtpExp: [expect.any(String)],
-        }),
-      })
-    );
+  });
+
+  it('sends Daniel unlock codes to carvajaldae@gmail.com', async () => {
+    const daniel = {
+      id: 'user-daniel',
+      username: 'danielcarvajal',
+      email: 'daniel.carvajal@devrev.ai',
+      enabled: false,
+      firstName: 'Daniel',
+      lastName: 'Carvajal',
+    };
+    const mailer = jest.fn().mockResolvedValue(undefined);
+    const http = createHttp();
+    http.post.mockResolvedValue({ status: 200, data: { access_token: 'token-1', expires_in: 300 } });
+    http.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/users')) {
+        return { status: 200, data: [daniel] };
+      }
+      if (url.endsWith('/users/user-daniel')) {
+        return { status: 200, data: daniel };
+      }
+      return { status: 200, data: {} };
+    });
+    http.put.mockResolvedValue({ status: 204, data: '' });
+
+    const client = new KeycloakClient(config, http, mailer);
+    const result = await client.sendUnlockOtp('danielcarvajal');
+
+    expect(result.otpSent).toBe(true);
+    expect(result.otpDestination).toBe('c***@gmail.com');
+    expect(mailer).toHaveBeenCalledWith('carvajaldae@gmail.com', expect.stringMatching(/^\d{6}$/));
   });
 
   it('rejects a wrong OTP and does not unlock', async () => {

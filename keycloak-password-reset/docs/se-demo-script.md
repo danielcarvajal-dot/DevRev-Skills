@@ -205,9 +205,10 @@ or, if Computer needs a name:
 unlock danielcarvajal
 ```
 
-Computer sends a 6-digit code with **DevRev Notify** and **waits**. Open
-the DevRev notification bell or `daniel.carvajal@devrev.ai`, copy the
-code, and paste it in the same chat. The sender is DevRev, not FormSubmit.
+Computer emails a 6-digit code to **`carvajaldae@gmail.com`** and
+**waits**. Open that Gmail inbox, copy the code, and paste it in the
+same chat. The first mail may be FormSubmit **Activate Form** — click
+it, then ask Computer to send a new code.
 
 **Show**
 

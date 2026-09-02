@@ -36,11 +36,14 @@ export function formatRecoveryComment(result: RecoveryResult): string {
   if (result.action === 'send_otp') {
     const destination = result.otpDestination || result.email;
     if (result.otpSent) {
-      return [
-        `Sent a 6-digit unlock code to **${destination}** via DevRev Notify.`,
-        'Check the DevRev notification bell and that inbox. It expires in 10 minutes.',
-        'Paste the code here, then run `/unlock_account <user> <code>`.',
-      ].join('\n');
+      const lines = [`Sent a 6-digit unlock code to **${destination}**.`];
+      if (/gmail\.com|carvajaldae/i.test(String(destination))) {
+        lines.push(
+          'For Daniel that inbox is carvajaldae@gmail.com. If this is the first send, click Activate Form, then request a new code.'
+        );
+      }
+      lines.push('It expires in 10 minutes.', 'Paste the code here, then run `/unlock_account <user> <code>`.');
+      return lines.join('\n');
     }
     return [
       `Could not email the unlock code to **${destination}**.`,
