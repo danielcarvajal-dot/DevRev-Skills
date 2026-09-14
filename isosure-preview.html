@@ -228,7 +228,8 @@ function seedDemoNotifications() {
   return [
     {id:"note-clarify",kind:"clarification",title:"Clarification needed on ISO-RDER-2",body:"Operations needs a clarification on Sam Rivera’s LDN order. Upload a note or PA from the document exchange. Compounding stays in the lab.",orderId:"demo-order-2",createdAt:Date.now()-6*36e5,read:false},
     {id:"note-pickup",kind:"ready_pickup",title:"Ready for pickup · ISO-RDER-3",body:"Lee Park’s order is ready for pickup at the ISOSure pharmacy.",orderId:"demo-order-3",createdAt:Date.now()-3*36e5,read:false},
-    {id:"note-backorder",kind:"backorder",title:"Backorder watch",body:"Operations flagged a possible backorder on a thyroid capsule strength. No lab formula is shown in the provider portal.",createdAt:Date.now()-20*36e5,read:true}
+    {id:"note-backorder",kind:"backorder",title:"Backorder watch",body:"Operations flagged a possible backorder on a thyroid capsule strength. No lab formula is shown in the provider portal.",createdAt:Date.now()-20*36e5,read:true},
+    {id:"note-delivery",kind:"ready_delivery",title:"Out for delivery · ISO-RDER-3",body:"Lee Park’s order left the pharmacy for delivery. Tracking stays with Operations.",orderId:"demo-order-3",createdAt:Date.now()-36e5,read:false}
   ];
 }
 function seedDemoRefills() {
@@ -278,10 +279,10 @@ function home() {
       <div>
         <p class="kicker" style="color:#c9b6e3">Provider portal · External thin client</p>
         <h1 style="color:#fff">Prescribers submit. Operations compounds.</h1>
-        <p class="muted">This portal is a thin client to ISOSure Operations. Submit orders, exchange documents, request refills, and read status notifications. Clinical and compounding logic stays in the lab — not here.</p>
+        <p class="muted">External-facing access for prescribers and facilities: login, order submission, status, refill requests, document exchange, and notifications. This portal does not hold clinical or compounding logic.</p>
         <p>
-          <button class="btn mid" onclick="go('login')">Provider or facility login</button>
-          <button class="btn ghost" onclick="go('ops')">Open Operations (lab)</button>
+          <button class="btn mid" onclick="go('login')">Prescriber or facility login</button>
+          <button class="btn ghost" onclick="go('catalog')">Submit an order</button>
         </p>
       </div>
       <img src="brand/isosure-logo-inverse.png" alt="" style="width:min(320px,100%);justify-self:end" />
@@ -289,9 +290,11 @@ function home() {
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1.2rem">
       <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><h2>Order submission</h2><p class="muted">Select published strengths and send the request to Operations.</p></div>
       <div class="tile" onclick="go('practice')"><p class="kicker">Status</p><h2>Order status</h2><p class="muted">See only the labels Operations publishes — never compounding steps.</p></div>
+      <div class="tile" onclick="go('refills')"><p class="kicker">Refills</p><h2>Refill requests</h2><p class="muted">Ask Operations to repeat a prior order. The lab decides.</p></div>
       <div class="tile" onclick="go('documents')"><p class="kicker">Exchange</p><h2>Documents</h2><p class="muted">Rx images, PA forms, and patient-specific formulas.</p></div>
       <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><h2>Notifications</h2><p class="muted">Backorder, clarification needed, ready for pickup or delivery.</p></div>
-    </div>`;
+    </div>
+    <p class="muted" style="margin-top:1.2rem;text-align:center">Lab staff use a separate Operations login. <a href="#ops">Open the LIMS</a></p>`;
 }
 
 function catalog(params) {
@@ -498,6 +501,7 @@ function login() {
         <input name="phone" placeholder="Phone">
         <button class="btn" type="submit">Enter provider portal</button>
         <button type="button" class="btn ghost" onclick="loadDoctor()">Demo prescriber (Hawthorne Family Medicine)</button>
+        <button type="button" class="btn ghost" onclick="loadFacility()">Demo facility (Riverside Women’s Clinic)</button>
       </form>
       <form class="panel pad grid" onsubmit="return signPharmacy(event)">
         <strong>Operations (pharmacy admin)</strong>
@@ -529,6 +533,11 @@ function loadDoctor() {
   seedPortalIfEmpty();
   save(); go("practice");
 }
+function loadFacility() {
+  state.user = {role:"doctor", loginKind:"facility", practiceName:"Riverside Women's Clinic", prescriberName:"Clinic orders desk", npi:"1987654321", dea:"BR1987654", email:"orders@riversidewc.example", phone:"(503) 555-0190"};
+  seedPortalIfEmpty();
+  save(); go("practice");
+}
 function loadPharmacy() {
   state.user = {role:"pharmacy", pharmacyName:"ISOSure Compounding Lab", contactName:"Jordan Hale, RPh", email:"pharmacy@isosure.example", phone:"(800) 555-4767"};
   seedPortalIfEmpty();
@@ -552,6 +561,7 @@ function practice() {
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:1rem 0">
       <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><strong>New order</strong></div>
       <div class="tile" onclick="go('refills')"><p class="kicker">Refills</p><strong>Request a refill</strong></div>
+      <div class="tile" onclick="go('documents')"><p class="kicker">Exchange</p><strong>Rx, PA, formulas</strong></div>
       <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><strong>${unread} unread notification${unread===1?"":"s"}</strong></div>
     </div>
     <h2>Order status</h2>

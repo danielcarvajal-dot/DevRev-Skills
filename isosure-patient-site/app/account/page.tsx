@@ -43,7 +43,7 @@ export default function AccountPage() {
         </button>
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/catalog" className="rounded-xl border border-line bg-paper p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Submit</p>
           <p className="mt-1 font-semibold">New order</p>
@@ -51,6 +51,10 @@ export default function AccountPage() {
         <Link href="/portal/refills" className="rounded-xl border border-line bg-paper p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Refills</p>
           <p className="mt-1 font-semibold">Request a refill</p>
+        </Link>
+        <Link href="/portal/documents" className="rounded-xl border border-line bg-paper p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Exchange</p>
+          <p className="mt-1 font-semibold">Rx, PA, formulas</p>
         </Link>
         <Link href="/portal/notifications" className="rounded-xl border border-line bg-paper p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Alerts</p>

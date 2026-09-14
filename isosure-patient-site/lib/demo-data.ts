@@ -22,6 +22,21 @@ export function demoDoctor(): Doctor {
   };
 }
 
+export function demoFacility(): Doctor {
+  return {
+    id: "demo-facility",
+    role: "doctor",
+    loginKind: "facility",
+    practiceName: "Riverside Women's Clinic",
+    prescriberName: "Clinic orders desk",
+    npi: "1987654321",
+    dea: "BR1987654",
+    email: "orders@riversidewc.example",
+    phone: "(503) 555-0190",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
+  };
+}
+
 export function demoPharmacy(): PharmacyUser {
   return {
     id: "demo-pharmacy",
@@ -198,6 +213,15 @@ export function seedDemoNotifications(): PortalNotification[] {
       body: "Operations flagged a possible backorder on a thyroid capsule strength. No lab formula is shown in the provider portal.",
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
       read: true,
+    },
+    {
+      id: "note-delivery",
+      kind: "ready_delivery",
+      title: "Out for delivery · ISO-RDER-3",
+      body: "Lee Park’s order left the pharmacy for delivery. Tracking stays with Operations.",
+      orderId: "demo-order-3",
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+      read: false,
     },
   ];
 }

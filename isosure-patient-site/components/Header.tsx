@@ -22,7 +22,7 @@ export function Header() {
         <Link href="/" className="shrink-0">
           <img src={BRAND.logo} alt={BRAND.legalName} className="h-14 w-auto" />
         </Link>
-        <nav className="hidden items-center gap-5 text-sm text-ink-soft md:flex">
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
           {isPharmacy ? (
             <>
               <Link href="/ops" className="hover:text-purple">

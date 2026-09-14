@@ -7,7 +7,7 @@ import type { ProviderLoginKind } from "@/lib/types";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signInDoctor, signInPharmacy, loadDemoDoctor, loadDemoPharmacy } = useStore();
+  const { signInDoctor, signInPharmacy, loadDemoDoctor, loadDemoFacility, loadDemoPharmacy } = useStore();
   const [loginKind, setLoginKind] = useState<ProviderLoginKind>("prescriber");
   const [doctor, setDoctor] = useState({
     practiceName: "",
@@ -70,6 +70,16 @@ export default function LoginPage() {
             }}
           >
             Demo prescriber (Hawthorne Family Medicine)
+          </button>
+          <button
+            type="button"
+            className="w-full rounded-lg border border-line py-2.5 text-sm"
+            onClick={() => {
+              loadDemoFacility();
+              router.push("/account");
+            }}
+          >
+            Demo facility (Riverside Women’s Clinic)
           </button>
         </form>
 

@@ -11,6 +11,7 @@ import {
 import { productFromPartial } from "./catalog-io";
 import {
   demoDoctor,
+  demoFacility,
   demoPharmacy,
   seedDemoDocuments,
   seedDemoNotifications,
@@ -97,6 +98,7 @@ type StoreValue = Persisted & {
   signInDoctor: (input: Omit<Doctor, "id" | "createdAt" | "role">) => void;
   signInPharmacy: (input: Omit<PharmacyUser, "id" | "createdAt" | "role">) => void;
   loadDemoDoctor: () => void;
+  loadDemoFacility: () => void;
   loadDemoPharmacy: () => void;
   signOut: () => void;
   addToCart: (productId: string, doseId: string, quantity?: number) => void;
@@ -220,23 +222,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  const seedPortalDemo = useCallback(
+    (user: ReturnType<typeof demoDoctor>) => {
+      commit((prev) => ({
+        ...prev,
+        user,
+        orders: seedIfEmpty(prev.orders, seedDemoOrders()),
+        documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
+        notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
+        refills: seedIfEmpty(prev.refills, seedDemoRefills()),
+        lots: seedIfEmpty(prev.lots, seedLots()),
+        crs: seedIfEmpty(prev.crs, seedDemoCrs()),
+        envLogs: seedIfEmpty(prev.envLogs, seedEnvironmentLogs()),
+        equipmentLogs: seedIfEmpty(prev.equipmentLogs, seedEquipmentLogs()),
+        csLogs: seedIfEmpty(prev.csLogs, seedCsLogs()),
+        ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+        mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
+      }));
+    },
+    [commit],
+  );
+
   const loadDemoDoctor = useCallback(() => {
-    commit((prev) => ({
-      ...prev,
-      user: demoDoctor(),
-      orders: seedIfEmpty(prev.orders, seedDemoOrders()),
-      documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
-      notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
-      refills: seedIfEmpty(prev.refills, seedDemoRefills()),
-      lots: seedIfEmpty(prev.lots, seedLots()),
-      crs: seedIfEmpty(prev.crs, seedDemoCrs()),
-      envLogs: seedIfEmpty(prev.envLogs, seedEnvironmentLogs()),
-      equipmentLogs: seedIfEmpty(prev.equipmentLogs, seedEquipmentLogs()),
-      csLogs: seedIfEmpty(prev.csLogs, seedCsLogs()),
-      ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
-      mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
-    }));
-  }, [commit]);
+    seedPortalDemo(demoDoctor());
+  }, [seedPortalDemo]);
+
+  const loadDemoFacility = useCallback(() => {
+    seedPortalDemo(demoFacility());
+  }, [seedPortalDemo]);
 
   const loadDemoPharmacy = useCallback(() => {
     commit((prev) => ({
@@ -600,6 +613,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       signInDoctor,
       signInPharmacy,
       loadDemoDoctor,
+      loadDemoFacility,
       loadDemoPharmacy,
       signOut,
       addToCart,
@@ -632,6 +646,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       signInDoctor,
       signInPharmacy,
       loadDemoDoctor,
+      loadDemoFacility,
       loadDemoPharmacy,
       signOut,
       addToCart,
