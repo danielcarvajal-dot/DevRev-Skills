@@ -43,6 +43,16 @@ export function productFromPartial(input: Partial<Product> & { name: string }): 
       : [{ id: "dose-0", label: "Standard", strength: "Standard", price: 0 }],
     featured: Boolean(input.featured),
     requiresRx: input.requiresRx !== false,
+    family: input.family,
+    familySlug: input.familySlug,
+    searchTerms: input.searchTerms,
+    workflowKind: input.workflowKind,
+    startingDoseMg: input.startingDoseMg,
+    requireWeight: input.requireWeight,
+    allergyTags: input.allergyTags,
+    defaultDirections: input.defaultDirections,
+    quantityUnit: input.quantityUnit,
+    defaultQuantity: input.defaultQuantity,
   };
 }
 

@@ -5,7 +5,7 @@ import { BRAND } from "@/lib/brand";
 import { useStore } from "@/lib/store";
 
 export function Header() {
-  const { cartCount, user, ready, unreadCount } = useStore();
+  const { user, ready, unreadCount, drafts } = useStore();
   const isPharmacy = user?.role === "pharmacy";
   const isProvider = user?.role === "doctor";
   const label = !ready
@@ -46,20 +46,25 @@ export function Header() {
             </>
           ) : (
             <>
-              <Link href="/catalog" className="hover:text-purple">
-                Submit order
+              <Link href="/order/new" className="hover:text-purple">
+                New order
+              </Link>
+              <Link href="/patients" className="hover:text-purple">
+                Patients
               </Link>
               <Link href="/account" className="hover:text-purple">
-                Order status
+                Orders
               </Link>
-              <Link href="/portal/refills" className="hover:text-purple">
-                Refills
-              </Link>
-              <Link href="/portal/documents" className="hover:text-purple">
-                Documents
+              <Link href="/account#drafts" className="hover:text-purple">
+                Drafts
+                {ready && drafts.length > 0 ? (
+                  <span className="ml-1 rounded-full bg-purple-soft px-1.5 text-[11px] text-purple">
+                    {drafts.length}
+                  </span>
+                ) : null}
               </Link>
               <Link href="/portal/notifications" className="hover:text-purple">
-                Notifications
+                Messages
                 {ready && unreadCount > 0 ? (
                   <span className="ml-1 rounded-full bg-purple-mid px-1.5 text-[11px] text-white">
                     {unreadCount}
@@ -76,19 +81,14 @@ export function Header() {
           >
             {label}
           </Link>
-          {!isPharmacy ? (
+          {isPharmacy ? null : (
             <Link
-              href="/cart"
-              className="relative rounded-lg bg-purple-deep px-3 py-1.5 text-sm font-semibold text-white"
+              href="/order/new"
+              className="rounded-lg bg-purple-deep px-3 py-1.5 text-sm font-semibold text-white"
             >
-              Order
-              {ready && cartCount > 0 ? (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-purple-mid px-1 text-[11px]">
-                  {cartCount}
-                </span>
-              ) : null}
+              + New order
             </Link>
-          ) : null}
+          )}
         </div>
       </div>
     </header>

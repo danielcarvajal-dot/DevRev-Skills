@@ -83,7 +83,15 @@
     .split { display: grid; gap: 1rem; }
     @media (min-width: 860px) { .split { grid-template-columns: 220px 1fr; } .split.checkout { grid-template-columns: 1.15fr .85fr; } }
     .drop { border: 1px dashed var(--purple-mid); border-radius: 10px; padding: 1rem; background: #fcfaff; }
-    .tagline { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #c9b6e3; }
+    .alert { border-radius: 10px; padding: .85rem 1rem; margin: .5rem 0; }
+    .alert.warn { background: #fff8eb; border: 1px solid #e6c37a; }
+    .alert.block { background: #fdecef; border: 1px solid #e8a0b0; }
+    .forms { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .forms button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: .45rem .8rem; cursor: pointer; }
+    .forms button.on { background: var(--purple-soft); border-color: var(--purple-mid); color: var(--purple); font-weight: 600; }
+    details.extra { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .8rem; background: #fff; margin-top: .45rem; }
+    .cta { display: block; text-align: center; background: var(--purple-deep); color: #fff; border-radius: 16px; padding: 1.1rem 1.2rem; font-weight: 600; font-size: 1.15rem; }
+    .dash-links { display: flex; flex-wrap: wrap; gap: .4rem .9rem; font-size: .92rem; }
   </style>
 </head>
 <body>
@@ -92,7 +100,7 @@
     <nav id="nav"></nav>
     <div class="actions">
       <button class="btn ghost" id="roleBtn" onclick="go('login')">Sign in</button>
-      <button class="btn" onclick="go('cart')">Order <span class="badge" id="cartBadge" hidden>0</span></button>
+      <button class="btn" onclick="go('order-new')">+ New order</button>
     </div>
   </header>
   <main id="app"></main>
@@ -111,7 +119,8 @@
   </footer>
 
 <script>
-const KEY = "isosure.practice.v4";
+const KEY = "isosure.practice.v5";
+const PREV_KEY = "isosure.practice.v4";
 const STATUS_LABEL = {Submitted:"Submitted to operations",Received:"Received by operations",ClarificationNeeded:"Clarification needed",Backorder:"Backordered",InProduction:"In production",ReadyPickup:"Ready for pickup",OutForDelivery:"Out for delivery",Delivered:"Delivered"};
 const STATUS_LIST = Object.keys(STATUS_LABEL);
 const DOC_LABEL = {rx:"Rx image",pa:"PA form",formula:"Patient-specific formula",other:"Other"};
@@ -119,7 +128,7 @@ const NOTE_LABEL = {backorder:"Backorder",clarification:"Clarification needed",r
 const CATEGORIES = ["Hormone Therapy","Women's Health","Men's Health","Thyroid","Pain & Inflammation","Dermatology","Wellness","Pediatric"];
 const DEFAULT_PRODUCTS = [
   {id:"estradiol-cream",name:"IsoBalance Estradiol Cream",shortName:"Estradiol Cream",category:"Hormone Therapy",form:"Cream",summary:"Bioidentical estradiol cream for transdermal hormone support.",doses:[{id:"e2-025",label:"0.25 mg/g",price:48},{id:"e2-05",label:"0.5 mg/g",price:56},{id:"e2-1",label:"1 mg/g",price:64}]},
-  {id:"progesterone-caps",name:"IsoCalm Progesterone Capsules",shortName:"Progesterone Capsules",category:"Women's Health",form:"Capsule",summary:"Micronized progesterone for evening hormone balance.",doses:[{id:"p4-50",label:"50 mg",price:42},{id:"p4-100",label:"100 mg",price:52},{id:"p4-200",label:"200 mg",price:68}]},
+  {id:"progesterone-caps",name:"IsoCalm Progesterone Capsules",shortName:"Progesterone Capsules",category:"Women's Health",form:"Capsule",family:"Progesterone",startingDoseMg:100,summary:"Micronized progesterone for evening hormone balance.",doses:[{id:"p4-50",label:"50 mg",price:42},{id:"p4-100",label:"100 mg",price:52},{id:"p4-200",label:"200 mg",price:68}]},
   {id:"testosterone-gel",name:"IsoVigor Testosterone Gel",shortName:"Testosterone Gel",category:"Men's Health",form:"Gel",summary:"Quick-dry testosterone gel in measured daily strengths.",doses:[{id:"t-10",label:"10 mg/mL",price:62},{id:"t-20",label:"20 mg/mL",price:74},{id:"t-50",label:"50 mg/mL",price:88}]},
   {id:"thyroid-combo",name:"IsoThyroid T3/T4 Capsules",shortName:"T3/T4 Capsules",category:"Thyroid",form:"Capsule",summary:"Custom liothyronine and levothyroxine ratios.",doses:[{id:"th-5-25",label:"5 / 25 mcg",price:38},{id:"th-10-50",label:"10 / 50 mcg",price:44},{id:"th-15-75",label:"15 / 75 mcg",price:52}]},
   {id:"ketoprofen-cream",name:"IsoEase Ketoprofen Cream",shortName:"Ketoprofen Cream",category:"Pain & Inflammation",form:"Cream",summary:"High-strength topical NSAID for joint and muscle pain.",doses:[{id:"keto-10",label:"10%",price:46},{id:"keto-15",label:"15%",price:54},{id:"keto-20",label:"20%",price:62}]},
@@ -135,18 +144,49 @@ const DEFAULT_PRODUCTS = [
   {id:"pregnenolone",name:"IsoBloom Pregnenolone Capsules",shortName:"Pregnenolone Capsules",category:"Hormone Therapy",form:"Capsule",summary:"Pregnenolone precursor support in conservative strengths.",doses:[{id:"preg-10",label:"10 mg",price:29},{id:"preg-25",label:"25 mg",price:34},{id:"preg-50",label:"50 mg",price:40}]},
   {id:"sildenafil-troche",name:"IsoLift Sildenafil Troches",shortName:"Sildenafil Troches",category:"Men's Health",form:"Troche",summary:"Fast-dissolve sildenafil troches.",doses:[{id:"sild-25",label:"25 mg",price:48},{id:"sild-50",label:"50 mg",price:62},{id:"sild-100",label:"100 mg",price:78}]},
   {id:"glutathione",name:"IsoShield Glutathione Capsules",shortName:"Glutathione Capsules",category:"Wellness",form:"Capsule",summary:"Reduced glutathione in acid-resistant capsules.",doses:[{id:"glu-250",label:"250 mg",price:36},{id:"glu-500",label:"500 mg",price:48}]},
-  {id:"nad-spray",name:"IsoPulse NAD+ Nasal Spray",shortName:"NAD+ Nasal Spray",category:"Wellness",form:"Nasal spray",summary:"Metered NAD+ nasal spray.",doses:[{id:"nad-50",label:"50 mg/mL",price:84},{id:"nad-100",label:"100 mg/mL",price:112}]}
+  {id:"nad-spray",name:"IsoPulse NAD+ Nasal Spray",shortName:"NAD+ Nasal Spray",category:"Wellness",form:"Nasal spray",family:"NAD+",summary:"Metered NAD+ nasal spray.",doses:[{id:"nad-50",label:"50 mg/mL",price:84},{id:"nad-100",label:"100 mg/mL",price:112}]},
+  {id:"progesterone-cream",name:"IsoCalm Progesterone Cream",shortName:"Progesterone Cream",category:"Women's Health",form:"Cream",family:"Progesterone",summary:"Transdermal micronized progesterone cream.",doses:[{id:"p4c-20",label:"20 mg/g",price:46},{id:"p4c-40",label:"40 mg/g",price:54}]},
+  {id:"progesterone-supp",name:"IsoCalm Progesterone Suppositories",shortName:"Progesterone Suppositories",category:"Women's Health",form:"Suppository",family:"Progesterone",summary:"Vaginal progesterone suppositories.",doses:[{id:"p4s-100",label:"100 mg",price:58},{id:"p4s-200",label:"200 mg",price:72}]},
+  {id:"semaglutide-injection",name:"IsoShape Semaglutide + B12 Injection",shortName:"Semaglutide + B12",category:"Wellness",form:"Injection",family:"Semaglutide",requireWeight:true,startingDoseMg:0.25,summary:"Compounded semaglutide with B12 injection.",doses:[{id:"sema-25",label:"2.5 mg/mL",price:186},{id:"sema-5",label:"5 mg/mL",price:248}]},
+  {id:"semaglutide-troche",name:"IsoShape Semaglutide Troches",shortName:"Semaglutide Troches",category:"Wellness",form:"Troche",family:"Semaglutide",startingDoseMg:0.25,summary:"Buccal semaglutide troches.",doses:[{id:"sema-t-025",label:"0.25 mg",price:96},{id:"sema-t-05",label:"0.5 mg",price:118},{id:"sema-t-1",label:"1 mg",price:142}]},
+  {id:"semaglutide-capsule",name:"IsoShape Semaglutide Capsules",shortName:"Semaglutide Capsules",category:"Wellness",form:"Capsule",family:"Semaglutide",startingDoseMg:0.25,summary:"Oral semaglutide capsules.",doses:[{id:"sema-c-025",label:"0.25 mg",price:88},{id:"sema-c-05",label:"0.5 mg",price:108},{id:"sema-c-1",label:"1 mg",price:128}]}
 ];
+
+function emptyWizard() {
+  return {draftId:crypto.randomUUID(),step:"patient",q:"",medq:"",family:"",productId:"",doseId:"",directions:"",quantity:"",unit:"",refills:0,daw:false,notes:"",doseAmount:"",volumeMl:"",ack:[],adding:false};
+}
+function familyOf(p) {
+  return p.family || (p.shortName||p.name).replace(/\s+(Cream|Gel|Capsules?|Troches?|Suspension|Nasal spray|Topical|Compound|Spray|Injection|Suppositor(?:y|ies))$/i,"").trim();
+}
+function isInjection(p) { return /inject/i.test(p.form||""); }
+function dobFmt(iso) {
+  if (!iso) return "—";
+  const [y,m,d] = String(iso).split("-");
+  return y && m && d ? `${m}/${d}/${y}` : iso;
+}
+function greetingName(name) {
+  const cleaned = String(name||"").replace(/,?\s*(MD|DO|NP|PA-C|PA|RPh|PharmD)\.?$/i,"").trim();
+  const parts = cleaned.split(/\s+/);
+  if (parts.length>=2 && /^dr\.?$/i.test(parts[0])) return "Dr. " + parts[parts.length-1];
+  return cleaned || "Doctor";
+}
+function timeGreeting() {
+  const h = new Date().getHours();
+  return h<12 ? "Good morning" : h<17 ? "Good afternoon" : "Good evening";
+}
 
 const money = (n) => (Number(n)||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
 const product = (id) => state.products.find(p => p.id === id);
 const doseOf = (p, id) => p.doses.find(d => d.id === id);
 
-let state = { user:null, cart:[], orders:[], products: DEFAULT_PRODUCTS, scripts:[], selections:{}, documents:[], notifications:[], refills:[], ingredients:[], lots:[], mfrs:[], crs:[], envLogs:[], equipmentLogs:[], csLogs:[] };
+let state = { user:null, cart:[], orders:[], products: DEFAULT_PRODUCTS, patients:[], drafts:[], scripts:[], selections:{}, documents:[], notifications:[], refills:[], ingredients:[], lots:[], mfrs:[], crs:[], envLogs:[], equipmentLogs:[], csLogs:[], wizard: emptyWizard() };
 try {
-  const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
-  state = Object.assign(state, saved, { selections: saved.selections || {} });
+  const saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(PREV_KEY) || "{}");
+  state = Object.assign(state, saved, { selections: saved.selections || {}, wizard: saved.wizard || emptyWizard() });
   if (!state.products?.length) state.products = DEFAULT_PRODUCTS;
+  DEFAULT_PRODUCTS.forEach(p => { if (!state.products.some(x => x.id===p.id)) state.products.push(p); });
+  state.patients = state.patients || [];
+  state.drafts = state.drafts || [];
   state.documents = state.documents || [];
   state.notifications = state.notifications || [];
   state.refills = state.refills || [];
@@ -169,20 +209,19 @@ function route() {
   const [name, qs] = raw.split("?");
   const params = Object.fromEntries(new URLSearchParams(qs || ""));
   chrome();
-  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients};
+  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients, "order-new": orderNew, patients: patientsView};
   document.getElementById("app").innerHTML = (views[name] || home)(params);
 }
 function chrome() {
-  const count = state.cart.reduce((s,i)=>s+i.quantity,0);
-  const badge = document.getElementById("cartBadge");
-  document.getElementById("cartBadge").hidden = !count || u?.role === "pharmacy";
-  document.getElementById("cartBadge").textContent = count;
   const u = state.user;
-  document.getElementById("roleBtn").textContent = u ? (u.role==="pharmacy" ? u.pharmacyName : u.practiceName) : "Sign in";
+  const count = (state.cart||[]).reduce((s,i)=>s+i.quantity,0);
+  const roleBtn = document.getElementById("roleBtn");
+  if (roleBtn) roleBtn.textContent = u ? (u.role==="pharmacy" ? u.pharmacyName : u.practiceName) : "Sign in";
   const unread = (state.notifications||[]).filter(n=>!n.read).length;
+  const drafts = (state.drafts||[]).length;
   document.getElementById("nav").innerHTML = u?.role === "pharmacy"
     ? `<a href="#ops">Lab</a><a href="#pharmacy">Intake</a><a href="#mfrs">MFRs</a><a href="#inventory">Inventory</a><a href="#environment">Environment</a>`
-    : `<a href="#catalog">Submit order</a><a href="#practice">Order status</a><a href="#refills">Refills</a><a href="#documents">Documents</a><a href="#notifications">Notifications${unread?` (${unread})`:""}</a>`;
+    : `<a href="#order-new">New order</a><a href="#patients">Patients</a><a href="#practice">Orders</a><a href="#practice">Drafts${drafts?` (${drafts})`:""}</a><a href="#notifications">Messages${unread?` (${unread})`:""}</a>`;
 }
 
 function addLine(productId, qty=1) {
@@ -237,8 +276,17 @@ function seedDemoRefills() {
     {id:"refill-1",orderId:"demo-order-1",patientName:"Avery Nguyen",summary:"Estradiol cream 0.5 mg/g · Progesterone 100 mg",notes:"Continue current strength.",requestedAt:Date.now()-30*36e5,status:"Submitted"}
   ];
 }
+function demoPatients() {
+  return [
+    {id:"pat-avery",firstName:"Avery",lastName:"Nguyen",dob:"1986-04-12",sex:"female",phone:"(503) 555-0112",email:"avery.nguyen@example.com",address:{line1:"88 Division St",city:"Portland",state:"OR",zip:"97214"},allergies:"Penicillin",clinicalNotes:"On estradiol + progesterone HRT.",weightKg:"68"},
+    {id:"pat-sam",firstName:"Sam",lastName:"Rivera",dob:"1979-11-02",sex:"male",phone:"(503) 555-0177",email:"sam.rivera@example.com",address:{line1:"12 Belmont Ave",city:"Portland",state:"OR",zip:"97215"},allergies:"Naltrexone",clinicalNotes:"LDN for inflammatory symptoms.",weightKg:"91"},
+    {id:"pat-lee",firstName:"Lee",lastName:"Park",dob:"1991-07-19",sex:"female",phone:"(503) 555-0144",email:"lee.park@example.com",address:{line1:"410 Hawthorne Blvd",city:"Portland",state:"OR",zip:"97214"},allergies:"",clinicalNotes:"Ketoprofen cream for knee pain.",weightKg:"62"},
+    {id:"pat-john",firstName:"John",lastName:"Smith",dob:"1980-04-12",sex:"male",phone:"(503) 555-0188",email:"john.smith@example.com",address:{line1:"220 Stark St",line2:"Apt 4",city:"Portland",state:"OR",zip:"97204"},allergies:"",clinicalNotes:"",weightKg:""}
+  ];
+}
 function seedPortalIfEmpty() {
   if (!state.orders.length) state.orders = demoOrders();
+  if (!state.patients.length) state.patients = demoPatients();
   if (!state.documents.length) state.documents = seedDemoDocuments();
   if (!state.notifications.length) state.notifications = seedDemoNotifications();
   if (!state.refills.length) state.refills = seedDemoRefills();
@@ -282,13 +330,13 @@ function home() {
         <p class="muted">External-facing access for prescribers and facilities: login, order submission, status, refill requests, document exchange, and notifications. This portal does not hold clinical or compounding logic.</p>
         <p>
           <button class="btn mid" onclick="go('login')">Prescriber or facility login</button>
-          <button class="btn ghost" onclick="go('catalog')">Submit an order</button>
+          <button class="btn ghost" onclick="go('order-new')">New medication order</button>
         </p>
       </div>
       <img src="brand/isosure-logo-inverse.png" alt="" style="width:min(320px,100%);justify-self:end" />
     </div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1.2rem">
-      <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><h2>Order submission</h2><p class="muted">Select published strengths and send the request to Operations.</p></div>
+      <div class="tile" onclick="go('order-new')"><p class="kicker">Order</p><h2>New medication order</h2><p class="muted">Start with the patient, then the product. Operations compounds.</p></div>
       <div class="tile" onclick="go('practice')"><p class="kicker">Status</p><h2>Order status</h2><p class="muted">See only the labels Operations publishes — never compounding steps.</p></div>
       <div class="tile" onclick="go('refills')"><p class="kicker">Refills</p><h2>Refill requests</h2><p class="muted">Ask Operations to repeat a prior order. The lab decides.</p></div>
       <div class="tile" onclick="go('documents')"><p class="kicker">Exchange</p><h2>Documents</h2><p class="muted">Rx images, PA forms, and patient-specific formulas.</p></div>
@@ -520,7 +568,7 @@ function signDoctor(e) {
   const f = e.target;
   const loginKind = f.loginKind.value || "prescriber";
   state.user = {role:"doctor", loginKind, practiceName:f.practiceName.value, prescriberName:f.prescriberName.value, npi:f.npi.value, dea:f.dea.value, email:f.email.value, phone:f.phone.value};
-  save(); go("catalog"); return false;
+  save(); go("practice"); return false;
 }
 function signPharmacy(e) {
   e.preventDefault();
@@ -548,24 +596,305 @@ function practice() {
   if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Prescriber / facility login</button>`;
   const unread = (state.notifications||[]).filter(n=>!n.read).length;
   const kind = state.user.loginKind === "facility" ? "Facility" : "Prescriber";
+  const drafts = state.drafts||[];
   return `
     <div class="row">
       <div>
         <p class="kicker">Provider portal · ${kind}</p>
-        <h1>${state.user.practiceName}</h1>
-        <p class="muted">${state.user.prescriberName} · NPI ${state.user.npi || "—"}</p>
-        <p class="muted">Thin client to Operations. This view never shows compounding formulas or lab steps.</p>
+        <h1>${timeGreeting()}, ${greetingName(state.user.prescriberName)}</h1>
+        <p class="muted">${state.user.practiceName}</p>
       </div>
       <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
     </div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:1rem 0">
-      <div class="tile" onclick="go('catalog')"><p class="kicker">Submit</p><strong>New order</strong></div>
-      <div class="tile" onclick="go('refills')"><p class="kicker">Refills</p><strong>Request a refill</strong></div>
-      <div class="tile" onclick="go('documents')"><p class="kicker">Exchange</p><strong>Rx, PA, formulas</strong></div>
-      <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><strong>${unread} unread notification${unread===1?"":"s"}</strong></div>
+    <p><a class="cta" href="#order-new">+ New Medication Order</a></p>
+    <div class="dash-links" style="margin:1rem 0">
+      <a href="#patients">Search Patients</a><span class="muted">|</span>
+      <a href="#practice">Recent Orders</a><span class="muted">|</span>
+      <a href="#practice">Drafts</a><span class="muted">|</span>
+      <a href="#notifications">Messages${unread?` (${unread})`:""}</a>
     </div>
-    <h2>Order status</h2>
+    <h2>Drafts</h2>
+    ${drafts.length ? drafts.map(d => {
+      const pat = (state.patients||[]).find(p => p.id===d.patientId);
+      const prod = product(d.productId);
+      return `<article class="panel pad" style="margin:.5rem 0"><a href="#order-new" onclick="resumeDraft('${d.id}');return false"><strong>${pat?pat.firstName+" "+pat.lastName:"Patient not selected"}</strong>${prod?" · "+familyOf(prod):""}</a></article>`;
+    }).join("") : `<p class="muted">No saved drafts.</p>`}
+    <h2>Recent orders</h2>
     ${orderCards(state.orders)}`;
+}
+
+function patientName(p) { return ((p.firstName||"") + " " + (p.lastName||"")).trim(); }
+function searchPatientList(q) {
+  const raw = (q||"").trim().toLowerCase();
+  const digits = raw.replace(/\D/g,"");
+  return (state.patients||[]).filter(p => {
+    if (!raw) return true;
+    const name = patientName(p).toLowerCase();
+    const phone = (p.phone||"").replace(/\D/g,"");
+    return name.includes(raw) || (p.id||"").toLowerCase().includes(raw) || (p.dob||"").includes(raw) || dobFmt(p.dob).toLowerCase().includes(raw) || (digits.length>=3 && phone.includes(digits));
+  });
+}
+function families() {
+  const map = {};
+  (state.products||[]).forEach(p => {
+    const name = familyOf(p);
+    (map[name] = map[name] || []).push(p);
+  });
+  return Object.entries(map).map(([name, products]) => ({name, products, forms: [...new Set(products.map(p=>p.form))]}));
+}
+function parseMg(value) {
+  const m = String(value||"").replace(/,/g,"").match(/([\d.]+)/);
+  return m ? Number(m[1]) : null;
+}
+function wizardAlerts() {
+  const w = state.wizard;
+  const patient = (state.patients||[]).find(p => p.id===w.patientId);
+  const prod = product(w.productId);
+  const dose = prod && doseOf(prod, w.doseId);
+  const alerts = [];
+  if (!patient) alerts.push({id:"missing-patient",severity:"block",title:"Missing information",body:"Select or add a patient before submitting this order."});
+  if (!prod || !dose) {
+    alerts.push({id:"missing-medication",severity:"block",title:"Missing information",body:"Choose a medication and strength to continue."});
+    return alerts;
+  }
+  if (!String(w.directions||"").trim()) alerts.push({id:"missing-directions",severity:"block",title:"Missing information",body:"Directions are required for this prescription."});
+  if (!(Number(w.quantity)>0)) alerts.push({id:"missing-quantity",severity:"block",title:"Missing information",body:"Enter a quantity greater than zero."});
+  if ((prod.requireWeight || isInjection(prod)) && patient && !String(patient.weightKg||"").trim()) {
+    alerts.push({id:"missing-weight",severity:"block",title:"Missing information",body:"Patient weight is required for this medication."});
+  }
+  if (isInjection(prod)) {
+    if (!String(w.doseAmount||"").trim()) alerts.push({id:"missing-dose-amount",severity:"block",title:"Missing information",body:"Enter the prescribed dose (mg) for this injection."});
+    if (!String(w.volumeMl||"").trim()) alerts.push({id:"missing-volume",severity:"block",title:"Missing information",body:"Enter the volume (mL) to dispense for this injection."});
+  }
+  const start = prod.startingDoseMg;
+  const prescribed = isInjection(prod) ? parseMg(w.doseAmount) : parseMg(dose.label);
+  if (start != null && prescribed != null && prescribed > start) {
+    alerts.push({id:"high-dose",severity:"warn",title:"Please review",body:"The prescribed dose exceeds the recommended starting dose for this product ("+start+" mg)."});
+  }
+  if (patient) {
+    const active = {Submitted:1,Received:1,ClarificationNeeded:1,Backorder:1,InProduction:1,ReadyPickup:1,OutForDelivery:1};
+    const dup = (state.orders||[]).find(o => active[o.status] && (o.patientId===patient.id || o.patientName===patientName(patient)) && (o.items||[]).some(i => i.productId===prod.id));
+    if (dup) alerts.push({id:"duplicate-order",severity:"warn",title:"Potential duplicate",body:"This patient has an active order for the same medication ("+prod.shortName+")."});
+    const allergies = String(patient.allergies||"").split(/[,;/]+/).map(s=>s.trim().toLowerCase()).filter(Boolean);
+    const hit = allergies.find(a => (prod.name+" "+prod.shortName+" "+familyOf(prod)).toLowerCase().includes(a));
+    if (hit) alerts.push({id:"allergy",severity:"warn",title:"Allergy alert",body:"Patient has a documented allergy to "+hit+"."});
+  }
+  return alerts;
+}
+function setWizard(patch) {
+  Object.assign(state.wizard, patch);
+  save(); route();
+}
+function pickProduct(productId, doseId) {
+  const p = product(productId);
+  const d = p && (doseOf(p, doseId) || p.doses[0]);
+  const defaults = {
+    "progesterone-caps": {directions:"Take 1 capsule by mouth at bedtime",quantity:30,unit:"capsules"},
+    "semaglutide-injection": {directions:"Inject the prescribed dose subcutaneously once weekly",quantity:2,unit:"mL"}
+  };
+  const preset = defaults[productId] || {directions: state.wizard.directions || "Take as directed", quantity: state.wizard.quantity || 30, unit: /capsule/i.test(p.form)?"capsules":/troche/i.test(p.form)?"troches":isInjection(p)?"mL":"grams"};
+  setWizard({
+    family: familyOf(p),
+    productId: p.id,
+    doseId: d.id,
+    directions: state.wizard.directions || preset.directions,
+    quantity: state.wizard.quantity || preset.quantity,
+    unit: preset.unit,
+    ack: []
+  });
+}
+function savePatientField(id, field, value) {
+  const p = state.patients.find(x => x.id===id);
+  if (!p) return;
+  if (field.startsWith("address.")) {
+    p.address = p.address || {};
+    p.address[field.split(".")[1]] = value;
+  } else p[field] = value;
+  save();
+}
+function exitDraft() {
+  const w = state.wizard;
+  if (w.patientId || w.productId) {
+    const id = w.draftId || crypto.randomUUID();
+    const draft = Object.assign({}, w, {id, draftId:id});
+    state.drafts = state.drafts || [];
+    const i = state.drafts.findIndex(d => d.id===id);
+    if (i>=0) state.drafts[i] = draft; else state.drafts.unshift(draft);
+  }
+  save(); go("practice");
+}
+function resumeDraft(id) {
+  const d = (state.drafts||[]).find(x => x.id===id);
+  if (d) state.wizard = Object.assign(emptyWizard(), d, {draftId:d.id});
+  save(); go("order-new");
+}
+function addHtmlPatient(form) {
+  const patient = {
+    id: crypto.randomUUID(),
+    firstName: form.firstName.value.trim(),
+    lastName: form.lastName.value.trim(),
+    dob: form.dob.value,
+    sex: form.sex.value,
+    phone: form.phone?.value || "",
+    email: form.email?.value || "",
+    address: {line1:"",city:"",state:"",zip:""},
+    allergies:"", clinicalNotes:"", weightKg:""
+  };
+  if (!patient.firstName || !patient.lastName || !patient.dob) return;
+  state.patients.unshift(patient);
+  state.wizard.patientId = patient.id;
+  state.wizard.adding = false;
+  save(); route();
+}
+function submitWizard() {
+  if (!state.user || state.user.role!=="doctor") { go("login"); return; }
+  const alerts = wizardAlerts();
+  const blocks = alerts.filter(a => a.severity==="block");
+  const warns = alerts.filter(a => a.severity==="warn");
+  if (blocks.length || warns.some(a => !(state.wizard.ack||[]).includes(a.id))) {
+    state.wizard.step = "review";
+    save(); route();
+    return;
+  }
+  const p = state.patients.find(x => x.id===state.wizard.patientId);
+  const prod = product(state.wizard.productId);
+  const d = doseOf(prod, state.wizard.doseId);
+  const qty = Number(state.wizard.quantity)||1;
+  const order = {
+    id: crypto.randomUUID(),
+    placedAt: Date.now(),
+    status: "Submitted",
+    total: d.price * qty,
+    patientName: patientName(p),
+    patientDob: p.dob,
+    patientId: p.id,
+    practiceName: state.user.practiceName,
+    prescriberName: state.user.prescriberName,
+    npi: state.user.npi,
+    notes: state.wizard.notes||"",
+    address: (p.address&&p.address.line1) ? `${p.address.line1}, ${p.address.city} ${p.address.state}` : state.user.practiceName,
+    scripts: [],
+    items: [{productId:prod.id,doseId:d.id,quantity:qty,productName:prod.name,doseLabel:d.label,unitPrice:d.price}],
+    prescription: {directions:state.wizard.directions,quantity:qty,quantityUnit:state.wizard.unit,refills:Number(state.wizard.refills)||0,daw:!!state.wizard.daw,doseAmount:state.wizard.doseAmount,volumeMl:state.wizard.volumeMl,notes:state.wizard.notes}
+  };
+  state.orders.unshift(order);
+  if (typeof createCrsForOrder==="function") {
+    try { seedLimsIfEmpty(); const crs = createCrsForOrder(order); if (crs) state.crs = (crs||[]).concat(state.crs||[]); } catch {}
+  }
+  notifyForStatus({...order,status:"Received"}, "Received");
+  state.wizard = emptyWizard();
+  save(); go("order", {id: order.id});
+}
+
+function patientsView() {
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  const q = state.wizard.q || "";
+  const list = searchPatientList(q);
+  return `
+    <p class="kicker">Provider portal</p>
+    <div class="row"><h1>Patients</h1><button class="btn" onclick="go('order-new')">+ New medication order</button></div>
+    <input placeholder="Name, DOB, patient ID, or phone" value="${q}" oninput="state.wizard.q=this.value;save();route()">
+    ${list.map(p => `<article class="panel pad" style="margin:.5rem 0"><div class="row"><div><strong>${patientName(p)}</strong><p class="muted">DOB ${dobFmt(p.dob)} · ${p.phone||"No phone"} · ID ${p.id.slice(-6).toUpperCase()}</p></div><button class="btn ghost" onclick="state.wizard=Object.assign(emptyWizard(),{patientId:'${p.id}'});save();go('order-new')">Order for this patient</button></div></article>`).join("")}
+    <button class="btn ghost" onclick="state.wizard.adding=!state.wizard.adding;save();route()">+ Add new patient</button>
+    ${state.wizard.adding ? `<form class="panel pad" style="margin-top:.8rem" onsubmit="event.preventDefault();addHtmlPatient(this)">
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <input name="firstName" required placeholder="First name">
+        <input name="lastName" required placeholder="Last name">
+        <input name="dob" type="date" required>
+        <select name="sex"><option value="unspecified">Sex (optional)</option><option value="female">Female</option><option value="male">Male</option></select>
+      </div>
+      <button class="btn" style="margin-top:.6rem">Save patient</button>
+    </form>` : ""}`;
+}
+
+function orderNew() {
+  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Prescriber / facility login</button>`;
+  if (!state.wizard) state.wizard = emptyWizard();
+  const w = state.wizard;
+  const steps = ["patient","medication","prescription","review"];
+  const labels = {patient:"Patient",medication:"Medication",prescription:"Prescription",review:"Review"};
+  const patient = (state.patients||[]).find(p => p.id===w.patientId);
+  const prod = product(w.productId);
+  const dose = prod && doseOf(prod, w.doseId);
+  const fams = families().filter(f => {
+    const blob = (f.name+" "+f.forms.join(" ")+f.products.map(p=>p.name+" "+p.summary).join(" ")).toLowerCase();
+    return !w.medq || blob.includes(w.medq.toLowerCase());
+  });
+  const selectedFam = fams.find(f => f.name===w.family) || (prod && fams.find(f => f.name===familyOf(prod)));
+  const alerts = wizardAlerts();
+  const nav = steps.map((s,i)=>`<button class="btn ${w.step===s?"":"ghost"}" onclick="setWizard({step:'${s}'})">${i+1}. ${labels[s]}</button>`).join(" ");
+  let body = "";
+  if (w.step==="patient") {
+    body = patient ? `
+      <article class="panel pad">
+        <p><strong>✓ ${patientName(patient)}</strong></p>
+        <p class="muted">DOB: ${dobFmt(patient.dob)}</p>
+        <button class="btn ghost" onclick="setWizard({patientId:null})">Change patient</button>
+        <p style="margin-top:.8rem"><strong>Additional information</strong></p>
+        <details class="extra"><summary>Allergies</summary><textarea oninput="savePatientField('${patient.id}','allergies',this.value)">${patient.allergies||""}</textarea></details>
+        <details class="extra"><summary>Contact information</summary><input placeholder="Phone" value="${patient.phone||""}" oninput="savePatientField('${patient.id}','phone',this.value)"><input placeholder="Email" value="${patient.email||""}" oninput="savePatientField('${patient.id}','email',this.value)"></details>
+        <details class="extra"><summary>Shipping address</summary><input placeholder="Address" value="${(patient.address&&patient.address.line1)||""}" oninput="savePatientField('${patient.id}','address.line1',this.value)"></details>
+        <details class="extra"><summary>Relevant clinical information</summary><input placeholder="Weight (kg)" value="${patient.weightKg||""}" oninput="savePatientField('${patient.id}','weightKg',this.value)"><textarea placeholder="Clinical notes" oninput="savePatientField('${patient.id}','clinicalNotes',this.value)">${patient.clinicalNotes||""}</textarea></details>
+      </article>` : `
+      <label>Search existing patient<input placeholder="Name, DOB, patient ID, or phone" value="${w.q||""}" oninput="state.wizard.q=this.value;save();route()"></label>
+      ${searchPatientList(w.q).map(p => `<article class="panel pad" style="margin:.4rem 0;cursor:pointer" onclick="setWizard({patientId:'${p.id}'})"><strong>${patientName(p)}</strong><p class="muted">DOB ${dobFmt(p.dob)} · ${p.phone||"No phone"}</p></article>`).join("")}
+      <button class="btn ghost" onclick="setWizard({adding:!state.wizard.adding})">+ Add new patient</button>
+      ${w.adding ? `<form class="panel pad" onsubmit="event.preventDefault();addHtmlPatient(this)">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <input name="firstName" required placeholder="First name">
+          <input name="lastName" required placeholder="Last name">
+          <input name="dob" type="date" required>
+          <select name="sex"><option value="unspecified">Sex (optional)</option><option value="female">Female</option><option value="male">Male</option></select>
+        </div>
+        <p class="muted">Phone, address, allergies, and clinical details can be added after selection.</p>
+        <button class="btn">Save patient</button>
+      </form>` : ""}`;
+  } else if (w.step==="medication") {
+    body = `
+      <h2>What would you like to order?</h2>
+      <input placeholder="Search by medication, ingredient, dosage form…" value="${w.medq||""}" oninput="state.wizard.medq=this.value;save();route()">
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:.8rem">
+        ${fams.map(f => `<div class="tile" onclick="pickProduct('${f.products[0].id}')"><strong>${f.name}</strong><p class="muted">${f.forms.join(" · ")}</p></div>`).join("")}
+      </div>
+      ${selectedFam ? `<div class="panel pad" style="margin-top:.8rem">
+        <p><strong>${selectedFam.name}</strong></p>
+        <div class="forms">${selectedFam.products.map(p => `<button class="${prod&&prod.id===p.id?"on":""}" onclick="pickProduct('${p.id}')">${p.form}</button>`).join("")}</div>
+        ${prod ? `<p style="margin-top:.8rem">Strength</p><div class="doses">${prod.doses.map(d => `<label><input type="radio" name="str" ${w.doseId===d.id?"checked":""} onchange="pickProduct('${prod.id}','${d.id}')"> ${d.label}</label>`).join("")}</div>` : ""}
+      </div>` : ""}`;
+  } else if (w.step==="prescription" && prod && dose) {
+    body = `<div class="split">
+      <article class="panel pad"><p class="kicker">Product</p><h2>What the pharmacy is making</h2><p><strong>${familyOf(prod)}</strong></p><p class="muted">${prod.form} · ${dose.label}</p><p class="muted">Operations maps this product to the current formula. Formula numbers, API lots, and process stay in the lab.</p></article>
+      <article class="panel pad">
+        <p class="kicker">Prescription</p><h2>What you are ordering for this patient</h2>
+        <p>${prod.shortName} · ${dose.label}</p>
+        ${isInjection(prod) ? `<div class="panel pad" style="background:var(--bg);margin:.6rem 0"><p><strong>Compounding details (provider view)</strong></p><p class="muted">Dose and volume only.</p>
+          <label>Dose (mg)<input value="${w.doseAmount||""}" oninput="state.wizard.doseAmount=this.value;save()"></label>
+          <label>Volume (mL)<input value="${w.volumeMl||""}" oninput="state.wizard.volumeMl=this.value;save()"></label></div>` : ""}
+        <label>Directions<textarea oninput="state.wizard.directions=this.value;save()">${w.directions||""}</textarea></label>
+        <label>Quantity (${w.unit||""})<input type="number" value="${w.quantity||""}" oninput="state.wizard.quantity=this.value;save()"></label>
+        <label>Refills<input type="number" value="${w.refills||0}" oninput="state.wizard.refills=this.value;save()"></label>
+        <label><input type="checkbox" ${w.daw?"checked":""} onchange="state.wizard.daw=this.checked;save()"> Dispense as written</label>
+        <p class="muted">Prescriber · ${state.user.prescriberName}</p>
+        <label>Prescription notes<textarea oninput="state.wizard.notes=this.value;save()">${w.notes||""}</textarea></label>
+      </article>
+    </div>`;
+  } else if (w.step==="review") {
+    body = `
+      ${patient && prod && dose ? `<article class="panel pad"><p><strong>${patientName(patient)}</strong> · DOB ${dobFmt(patient.dob)}</p><p>${prod.shortName} · ${dose.label}</p><p class="muted">${w.directions||""}</p></article>` : `<p class="muted">Finish the earlier steps first.</p>`}
+      ${alerts.length ? alerts.map(a => `<div class="alert ${a.severity}"><strong>⚠️ ${a.title}</strong><p>${a.body}</p>${a.severity==="warn"?`<label><input type="checkbox" ${ (w.ack||[]).includes(a.id)?"checked":"" } onchange="state.wizard.ack=state.wizard.ack||[]; this.checked ? state.wizard.ack.push('${a.id}') : (state.wizard.ack=state.wizard.ack.filter(x=>x!=='${a.id}')); save(); route()"> I have reviewed this warning</label>`:`<p class="danger">Required correction — go back to fix this.</p>`}</div>`).join("") : `<p class="ok">No clinical alerts on this order.</p>`}`;
+  }
+  const idx = steps.indexOf(w.step);
+  return `
+    <p class="kicker">New medication order</p>
+    <h1>Start with the patient, then the medication</h1>
+    <p class="muted">You prescribe the product. Operations maps it to the formula.</p>
+    <div class="dash-links" style="margin:1rem 0">${nav}</div>
+    ${body}
+    <p style="margin-top:1rem">
+      ${idx>0?`<button class="btn ghost" onclick="setWizard({step:'${steps[idx-1]}'})">Back</button>`:""}
+      ${w.step!=="review"?`<button class="btn" onclick="setWizard({step:'${steps[Math.min(steps.length-1,idx+1)]}'})">Continue</button>`:`<button class="btn" onclick="submitWizard()">Submit to Operations</button>`}
+      <button class="btn ghost" onclick="exitDraft()">Save draft & exit</button>
+    </p>`;
 }
 
 function pharmacy() {
@@ -624,6 +953,10 @@ function order(params) {
     <h1>Order ISO-${o.id.slice(-6).toUpperCase()}</h1>
     <p class="muted">${o.prescriberName} · ${o.practiceName} · Patient ${o.patientName}</p>
     <p class="muted">Status comes from Operations. This ticket does not include compounding instructions.</p>
+    ${o.prescription ? `<div class="split" style="margin:.8rem 0">
+      <article class="panel pad"><p class="kicker">Product</p><h2>What the pharmacy is making</h2><p>${o.items[0]?.productName} · ${o.items[0]?.doseLabel}</p><p class="muted">Formula, lots, and process stay in Operations.</p></article>
+      <article class="panel pad"><p class="kicker">Prescription</p><h2>What was ordered for this patient</h2><p>${o.prescription.directions||""}</p><p class="muted">Qty ${o.prescription.quantity} ${o.prescription.quantityUnit||""} · ${o.prescription.refills||0} refills${o.prescription.daw?" · DAW":""}${o.prescription.doseAmount?` · Dose ${o.prescription.doseAmount} mg`:""}${o.prescription.volumeMl?` · Volume ${o.prescription.volumeMl} mL`:""}</p></article>
+    </div>` : ""}
     <div class="panel pad">
       ${o.items.map(i=>`<p class="row"><span>${i.productName}<br><span class="muted">${i.doseLabel} × ${i.quantity}</span></span><span>${money(i.unitPrice*i.quantity)}</span></p>`).join("")}
       <p class="row"><strong>Total</strong><strong>${money(o.total)}</strong></p>

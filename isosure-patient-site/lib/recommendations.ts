@@ -4,6 +4,8 @@ import type { Order, Product } from "./types";
 const COMPLEMENTS: Record<string, string[]> = {
   "estradiol-cream": ["progesterone-caps", "dhea-caps", "pregnenolone"],
   "progesterone-caps": ["estradiol-cream", "melatonin-troche", "dhea-caps"],
+  "progesterone-cream": ["estradiol-cream", "progesterone-caps"],
+  "semaglutide-injection": ["semaglutide-troche", "nad-spray"],
   "testosterone-gel": ["dhea-caps", "sildenafil-troche", "pregnenolone"],
   "thyroid-combo": ["ldn-caps", "glutathione", "dhea-caps"],
   "ketoprofen-cream": ["gabapentin-topical", "diclofenac-gel"],

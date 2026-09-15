@@ -16,8 +16,12 @@ import {
   seedDemoDocuments,
   seedDemoNotifications,
   seedDemoOrders,
+  seedDemoPatients,
   seedDemoRefills,
 } from "./demo-data";
+import { canSubmitOrder, evaluateOrderAlerts } from "./order-alerts";
+import { orderableMeta } from "./orderables";
+import { patientDisplayName, shippingAddress } from "./patients";
 import {
   INGREDIENTS as DEFAULT_INGREDIENTS,
   MFRS as DEFAULT_MFRS,
@@ -45,9 +49,12 @@ import type {
   Doctor,
   ExchangeDocument,
   Order,
+  OrderDraft,
   OrderStatus,
+  Patient,
   PharmacyUser,
   PortalNotification,
+  Prescription,
   Product,
   RefillRequest,
   RefillStatus,
@@ -59,6 +66,8 @@ type Persisted = {
   cart: CartItem[];
   orders: Order[];
   products: Product[];
+  patients: Patient[];
+  drafts: OrderDraft[];
   scripts: ExchangeDocument[];
   documents: ExchangeDocument[];
   notifications: PortalNotification[];
@@ -77,6 +86,8 @@ const emptyState: Persisted = {
   cart: [],
   orders: [],
   products: DEFAULT_FORMULARY,
+  patients: [],
+  drafts: [],
   scripts: [],
   documents: [],
   notifications: [],
@@ -121,6 +132,15 @@ type StoreValue = Persisted & {
   removeProduct: (id: string) => void;
   replaceFormulary: (products: Product[]) => void;
   getProduct: (idOrSlug: string) => Product | undefined;
+  upsertPatient: (patient: Patient) => Patient;
+  saveDraft: (draft: OrderDraft) => void;
+  deleteDraft: (id: string) => void;
+  submitMedicationOrder: (input: {
+    patientId: string;
+    prescription: Prescription;
+    acknowledgedAlertIds: string[];
+    draftId?: string;
+  }) => { ok: true; order: Order } | { ok: false; error: string };
   assignMfr: (crId: string, mfrId: string) => void;
   advanceBatch: (crId: string) => string | null;
   addEnvironmentLog: (log: Omit<EnvironmentLog, "id">) => void;
@@ -130,17 +150,30 @@ type StoreValue = Persisted & {
 
 const StoreContext = createContext<StoreValue | null>(null);
 
+function mergeFormulary(stored: Product[] | undefined) {
+  if (!stored?.length) return DEFAULT_FORMULARY;
+  const byId = new Map(stored.map((item) => [item.id, productFromPartial(item)]));
+  for (const product of DEFAULT_FORMULARY) {
+    if (!byId.has(product.id)) byId.set(product.id, product);
+  }
+  return [...byId.values()];
+}
+
 function loadState(): Persisted {
   if (typeof window === "undefined") return emptyState;
   try {
-    const raw = window.localStorage.getItem(PHASE2.storageKey);
+    const raw =
+      window.localStorage.getItem(PHASE2.storageKey) ||
+      window.localStorage.getItem(PHASE2.previousStorageKey);
     if (!raw) return emptyState;
     const parsed = JSON.parse(raw) as Partial<Persisted>;
     return {
       user: parsed.user ?? null,
       cart: parsed.cart ?? [],
       orders: parsed.orders ?? [],
-      products: parsed.products?.length ? parsed.products : DEFAULT_FORMULARY,
+      products: mergeFormulary(parsed.products),
+      patients: parsed.patients ?? [],
+      drafts: parsed.drafts ?? [],
       scripts: parsed.scripts ?? [],
       documents: parsed.documents ?? [],
       notifications: parsed.notifications ?? [],
@@ -228,6 +261,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         user,
         orders: seedIfEmpty(prev.orders, seedDemoOrders()),
+        patients: seedIfEmpty(prev.patients, seedDemoPatients()),
         documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
         notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
         refills: seedIfEmpty(prev.refills, seedDemoRefills()),
@@ -256,6 +290,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       user: demoPharmacy(),
       orders: seedIfEmpty(prev.orders, seedDemoOrders()),
+      patients: seedIfEmpty(prev.patients, seedDemoPatients()),
       documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
       notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
       refills: seedIfEmpty(prev.refills, seedDemoRefills()),
@@ -501,6 +536,131 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  const upsertPatient: StoreValue["upsertPatient"] = useCallback(
+    (patient) => {
+      const next: Patient = {
+        ...patient,
+        id: patient.id || crypto.randomUUID(),
+        createdAt: patient.createdAt || new Date().toISOString(),
+      };
+      commit((prev) => {
+        const exists = prev.patients.some((item) => item.id === next.id);
+        return {
+          ...prev,
+          patients: exists
+            ? prev.patients.map((item) => (item.id === next.id ? next : item))
+            : [next, ...prev.patients],
+        };
+      });
+      return next;
+    },
+    [commit],
+  );
+
+  const saveDraft: StoreValue["saveDraft"] = useCallback(
+    (draft) => {
+      if (!draft.patientId && !draft.prescription.productId) return;
+      commit((prev) => {
+        const next = { ...draft, updatedAt: new Date().toISOString() };
+        const exists = prev.drafts.some((item) => item.id === next.id);
+        return {
+          ...prev,
+          drafts: exists
+            ? prev.drafts.map((item) => (item.id === next.id ? next : item))
+            : [next, ...prev.drafts],
+        };
+      });
+    },
+    [commit],
+  );
+
+  const deleteDraft: StoreValue["deleteDraft"] = useCallback(
+    (id) => {
+      commit((prev) => ({ ...prev, drafts: prev.drafts.filter((item) => item.id !== id) }));
+    },
+    [commit],
+  );
+
+  const submitMedicationOrder: StoreValue["submitMedicationOrder"] = useCallback(
+    ({ patientId, prescription, acknowledgedAlertIds, draftId }) => {
+      const doctor = state.user?.role === "doctor" ? state.user : null;
+      const patient = state.patients.find((item) => item.id === patientId) || null;
+      const product = state.products.find((item) => item.id === prescription.productId);
+      const dose = product?.doses.find((item) => item.id === prescription.doseId) || null;
+      const alerts = evaluateOrderAlerts({
+        patient,
+        product: product || null,
+        dose,
+        prescription,
+        orders: state.orders,
+      });
+      if (!canSubmitOrder(alerts, acknowledgedAlertIds)) {
+        const blocker = alerts.find((item) => item.severity === "block");
+        return { ok: false as const, error: blocker?.body || "Review and acknowledge alerts before submitting." };
+      }
+      if (!doctor || !patient || !product || !dose) {
+        return { ok: false as const, error: "Provider login, patient, and medication are required." };
+      }
+      const meta = orderableMeta(product);
+      const unitPrice = dose.price;
+      const quantity = Number(prescription.quantity) || 1;
+      const item = {
+        productId: product.id,
+        doseId: dose.id,
+        quantity,
+        productName: product.name,
+        doseLabel: dose.label,
+        unitPrice,
+      };
+      const subtotal = unitPrice * quantity;
+      const shipping = subtotal >= 75 ? 0 : 8;
+      const order: Order = {
+        id: crypto.randomUUID(),
+        placedAt: new Date().toISOString(),
+        items: [item],
+        subtotal,
+        shipping,
+        total: subtotal + shipping,
+        status: "Submitted",
+        address: shippingAddress(patient, doctor.practiceName),
+        notes: prescription.notes,
+        patientName: patientDisplayName(patient),
+        patientDob: patient.dob,
+        patientId: patient.id,
+        practiceName: doctor.practiceName,
+        prescriberName: doctor.prescriberName,
+        npi: doctor.npi,
+        scripts: [],
+        prescription: {
+          ...prescription,
+          quantityUnit: prescription.quantityUnit || meta.quantityUnit,
+        },
+      };
+      const receivedNote = notificationForStatus({ ...order, status: "Received" }, "Received");
+      const pharmacist = "ISOSure lab";
+      commit((prev) => {
+        const crs = createCrsForOrder({
+          order,
+          mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
+          ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+          pharmacist,
+        });
+        return {
+          ...prev,
+          drafts: draftId ? prev.drafts.filter((item) => item.id !== draftId) : prev.drafts,
+          orders: [order, ...prev.orders],
+          notifications: receivedNote ? [receivedNote, ...prev.notifications] : prev.notifications,
+          crs: [...crs, ...prev.crs],
+          lots: prev.lots.length ? prev.lots : seedLots(),
+          mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
+          ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+        };
+      });
+      return { ok: true as const, order };
+    },
+    [commit, state.orders, state.patients, state.products, state.user],
+  );
+
   const assignMfr: StoreValue["assignMfr"] = useCallback(
     (crId, mfrId) => {
       commit((prev) => ({
@@ -631,6 +791,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removeProduct,
       replaceFormulary,
       getProduct,
+      upsertPatient,
+      saveDraft,
+      deleteDraft,
+      submitMedicationOrder,
       assignMfr,
       advanceBatch,
       addEnvironmentLog,
@@ -664,6 +828,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removeProduct,
       replaceFormulary,
       getProduct,
+      upsertPatient,
+      saveDraft,
+      deleteDraft,
+      submitMedicationOrder,
       assignMfr,
       advanceBatch,
       addEnvironmentLog,

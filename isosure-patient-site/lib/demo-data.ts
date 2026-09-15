@@ -2,10 +2,12 @@ import type {
   Doctor,
   ExchangeDocument,
   Order,
+  Patient,
   PharmacyUser,
   PortalNotification,
   RefillRequest,
 } from "./types";
+import { EMPTY_ADDRESS } from "./patients";
 
 export function demoDoctor(): Doctor {
   return {
@@ -57,6 +59,67 @@ const address = {
   zip: "97214",
 };
 
+export function seedDemoPatients(): Patient[] {
+  return [
+    {
+      id: "pat-avery",
+      firstName: "Avery",
+      lastName: "Nguyen",
+      dob: "1986-04-12",
+      sex: "female",
+      phone: "(503) 555-0112",
+      email: "avery.nguyen@example.com",
+      address: { line1: "88 Division St", line2: "", city: "Portland", state: "OR", zip: "97214" },
+      allergies: "Penicillin",
+      clinicalNotes: "On estradiol + progesterone HRT.",
+      weightKg: "68",
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
+    },
+    {
+      id: "pat-sam",
+      firstName: "Sam",
+      lastName: "Rivera",
+      dob: "1979-11-02",
+      sex: "male",
+      phone: "(503) 555-0177",
+      email: "sam.rivera@example.com",
+      address: { line1: "12 Belmont Ave", line2: "", city: "Portland", state: "OR", zip: "97215" },
+      allergies: "Naltrexone",
+      clinicalNotes: "LDN for inflammatory symptoms.",
+      weightKg: "91",
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
+    },
+    {
+      id: "pat-lee",
+      firstName: "Lee",
+      lastName: "Park",
+      dob: "1991-07-19",
+      sex: "female",
+      phone: "(503) 555-0144",
+      email: "lee.park@example.com",
+      address: { ...EMPTY_ADDRESS, line1: "410 Hawthorne Blvd", city: "Portland", state: "OR", zip: "97214" },
+      allergies: "",
+      clinicalNotes: "Ketoprofen cream for knee pain.",
+      weightKg: "62",
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
+    },
+    {
+      id: "pat-john",
+      firstName: "John",
+      lastName: "Smith",
+      dob: "1980-04-12",
+      sex: "male",
+      phone: "(503) 555-0188",
+      email: "john.smith@example.com",
+      address: { line1: "220 Stark St", line2: "Apt 4", city: "Portland", state: "OR", zip: "97204" },
+      allergies: "",
+      clinicalNotes: "",
+      weightKg: "",
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+    },
+  ];
+}
+
 export function seedDemoOrders(): Order[] {
   return [
     {
@@ -69,6 +132,7 @@ export function seedDemoOrders(): Order[] {
       notes: "Match last fill.",
       patientName: "Avery Nguyen",
       patientDob: "1986-04-12",
+      patientId: "pat-avery",
       practiceName: "Hawthorne Family Medicine",
       prescriberName: "Dr. Maya Ellison, MD",
       npi: "1234567890",
@@ -103,6 +167,7 @@ export function seedDemoOrders(): Order[] {
       notes: "",
       patientName: "Sam Rivera",
       patientDob: "1979-11-02",
+      patientId: "pat-sam",
       practiceName: "Hawthorne Family Medicine",
       prescriberName: "Dr. Maya Ellison, MD",
       npi: "1234567890",
@@ -129,6 +194,7 @@ export function seedDemoOrders(): Order[] {
       notes: "",
       patientName: "Lee Park",
       patientDob: "1991-07-19",
+      patientId: "pat-lee",
       practiceName: "Hawthorne Family Medicine",
       prescriberName: "Dr. Maya Ellison, MD",
       npi: "1234567890",

@@ -45,6 +45,37 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         Status comes from Operations. This ticket does not include compounding instructions.
       </p>
 
+      {order.prescription ? (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <article className="rounded-xl border border-line bg-paper p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Product</p>
+            <h2 className="mt-1 text-lg font-semibold">What the pharmacy is making</h2>
+            <p className="mt-3">
+              {order.items[0]?.productName} · {order.items[0]?.doseLabel}
+            </p>
+            <p className="mt-2 text-sm text-ink-soft">
+              Formula, lots, and process stay in Operations.
+            </p>
+          </article>
+          <article className="rounded-xl border border-line bg-paper p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Prescription</p>
+            <h2 className="mt-1 text-lg font-semibold">What was ordered for this patient</h2>
+            <p className="mt-3 text-sm">{order.prescription.directions}</p>
+            <p className="mt-2 text-sm text-ink-soft">
+              Qty {order.prescription.quantity} {order.prescription.quantityUnit} · {order.prescription.refills} refill
+              {order.prescription.refills === 1 ? "" : "s"}
+              {order.prescription.daw ? " · DAW" : ""}
+            </p>
+            {order.prescription.doseAmount ? (
+              <p className="mt-2 text-sm text-ink-soft">
+                Dose {order.prescription.doseAmount} mg
+                {order.prescription.volumeMl ? ` · Volume ${order.prescription.volumeMl} mL` : ""}
+              </p>
+            ) : null}
+          </article>
+        </div>
+      ) : null}
+
       <div className="mt-6 rounded-xl border border-line bg-paper p-5">
         <ul className="space-y-3 text-sm">
           {order.items.map((item) => (

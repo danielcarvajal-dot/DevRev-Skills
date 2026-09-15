@@ -18,7 +18,23 @@ export type Form =
   | "Troche"
   | "Suspension"
   | "Nasal spray"
-  | "Topical";
+  | "Topical"
+  | "Injection"
+  | "Suppository";
+
+/** How the provider order form behaves. Pharmacy maps this to an MFR internally. */
+export type WorkflowKind =
+  | "capsule"
+  | "cream"
+  | "gel"
+  | "troche"
+  | "injection"
+  | "suppository"
+  | "suspension"
+  | "spray"
+  | "topical";
+
+export type Sex = "female" | "male" | "other" | "unspecified";
 
 export type Dose = {
   id: string;
@@ -41,6 +57,17 @@ export type Product = {
   doses: Dose[];
   featured?: boolean;
   requiresRx: boolean;
+  /** Prescribable family shown to the provider (e.g. Progesterone, Semaglutide). */
+  family?: string;
+  familySlug?: string;
+  searchTerms?: string[];
+  workflowKind?: WorkflowKind;
+  startingDoseMg?: number;
+  requireWeight?: boolean;
+  allergyTags?: string[];
+  defaultDirections?: string;
+  quantityUnit?: string;
+  defaultQuantity?: number;
 };
 
 export type CartItem = {
@@ -116,6 +143,53 @@ export type OrderStatus =
   | "OutForDelivery"
   | "Delivered";
 
+export type Patient = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dob: string;
+  sex: Sex;
+  phone: string;
+  email: string;
+  address: Address;
+  allergies: string;
+  clinicalNotes: string;
+  weightKg: string;
+  createdAt: string;
+};
+
+/** What the provider is ordering for this patient — not the pharmacy formula. */
+export type Prescription = {
+  productId: string;
+  doseId: string;
+  directions: string;
+  quantity: number;
+  quantityUnit: string;
+  refills: number;
+  daw: boolean;
+  notes: string;
+  /** Injection / concentration-based products. */
+  doseAmount: string;
+  volumeMl: string;
+};
+
+export type OrderDraft = {
+  id: string;
+  patientId: string | null;
+  prescription: Partial<Prescription>;
+  acknowledgedAlertIds: string[];
+  updatedAt: string;
+};
+
+export type AlertSeverity = "block" | "warn";
+
+export type OrderAlert = {
+  id: string;
+  severity: AlertSeverity;
+  title: string;
+  body: string;
+};
+
 export type Order = {
   id: string;
   placedAt: string;
@@ -128,10 +202,12 @@ export type Order = {
   notes: string;
   patientName: string;
   patientDob: string;
+  patientId?: string;
   practiceName: string;
   prescriberName: string;
   npi: string;
   scripts: ExchangeDocument[];
+  prescription?: Prescription;
 };
 
 export type NotificationKind =

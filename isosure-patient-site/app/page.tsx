@@ -21,18 +21,18 @@ export default function HomePage() {
             <Link href="/login" className="rounded-lg bg-purple-mid px-4 py-2 text-sm font-semibold">
               Prescriber or facility login
             </Link>
-            <Link href="/catalog" className="rounded-lg border border-white/30 px-4 py-2 text-sm">
-              Submit an order
+            <Link href="/order/new" className="rounded-lg border border-white/30 px-4 py-2 text-sm">
+              New medication order
             </Link>
           </div>
         </div>
         <img src={BRAND.logoInverse} alt="" className="mx-auto w-full max-w-xs" />
       </section>
       <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Link href="/catalog" className="rounded-xl border border-line bg-paper p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Submit</p>
-          <h2 className="mt-2 text-lg font-semibold">Order submission</h2>
-          <p className="mt-2 text-sm text-ink-soft">Select published strengths and send the request to Operations.</p>
+        <Link href="/order/new" className="rounded-xl border border-line bg-paper p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Order</p>
+          <h2 className="mt-2 text-lg font-semibold">New medication order</h2>
+          <p className="mt-2 text-sm text-ink-soft">Start with the patient, then the product. Operations compounds.</p>
         </Link>
         <Link href="/account" className="rounded-xl border border-line bg-paper p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Status</p>

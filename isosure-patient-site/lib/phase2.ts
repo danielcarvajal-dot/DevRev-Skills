@@ -7,7 +7,8 @@
  *
  * Planned production endpoints (not called yet):
  *   POST /api/v1/auth/session
- *   GET  /api/v1/formulary
+ *   GET  /api/v1/patients
+ *   POST /api/v1/patients
  *   POST /api/v1/orders
  *   GET  /api/v1/orders
  *   POST /api/v1/orders/:id/refills
@@ -20,11 +21,12 @@
  *   GET  /api/v1/ops/inventory
  *   POST /api/v1/ops/environment
  *
- * Current prototype storage: localStorage key `isosure.practice.v4`.
+ * Current prototype storage: localStorage key `isosure.practice.v5`.
  */
 export const PHASE2 = {
   status: "prepared",
-  storageKey: "isosure.practice.v4",
+  storageKey: "isosure.practice.v5",
+  previousStorageKey: "isosure.practice.v4",
   productionReady: false,
   providerIsThinClient: true,
   operationsIsLims: true,
