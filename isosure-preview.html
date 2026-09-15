@@ -8,15 +8,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --purple-deep: #3D1E68;
-      --purple: #4B2475;
-      --purple-mid: #9267B9;
-      --purple-soft: #EDE6F5;
-      --ink: #1F1630;
-      --muted: #6B6280;
-      --line: #E4DDEF;
-      --paper: #FFFFFF;
-      --bg: #F7F4FB;
+      --purple-deep: #1C3324;
+      --purple: #243C28;
+      --purple-mid: #8A5228;
+      --purple-soft: #E8EDE3;
+      --ink: #1A241C;
+      --muted: #5C6758;
+      --line: #DDD8CC;
+      --paper: #FFFEFA;
+      --bg: #F5F3EB;
       --danger: #9B1C3A;
       --ok: #2F6D4F;
     }
@@ -30,7 +30,7 @@
       display: flex; justify-content: space-between; align-items: center; gap: 1rem;
       padding: .65rem 1.25rem; background: #fff; border-bottom: 1px solid var(--line);
     }
-    .logo { height: 56px; width: auto; display: block; cursor: pointer; }
+    .logo { height: 72px; width: auto; display: block; cursor: pointer; }
     nav { display: flex; gap: 1.1rem; color: var(--muted); font-size: .92rem; font-weight: 500; }
     nav a:hover { color: var(--purple); }
     .actions { display: flex; gap: .5rem; align-items: center; }
@@ -49,7 +49,7 @@
     footer { background: var(--purple-deep); color: #fff; padding: 2rem 1.25rem; }
     .footer-inner { width: min(1120px, 100%); margin: 0 auto; display: grid; gap: 1rem; }
     @media (min-width: 800px) { .footer-inner { grid-template-columns: 220px 1fr 1fr; align-items: center; } }
-    @media (max-width: 799px) { nav { display: none; } .logo { height: 44px; } }
+    @media (max-width: 799px) { nav { display: none; } .logo { height: 56px; } }
     .kicker { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--purple-mid); font-weight: 600; }
     h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin: .25rem 0 .6rem; }
     h2 { font-size: 1.2rem; }
@@ -63,7 +63,7 @@
       border-radius: 16px; padding: 1.4rem; overflow: hidden;
     }
     @media (min-width: 860px) { .hero { grid-template-columns: 1.2fr .8fr; align-items: center; } }
-    .hero .muted { color: #d9ccec; }
+    .hero .muted { color: #e8ede3; }
     .tile { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; cursor: pointer; }
     .tile:hover { border-color: var(--purple-mid); }
     input, select, textarea {
@@ -72,7 +72,7 @@
     label { display: block; font-size: .88rem; font-weight: 500; margin-bottom: .65rem; }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: .85rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-    th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: #fbf9fe; }
+    th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: #f7f5ee; }
     .doses { display: flex; flex-wrap: wrap; gap: .45rem .8rem; }
     .doses label { margin: 0; font-weight: 400; display: flex; gap: .35rem; align-items: center; cursor: pointer; }
     .qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; }
@@ -82,7 +82,8 @@
     .ok { color: var(--ok); }
     .split { display: grid; gap: 1rem; }
     @media (min-width: 860px) { .split { grid-template-columns: 220px 1fr; } .split.checkout { grid-template-columns: 1.15fr .85fr; } }
-    .drop { border: 1px dashed var(--purple-mid); border-radius: 10px; padding: 1rem; background: #fcfaff; }
+    .drop { border: 1px dashed var(--purple-mid); border-radius: 10px; padding: 1rem; background: #f8f6ef; }
+    .tagline { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #e8ede3; }
     .alert { border-radius: 10px; padding: .85rem 1rem; margin: .5rem 0; }
     .alert.warn { background: #fff8eb; border: 1px solid #e6c37a; }
     .alert.block { background: #fdecef; border: 1px solid #e8a0b0; }
@@ -106,10 +107,10 @@
   <main id="app"></main>
   <footer>
     <div class="footer-inner">
-      <img src="brand/isosure-logo-inverse.png" alt="ISOSure" style="height:92px;width:auto" />
+      <img src="brand/isosure-logo-inverse.png" alt="ISOSure" style="height:112px;width:auto" />
       <div>
         <p>ISOSure Consulting</p>
-        <p class="tagline">Consulting · Compliance · Compounding · Software</p>
+        <p class="tagline">Compliance · Quality · Growth</p>
         <p>pharmacy@isosure.example · (800) 555-4767</p>
       </div>
       <div>
@@ -325,7 +326,7 @@ function home() {
   return `
     <div class="hero">
       <div>
-        <p class="kicker" style="color:#c9b6e3">Provider portal · External thin client</p>
+        <p class="kicker" style="color:#e8ede3">Provider portal · External thin client</p>
         <h1 style="color:#fff">Prescribers submit. Operations compounds.</h1>
         <p class="muted">External-facing access for prescribers and facilities: login, order submission, status, refill requests, document exchange, and notifications. This portal does not hold clinical or compounding logic.</p>
         <p>
@@ -980,7 +981,7 @@ function notifications() {
     <h1>Notifications from Operations</h1>
     <p class="muted">Backorder, clarification needed, ready-for-pickup, and delivery alerts. The portal only displays what Operations sends.</p>
     ${notes.length ? notes.map(n => `
-      <article class="panel pad" style="margin:.7rem 0;${n.read?"":"border-color:var(--purple-mid);background:#fcfaff"}">
+      <article class="panel pad" style="margin:.7rem 0;${n.read?"":"border-color:var(--purple-mid);background:#f8f6ef"}">
         <div class="row">
           <div>
             <p class="kicker">${NOTE_LABEL[n.kind]||n.kind}</p>

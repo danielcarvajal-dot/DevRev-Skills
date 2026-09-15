@@ -20,7 +20,7 @@ export function Header() {
     <header className="sticky top-0 z-30 border-b border-line bg-paper">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
         <Link href="/" className="shrink-0">
-          <img src={BRAND.logo} alt={BRAND.legalName} className="h-14 w-auto" />
+          <img src={BRAND.logo} alt={BRAND.legalName} className="h-16 w-auto md:h-[4.5rem]" />
         </Link>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
           {isPharmacy ? (

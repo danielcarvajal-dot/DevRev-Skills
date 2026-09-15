@@ -5,7 +5,7 @@ export const BRAND = {
   nameSure: "Sure",
   legalName: "ISOSure Consulting",
   wordmark: "CONSULTING",
-  tagline: "Consulting · Compliance · Compounding · Software",
+  tagline: "Compliance · Quality · Growth",
   phone: "(800) 555-4767",
   email: "pharmacy@isosure.example",
   hours: "Mon–Fri 8am–6pm",
@@ -16,9 +16,9 @@ export const BRAND = {
 } as const;
 
 export const COLORS = {
-  purpleDeep: "#3D1E68",
-  purple: "#4B2475",
-  purpleMid: "#9267B9",
-  purpleSoft: "#EDE6F5",
-  ink: "#1F1630",
+  purpleDeep: "#1C3324",
+  purple: "#243C28",
+  purpleMid: "#8A5228",
+  purpleSoft: "#E8EDE3",
+  ink: "#1A241C",
 } as const;
