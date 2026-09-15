@@ -29,6 +29,8 @@ export type AgentResponse = {
   otp_sent?: boolean;
   otp_destination?: string;
   otp_verified?: boolean;
+  ticket_id?: string;
+  ticket_url?: string;
   error?: string;
 };
 
@@ -255,6 +257,11 @@ export function formatAgentResponse(input: {
   if (parts.length === 0 && result.action === 'reset') {
     parts.push('Account recovery finished.');
   }
+  if (result.ticketId && result.ticketUrl) {
+    parts.push(`Created ticket ${result.ticketId}. Open it here: ${result.ticketUrl}`);
+  } else if (result.ticketError) {
+    parts.push(`Could not create the follow-up ticket: ${result.ticketError}`);
+  }
 
   return {
     ok: true,
@@ -264,5 +271,7 @@ export function formatAgentResponse(input: {
     reset_email_sent: result.resetEmailSent || undefined,
     temporary_password: result.temporaryPassword,
     otp_verified: result.otpVerified || undefined,
+    ticket_id: result.ticketId,
+    ticket_url: result.ticketUrl,
   };
 }

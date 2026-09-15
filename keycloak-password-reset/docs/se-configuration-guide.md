@@ -80,7 +80,7 @@ anything.
 | Computer | `ai_agent/4`, slug `computer` |
 | Password Reset Assistant | `ai_agent/6` |
 | Skills | `KeycloakCheckAccount` (35), `KeycloakSendUnlockOtp` (41), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
-| Published skill versions | **33.12 / 35.9 / 36.13 / 41.9** (or later) |
+| Published skill versions | **33.13 / 35.9 / 36.14 / 41.9** (or later) |
 | Realm | `account-unlock` |
 | Client | `unlock-agent` (confidential, service account) |
 
@@ -382,6 +382,7 @@ connection **and** the three skill workflows before you join.
 | Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.13+ / 33.12+** and a **new** Computer chat. Unlock now re-enables after OTP. |
 | Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.13+ / 33.12+** send literal `{"enabled":true}` and jq the user id. |
 | Unlock runs with no OTP | Old session. Start a new Computer chat. Unlock **36.13+** requires `otp`. |
+| No follow-up ticket after unlock | Start a **new** Computer chat. Unlock **36.14+** and Reset **33.13+** create a ticket and return `ticket_url` (`https://app.devrev.ai/dcm-test/works/TKT-xx`). |
 | OTP email never arrives | Daniel’s code goes to `carvajaldae@gmail.com` via DevRev ticket **TKT-23** (skill **41.9+**). FormSubmit is Cloudflare-blocked from Computer skills even when the run says sent. Check Gmail Promotions/Spam for a DevRev notification. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 

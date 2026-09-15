@@ -21,6 +21,7 @@ Train SEs with these two documents. The configuration guide stands up the
   ([PDF](docs/se-configuration-guide.pdf))
 - [Demo Computer as the service desk teammate](docs/se-demo-script.md)
   ([PDF](docs/se-demo-script.pdf))
+- [Create a recovery ticket after unlock](docs/create-recovery-ticket-workflow.md)
 
 Regenerate the PDFs after you edit the markdown:
 
@@ -36,7 +37,9 @@ in chat. Skills `KeycloakCheckAccount`, `KeycloakSendUnlockOtp`,
 `{ "username": "..." }`. Unlock and reset also require `{ "otp": "123456" }`.
 Computer emails a 6-digit code (Daniel’s inbox is
 `carvajaldae@gmail.com`), waits for the user to paste it, then re-enables
-a permanent lockout (`enabled: false`). (`agent_handler` is the snap-in
+a permanent lockout (`enabled: false`). After unlock or reset it creates
+a DevRev ticket and returns `https://app.devrev.ai/dcm-test/works/TKT-xx`
+so Computer can show a working link. (`agent_handler` is the snap-in
 JSON entrypoint for check, send_otp, unlock, and reset.)
 
 See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).

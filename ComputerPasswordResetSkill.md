@@ -55,8 +55,13 @@ rejected on that public URL and is not stored on the skill.
 5. Confirm the account is enabled. Do not dump client secrets, tokens, or API internals.
 
 Published skill versions in **dcm-test**: Check **35.9**, Send OTP **41.9**,
-Unlock **36.13**, Reset **33.12**. Unlock and reset require `otp`.
+Unlock **36.14**, Reset **33.13**. Unlock and reset require `otp`.
 Start a new Computer chat after those publishes.
+
+After a successful unlock or reset, Computer **creates a DevRev ticket**
+and returns `ticket_id` plus `ticket_url`
+(`https://app.devrev.ai/dcm-test/works/TKT-xx`). Show the user that
+working link in the same chat.
 
 For Daniel only, `KeycloakSendUnlockOtp` **41.9** emails
 `carvajaldae@gmail.com` through DevRev ticket **TKT-23** (external

@@ -4,7 +4,7 @@ import { AgentResponse, formatAgentResponse, parseAgentRequest } from '../../lib
 import { requireLookup } from '../../lib/command';
 import { resolveConfig } from '../../lib/config';
 import { KeycloakClient } from '../../lib/keycloak';
-import { notifyContextFromEvent } from '../../lib/notify';
+import { createRecoveryTicket, notifyContextFromEvent } from '../../lib/notify';
 import { deliverUnlockOtp } from '../../lib/otp';
 import { RecoveryAction } from '../../lib/types';
 
@@ -45,6 +45,27 @@ export async function handleEvent(event: any): Promise<AgentResponse> {
       sendResetEmail: action === 'reset' && !request.temp,
       setTempPassword: action === 'reset' && request.temp,
     });
+
+    const notify = notifyContextFromEvent(event);
+    if (notify.endpoint && notify.token) {
+      try {
+        const ticket = await createRecoveryTicket(
+          { endpoint: notify.endpoint, token: notify.token },
+          {
+            action,
+            identity: identity.email || identity.username || identity.userId || result.email,
+            summary:
+              action === 'unlock'
+                ? 'Computer finished a Keycloak account unlock.'
+                : 'Computer finished a Keycloak password reset.',
+          }
+        );
+        result.ticketId = ticket.ticketId;
+        result.ticketUrl = ticket.ticketUrl;
+      } catch (ticketError) {
+        result.ticketError = ticketError instanceof Error ? ticketError.message : 'Could not create the follow-up ticket';
+      }
+    }
 
     return formatAgentResponse({ action, result });
   } catch (error) {

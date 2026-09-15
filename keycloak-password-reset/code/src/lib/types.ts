@@ -54,6 +54,9 @@ export type RecoveryResult = {
   otpDestination?: string;
   otpEmailError?: string;
   otpVerified?: boolean;
+  ticketId?: string;
+  ticketUrl?: string;
+  ticketError?: string;
 };
 
 export type HttpResponse<T = unknown> = {

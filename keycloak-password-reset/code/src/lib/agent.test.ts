@@ -183,6 +183,35 @@ describe('formatAgentResponse', () => {
     expect(response.message).toContain('carvajaldae@gmail.com');
   });
 
+  it('includes a working ticket link after unlock', () => {
+    const response = formatAgentResponse({
+      action: 'unlock',
+      result: {
+        action: 'unlock',
+        email: 'daniel.carvajal@devrev.ai',
+        user: {
+          id: 'user-daniel',
+          email: 'daniel.carvajal@devrev.ai',
+          username: 'danielcarvajal',
+          enabled: true,
+        },
+        lockout: {},
+        wasLocked: true,
+        wasDisabled: true,
+        unlocked: true,
+        enabled: true,
+        resetEmailSent: false,
+        otpVerified: true,
+        ticketId: 'TKT-25',
+        ticketUrl: 'https://app.devrev.ai/dcm-test/works/TKT-25',
+      },
+    });
+    expect(response.ok).toBe(true);
+    expect(response.ticket_id).toBe('TKT-25');
+    expect(response.ticket_url).toBe('https://app.devrev.ai/dcm-test/works/TKT-25');
+    expect(response.message).toContain('https://app.devrev.ai/dcm-test/works/TKT-25');
+  });
+
   it('returns a structured error without throwing', () => {
     const response = formatAgentResponse({
       action: 'check',

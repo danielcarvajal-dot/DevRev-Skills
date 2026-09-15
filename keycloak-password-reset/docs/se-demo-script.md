@@ -212,9 +212,11 @@ the same chat.
 
 **Show**
 
-Computer confirms the lockout is cleared only after that code. If you
-locked `testuser` instead, use `unlock testuser` and say you are helping
-a named employee.
+Computer confirms the lockout is cleared only after that code, then
+opens a follow-up ticket and shows the working link
+(`https://app.devrev.ai/dcm-test/works/TKT-xx`) in the same Computer
+chat. If you locked `testuser` instead, use `unlock testuser` and say
+you are helping a named employee.
 
 **Say**
 

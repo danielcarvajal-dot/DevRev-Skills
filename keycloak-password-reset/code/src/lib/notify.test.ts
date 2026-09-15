@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-import { sendDevrevOtpNotification, sendOtpViaTicketComment, OTP_MAIL_TICKET } from './notify';
+import {
+  OTP_MAIL_TICKET,
+  RECOVERY_TICKET_APP_BASE,
+  createRecoveryTicket,
+  sendDevrevOtpNotification,
+  sendOtpViaTicketComment,
+} from './notify';
 
 jest.mock('axios');
 
@@ -67,6 +73,30 @@ describe('sendDevrevOtpNotification', () => {
         body: expect.stringContaining('482193'),
       }),
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'tok' }) })
+    );
+  });
+
+  it('creates a follow-up ticket and returns a Computer link', async () => {
+    http.post.mockResolvedValueOnce({
+      data: { work: { display_id: 'TKT-25', id: 'don:core:dvrv-us-1:devo/1ItqaCEzOO:ticket/25' } },
+    });
+    const ticket = await createRecoveryTicket(
+      { endpoint: 'https://api.devrev.ai/', token: 'tok' },
+      { action: 'unlock', identity: 'danielcarvajal', summary: 'Computer finished a Keycloak account unlock.' }
+    );
+    expect(ticket).toEqual({
+      ticketId: 'TKT-25',
+      ticketUrl: `${RECOVERY_TICKET_APP_BASE}/TKT-25`,
+      ticketDon: 'don:core:dvrv-us-1:devo/1ItqaCEzOO:ticket/25',
+    });
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.devrev.ai/internal/works.create',
+      expect.objectContaining({
+        type: 'ticket',
+        title: 'Keycloak unlock complete: danielcarvajal',
+        owned_by: ['don:identity:dvrv-us-1:devo/1ItqaCEzOO:devu/1'],
+      }),
+      expect.any(Object)
     );
   });
 });
