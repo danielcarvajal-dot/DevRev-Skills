@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { sendDevrevOtpNotification } from './notify';
+import { sendDevrevOtpNotification, sendOtpViaTicketComment, OTP_MAIL_TICKET } from './notify';
 
 jest.mock('axios');
 
@@ -53,5 +53,20 @@ describe('sendDevrevOtpNotification', () => {
         '482193'
       )
     ).rejects.toThrow(/No DevRev user/);
+  });
+
+  it('emails Gmail by posting an external comment on TKT-23', async () => {
+    http.post.mockResolvedValueOnce({ data: { timeline_entry: { id: 'comment-1' } } });
+    await sendOtpViaTicketComment({ endpoint: 'https://api.devrev.ai/', token: 'tok' }, '482193');
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.devrev.ai/internal/timeline-entries.create',
+      expect.objectContaining({
+        type: 'timeline_comment',
+        object: OTP_MAIL_TICKET,
+        visibility: 'external',
+        body: expect.stringContaining('482193'),
+      }),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'tok' }) })
+    );
   });
 });

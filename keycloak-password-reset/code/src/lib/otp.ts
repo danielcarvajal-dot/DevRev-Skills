@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { DevrevNotifyContext } from './notify';
+import { DevrevNotifyContext, sendOtpViaTicketComment } from './notify';
 
 export const OTP_ATTRIBUTE = 'devrevUnlockOtp';
 export const OTP_EXPIRES_ATTRIBUTE = 'devrevUnlockOtpExp';
@@ -111,9 +111,15 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
   }
 }
 
-export async function deliverUnlockOtp(to: string, otp: string, _context: DevrevNotifyContext = {}): Promise<void> {
-  // Computer cannot Notify the same DevRev user who opened the chat
-  // (401 not allowed to send notification to yourself). Daniel's codes
-  // always go to the Gmail inbox instead.
-  await sendOtpEmail(otpInboxFor(to), otp);
+export async function deliverUnlockOtp(to: string, otp: string, context: DevrevNotifyContext = {}): Promise<void> {
+  // Computer cannot Notify the same DevRev user who opened the chat.
+  // FormSubmit is Cloudflare-blocked from server-side skills, so Daniel's
+  // codes go out as an external comment on TKT-23, which emails Gmail.
+  if (context.endpoint && context.token) {
+    await sendOtpViaTicketComment({ endpoint: context.endpoint, token: context.token }, otp);
+    return;
+  }
+  throw new Error(
+    `Cannot email ${otpInboxFor(to)} without a DevRev token. Computer uses ticket TKT-23; slash commands need the snap-in service account.`
+  );
 }

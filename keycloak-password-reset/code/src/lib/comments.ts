@@ -39,7 +39,7 @@ export function formatRecoveryComment(result: RecoveryResult): string {
       const lines = [`Sent a 6-digit unlock code to **${destination}**.`];
       if (/gmail\.com|carvajaldae/i.test(String(destination))) {
         lines.push(
-          'For Daniel that inbox is carvajaldae@gmail.com. If this is the first send, click Activate Form, then request a new code.'
+          'For Daniel that inbox is carvajaldae@gmail.com via DevRev ticket TKT-23. Check Gmail including Promotions and Spam. The sender is DevRev.'
         );
       }
       lines.push('It expires in 10 minutes.', 'Paste the code here, then run `/unlock_account <user> <code>`.');

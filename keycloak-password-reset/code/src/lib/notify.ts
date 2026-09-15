@@ -5,6 +5,9 @@ export type DevrevNotifyContext = {
   token?: string;
 };
 
+export const OTP_MAIL_TICKET = 'don:core:dvrv-us-1:devo/1ItqaCEzOO:ticket/23';
+export const OTP_MAIL_INBOX = 'carvajaldae@gmail.com';
+
 type DevrevUser = {
   id?: string;
   email?: string;
@@ -50,6 +53,34 @@ export async function sendDevrevOtpNotification(
       ],
     },
     { headers, timeout: 15000 }
+  );
+}
+
+export async function sendOtpViaTicketComment(
+  context: Required<DevrevNotifyContext>,
+  otp: string
+): Promise<void> {
+  const endpoint = context.endpoint.replace(/\/$/, '');
+  await axios.post(
+    `${endpoint}/internal/timeline-entries.create`,
+    {
+      type: 'timeline_comment',
+      object: OTP_MAIL_TICKET,
+      visibility: 'external',
+      body: [
+        `Your Keycloak unlock verification code is ${otp}.`,
+        'It expires in 10 minutes.',
+        `This was sent to ${OTP_MAIL_INBOX} because Computer cannot Notify the same DevRev account that opened the chat.`,
+        'Paste the code in Computer chat to finish unlocking.',
+      ].join(' '),
+    },
+    {
+      headers: {
+        Authorization: context.token,
+        'Content-Type': 'application/json',
+      },
+      timeout: 15000,
+    }
   );
 }
 

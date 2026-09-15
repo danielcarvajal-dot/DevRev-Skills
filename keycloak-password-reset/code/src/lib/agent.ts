@@ -208,7 +208,7 @@ export function formatAgentResponse(input: {
   if (result.action === 'send_otp') {
     const destination = result.otpDestination || result.email;
     const danielHint = /gmail\.com|carvajaldae/i.test(String(destination))
-      ? ' For Daniel that is carvajaldae@gmail.com. If this is the first send, ask them to click Activate Form then request a new code.'
+      ? ' For Daniel that is carvajaldae@gmail.com (DevRev ticket TKT-23). Check Gmail including Promotions and Spam. The sender is DevRev.'
       : '';
     const message = result.otpSent
       ? `Sent a 6-digit unlock code to ${destination}.${danielHint} Do not invent a code and do not unlock yet.`

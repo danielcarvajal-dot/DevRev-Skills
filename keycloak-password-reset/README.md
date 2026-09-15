@@ -43,7 +43,7 @@ See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).
 
 Open Computer and try:
 
-- `unlock my account` (Computer emails Daniel’s OTP to `carvajaldae@gmail.com`, then waits)
+- `unlock my account` (Computer emails Daniel’s OTP to `carvajaldae@gmail.com` via TKT-23, then waits)
 - `check danielcarvajal`
 - `unlock testuser@yourcompany.com` (same MFA gate)
 

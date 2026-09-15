@@ -54,15 +54,17 @@ rejected on that public URL and is not stored on the skill.
    an admin hold you cannot lift.
 5. Confirm the account is enabled. Do not dump client secrets, tokens, or API internals.
 
-Published skill versions in **dcm-test**: Check **35.9**, Send OTP **41.8**,
+Published skill versions in **dcm-test**: Check **35.9**, Send OTP **41.9**,
 Unlock **36.13**, Reset **33.12**. Unlock and reset require `otp`.
 Start a new Computer chat after those publishes.
 
-For Daniel only, `KeycloakSendUnlockOtp` **41.8** emails
-`carvajaldae@gmail.com`. Computer cannot Notify the same DevRev account
-that opened the chat (`not allowed to send notification to yourself`).
-The first FormSubmit mail may be **Activate Form** — click it, then ask
-Computer to send a new code.
+For Daniel only, `KeycloakSendUnlockOtp` **41.9** emails
+`carvajaldae@gmail.com` through DevRev ticket **TKT-23** (external
+comment). FormSubmit cannot deliver from a Computer skill — Cloudflare
+blocks it and the workflow still reported success. Computer cannot Notify
+the same DevRev account that opened the chat.
+Check Gmail, including Promotions and Spam. The sender is DevRev
+(`notifications@devrev.ai`), not FormSubmit.
 
 The realm is not limited to `testuser`. Any user in `account-unlock` can be
 looked up this way.

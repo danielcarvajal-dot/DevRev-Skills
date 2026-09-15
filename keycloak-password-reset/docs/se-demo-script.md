@@ -205,10 +205,10 @@ or, if Computer needs a name:
 unlock danielcarvajal
 ```
 
-Computer emails a 6-digit code to **`carvajaldae@gmail.com`** and
-**waits**. Open that Gmail inbox, copy the code, and paste it in the
-same chat. The first mail may be FormSubmit **Activate Form** — click
-it, then ask Computer to send a new code.
+Computer emails a 6-digit code to **`carvajaldae@gmail.com`** (DevRev
+ticket TKT-23) and **waits**. Open that Gmail inbox, including
+Promotions and Spam. The sender is DevRev. Copy the code and paste it in
+the same chat.
 
 **Show**
 
