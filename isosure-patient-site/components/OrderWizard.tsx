@@ -547,7 +547,12 @@ export function OrderWizard() {
             Continue
           </button>
         ) : (
-          <button type="button" className="rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white" onClick={submit}>
+          <button
+            type="button"
+            className="rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            onClick={submit}
+            disabled={!canSubmitOrder(alerts, ack)}
+          >
             Submit to Operations
           </button>
         )}

@@ -884,6 +884,7 @@ function orderNew() {
       ${alerts.length ? alerts.map(a => `<div class="alert ${a.severity}"><strong>⚠️ ${a.title}</strong><p>${a.body}</p>${a.severity==="warn"?`<label><input type="checkbox" ${ (w.ack||[]).includes(a.id)?"checked":"" } onchange="state.wizard.ack=state.wizard.ack||[]; this.checked ? state.wizard.ack.push('${a.id}') : (state.wizard.ack=state.wizard.ack.filter(x=>x!=='${a.id}')); save(); route()"> I have reviewed this warning</label>`:`<p class="danger">Required correction — go back to fix this.</p>`}</div>`).join("") : `<p class="ok">No clinical alerts on this order.</p>`}`;
   }
   const idx = steps.indexOf(w.step);
+  const canSubmit = !alerts.some(a => a.severity==="block") && alerts.filter(a => a.severity==="warn").every(a => (w.ack||[]).includes(a.id));
   return `
     <p class="kicker">New medication order</p>
     <h1>Start with the patient, then the medication</h1>
@@ -892,7 +893,7 @@ function orderNew() {
     ${body}
     <p style="margin-top:1rem">
       ${idx>0?`<button class="btn ghost" onclick="setWizard({step:'${steps[idx-1]}'})">Back</button>`:""}
-      ${w.step!=="review"?`<button class="btn" onclick="setWizard({step:'${steps[Math.min(steps.length-1,idx+1)]}'})">Continue</button>`:`<button class="btn" onclick="submitWizard()">Submit to Operations</button>`}
+      ${w.step!=="review"?`<button class="btn" onclick="setWizard({step:'${steps[Math.min(steps.length-1,idx+1)]}'})">Continue</button>`:`<button class="btn" ${canSubmit?"":"disabled"} onclick="submitWizard()">Submit to Operations</button>`}
       <button class="btn ghost" onclick="exitDraft()">Save draft & exit</button>
     </p>`;
 }
