@@ -472,6 +472,12 @@ export class KeycloakClient {
       }
     }
 
+    if (!result.resetEmailSent && !result.temporaryPassword) {
+      const temporaryPassword = generateTemporaryPassword();
+      await this.setTemporaryPassword(currentUser.id, temporaryPassword);
+      result.temporaryPassword = temporaryPassword;
+    }
+
     return result;
   }
 }

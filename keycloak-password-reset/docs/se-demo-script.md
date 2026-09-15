@@ -31,8 +31,9 @@ are training another SE.
 An employee is locked out of SSO. They do not open a ticket and they do not
 wait on a queue. They ask Computer. Computer finds the Keycloak account,
 emails a one-time code, waits for the employee to paste it in chat, then
-unlocks. If the password also needs to change, Computer sends a Keycloak
-reset email after the same OTP. Credentials never enter the chat.
+unlocks. If the password also needs to change, Computer resets it after
+the same OTP and tells the employee a temporary password once — plus a
+working ticket link. Credentials never live on the ticket.
 
 That is [service desk automation](https://devrev.ai/use-cases/service-desk-automation):
 Computer handles the reset so IT can spend time on work that needs a human.
@@ -89,12 +90,11 @@ In the last ten minutes before you join:
    stale skill schema.
 3. Type `check danielcarvajal` once, off camera. You want enabled and
    lockout status, not a request for a URL or secret.
-4. Decide the password-reset path:
-   - **Email path:** realm SMTP works. You will ask Computer to reset
-     the password.
-   - **Internal path:** SMTP is not configured. You will show
-     `/reset_password danielcarvajal --temp` on a ticket and say the
-     temporary password is an **internal** comment.
+4. Computer `ResetPassword` is a full reset. After OTP it sets a
+   temporary Keycloak password and returns it in chat with a ticket
+   link. Realm SMTP is not required. Do not write that password on the
+   ticket. The ticket slash-command `--temp` path is only if you want
+   to show the snap-in surface.
 5. Keep Keycloak Admin and the ngrok inspector on a second screen. Do not
    share that screen unless a technical buyer asks to see the calls.
 6. Close any tab that shows a client secret, PAT, or JWT.
@@ -233,9 +233,9 @@ Switch to Keycloak Admin → Users → `danielcarvajal` (or `testuser`) and
 show the account is enabled. Switch back immediately. Do not linger in
 the admin console.
 
-### Scene 5. Reset the password or use the backup (2 minutes)
+### Scene 5. Reset the password (2 minutes)
 
-**Email path (SMTP is configured)**
+Send a **new** OTP first if you already used the code in Scene 4. Then:
 
 **Type**
 
@@ -243,29 +243,26 @@ the admin console.
 reset my password
 ```
 
-**Say**
+Paste the 6-digit code when Computer asks.
 
-> Computer sent Keycloak’s UPDATE_PASSWORD email. The employee finishes
-> the reset in Keycloak. The password never appears in Computer. That is
-> the path you want in production.
+**Show**
 
-**Internal path (no realm SMTP)**
-
-Do not apologize at length. Move to a ticket discussion and type:
-
-```text
-/reset_password danielcarvajal --temp
-```
+Computer confirms the reset, tells Daniel the temporary password once,
+and shows a working ticket link
+(`https://app.devrev.ai/dcm-test/works/TKT-xx`). Open the ticket only
+to prove the audit trail. The password is not on the ticket.
 
 **Say**
 
-> This realm has no SMTP, so the snap-in set a temporary password and
-> posted it as an **internal** comment. In a customer meeting you would
-> never read that password on a public thread. Production uses the email
-> action. The temporary path is for labs and break-glass.
+> ResetPassword is a full reset, not a “we emailed you a link” promise.
+> Computer verified the one-time code, unlocked the account, set a
+> temporary Keycloak password, and opened a ticket. Daniel changes that
+> password at the next login. The ticket is the record. The password
+> stays in this chat, once.
 
-Never paste the temporary password into Computer chat or a customer-
-visible comment.
+Do not write the temporary password on the ticket or a customer-visible
+comment. If you already unlocked with the same OTP, send a new code
+before reset — the first code is consumed.
 
 ### Scene 6. Optional: the same work on a ticket (2 minutes)
 
@@ -341,7 +338,7 @@ Stay in the story. Name the backup. Do not debug JSONata on the call.
 | Computer asks for a URL or secret | New chat, then `check danielcarvajal` | “The skill keeps credentials off the model. I am opening a fresh session so Computer picks up the published skill.” |
 | “No Keycloak user” for Daniel | Retry with `danielcarvajal` | “Computer maps the DevRev login to the identity store. I am passing the username explicitly.” |
 | Computer cannot reach Keycloak | Ticket command, or reschedule | “The identity store is on a lab tunnel for this demo. In production this is your IdP URL.” |
-| Reset email fails | `/reset_password … --temp` on a ticket | “This lab realm has no SMTP. Production sends Keycloak’s reset email. The temporary password stays internal.” |
+| Reset email fails | Ask Computer `reset my password` (skill **33.14+**) | “Computer resets the password through the Admin API. You get a temporary password in this chat and a ticket link. SMTP is optional.” |
 | Unlock does nothing visible | Check `testuser` after three failed logins | “I will lock a lab user so you can see brute-force status change.” |
 
 If two scenes fail, close on the architecture slide: Computer skill,
@@ -406,7 +403,8 @@ Run this once with another SE before you take it to a customer.
 2. Trainee delivers Scenes 1 through 5 without notes for more than a
    glance.
 3. Trainer asks two objections from the list above.
-4. Trainer fails SMTP on purpose. Trainee must hit the `--temp` backup
-   without breaking character.
+4. Trainer asks for a password reset after an unlock. Trainee must send
+   a new OTP, then call ResetPassword, and show the temp password plus
+   ticket link without writing the password on the ticket.
 5. Debrief on language: count “chatbot,” “hack,” and any secret that
    appeared on screen. The target is zero.

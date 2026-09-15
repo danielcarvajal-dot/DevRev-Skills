@@ -143,6 +143,29 @@ describe('formatAgentResponse', () => {
     expect(response.account?.locked).toBe(true);
   });
 
+  it('includes the temporary password after a functional reset', () => {
+    const response = formatAgentResponse({
+      action: 'reset',
+      result: {
+        action: 'reset',
+        email: 'demo.user@example.com',
+        user: { id: 'user-1', email: 'demo.user@example.com', username: 'demo.user', enabled: true },
+        lockout: {},
+        wasLocked: false,
+        wasDisabled: false,
+        unlocked: true,
+        enabled: true,
+        resetEmailSent: false,
+        temporaryPassword: 'KcReset-Aa1!',
+        ticketId: 'TKT-26',
+        ticketUrl: 'https://app.devrev.ai/dcm-test/works/TKT-26',
+      },
+    });
+    expect(response.temporary_password).toBe('KcReset-Aa1!');
+    expect(response.message).toContain('KcReset-Aa1!');
+    expect(response.message).toContain('https://app.devrev.ai/dcm-test/works/TKT-26');
+  });
+
   it('tells Computer that a permanent lockout is recoverable', () => {
     const response = formatAgentResponse({
       action: 'check',

@@ -244,12 +244,13 @@ export function formatAgentResponse(input: {
   }
   if (result.resetEmailSent) {
     parts.push(`Sent a password-reset email to ${result.email}.`);
-  } else if (result.resetEmailError) {
+  } else if (result.resetEmailError && !result.temporaryPassword) {
     parts.push(`Could not send the password-reset email: ${result.resetEmailError}`);
-    parts.push('Use temp=true to set a temporary password when realm SMTP is not configured.');
   }
   if (result.temporaryPassword) {
-    parts.push('Set a temporary password. The user must change it at next login.');
+    parts.push(
+      `Set a temporary password: ${result.temporaryPassword}. The user must change it at next Keycloak login. Do not write this password on the ticket.`
+    );
   }
   if (parts.length === 0 && result.action === 'unlock') {
     parts.push('Account is unlocked and enabled. No lockout was present.');

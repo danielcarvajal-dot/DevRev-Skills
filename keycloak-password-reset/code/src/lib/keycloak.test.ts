@@ -253,6 +253,12 @@ describe('KeycloakClient', () => {
     expect(result.unlocked).toBe(true);
     expect(result.resetEmailSent).toBe(false);
     expect(result.resetEmailError).toMatch(/smtp not configured/);
+    expect(result.temporaryPassword).toEqual(expect.stringMatching(/.{12,}/));
+    expect(http.put).toHaveBeenCalledWith(
+      'http://localhost:8080/admin/realms/account-unlock/users/user-1/reset-password',
+      expect.objectContaining({ type: 'password', temporary: true, value: result.temporaryPassword }),
+      expect.any(Object)
+    );
   });
 
   it('stores an OTP on the user with a full representation PUT and emails it', async () => {

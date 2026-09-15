@@ -30,7 +30,7 @@ Employee  →  Computer chat
                  │
                  ├─ KeycloakCheckAccount   (read status)
                  ├─ KeycloakUnlockAccount  (clear lockout and re-enable)
-                 └─ ResetPassword          (send UPDATE_PASSWORD email)
+                 └─ ResetPassword          (set a temporary Keycloak password)
                         │
                         ▼
               HTTPS ngrok tunnel
@@ -80,7 +80,7 @@ anything.
 | Computer | `ai_agent/4`, slug `computer` |
 | Password Reset Assistant | `ai_agent/6` |
 | Skills | `KeycloakCheckAccount` (35), `KeycloakSendUnlockOtp` (41), `KeycloakUnlockAccount` (36), `ResetPassword` (33) |
-| Published skill versions | **33.13 / 35.9 / 36.14 / 41.9** (or later) |
+| Published skill versions | **33.14 / 35.9 / 36.14 / 41.9** (or later) |
 | Realm | `account-unlock` |
 | Client | `unlock-agent` (confidential, service account) |
 
@@ -244,7 +244,7 @@ workflow.
 | `KeycloakCheckAccount` | 35 | Find user, report enabled/lockout; `enabled: false` means send OTP, then unlock |
 | `KeycloakSendUnlockOtp` | 41 | Store a 6-digit MFA code and email it to `carvajaldae@gmail.com` via DevRev ticket TKT-23 |
 | `KeycloakUnlockAccount` | 36 | Verify the pasted OTP, then `DELETE` lockout and `PUT` `{"enabled":true}` |
-| `ResetPassword` | 33 | Verify the pasted OTP, re-enable, then `PUT execute-actions-email` |
+| `ResetPassword` | 33 | Verify the pasted OTP, re-enable, then `PUT …/reset-password` with a temporary password. Returns `temporary_password` and `ticket_url`. Realm SMTP is not required. |
 
 Keep **WebSearch** on Computer when you replace the skill list. A
 `skills.set` call replaces the entire list.
@@ -330,8 +330,10 @@ On any ticket discussion:
 /unlock_account danielcarvajal
 ```
 
-`/reset_password … --temp` posts a temporary password as an **internal**
-comment. Never read that password on a customer-visible thread.
+Computer `ResetPassword` sets a temporary password and shows it in chat
+once, plus a ticket link. `/reset_password … --temp` on a ticket posts
+that password as an **internal** comment. Never read the password on a
+customer-visible thread or write it on the follow-up ticket.
 
 ### ngrok inspector
 
@@ -377,12 +379,12 @@ connection **and** the three skill workflows before you join.
 | Find User: `cannot call non-function $eval` | Header used `$eval`. Publish skills 33.8+ with `$replace` only. |
 | Token 200, users 401 | Quoted or missing `Authorization`. Confirm jq `.access_token` and the `$replace` header. |
 | “No Keycloak user” for Daniel | Pass `daniel.carvajal@devrev.ai` or username `danielcarvajal`. |
-| Reset email fails | Realm SMTP is not configured. Use `/reset_password <user> --temp` for the demo. |
+| Reset email fails | Realm SMTP is not configured. Computer **ResetPassword 33.14+** still works: it `PUT`s `/reset-password` and returns `temporary_password`. On a ticket, `/reset_password <user> 123456` falls back to a temp password, or use `--temp`. |
 | Lockout clears after ~60s and user stays enabled | Realm is **Lockout temporarily**. Set **Lockout permanently** (see [Brute-force lockout](#brute-force-lockout-must-stay-locked-until-the-api)). |
 | Computer says it cannot lift a permanent lockout | Old unlock skill only deleted the counter. Use skills **36.13+ / 33.12+** and a **new** Computer chat. Unlock now re-enables after OTP. |
 | Enable User: `argument must be an object` | Body used `$merge` on Find User `body` (a string). Skills **36.13+ / 33.12+** send literal `{"enabled":true}` and jq the user id. |
 | Unlock runs with no OTP | Old session. Start a new Computer chat. Unlock **36.13+** requires `otp`. |
-| No follow-up ticket after unlock | Start a **new** Computer chat. Unlock **36.14+** and Reset **33.13+** create a ticket and return `ticket_url` (`https://app.devrev.ai/dcm-test/works/TKT-xx`). |
+| No follow-up ticket after unlock or reset | Start a **new** Computer chat. Unlock **36.14+** and Reset **33.14+** create a ticket and return `ticket_url` (`https://app.devrev.ai/dcm-test/works/TKT-xx`). Reset also returns `temporary_password`. |
 | OTP email never arrives | Daniel’s code goes to `carvajaldae@gmail.com` via DevRev ticket **TKT-23** (skill **41.9+**). FormSubmit is Cloudflare-blocked from Computer skills even when the run says sent. Check Gmail Promotions/Spam for a DevRev notification. |
 | Snap-in activate Unauthorized on commands | Grant **Command Interactor** to the snap-in bot. |
 

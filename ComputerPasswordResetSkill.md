@@ -28,7 +28,7 @@ latest input schema.
 | `KeycloakCheckAccount` | Read-only status (enabled / brute-force lockout). `enabled: false` is a permanent lockout. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
 | `KeycloakSendUnlockOtp` | Email a 6-digit MFA code. Always call this before unlock or reset, then wait. | `{ "email": "..." }` or `{ "username": "danielcarvajal" }` |
 | `KeycloakUnlockAccount` | Verify the code the user pasted, then clear lockout and re-enable. | `{ "email": "..." }` or `{ "username": "..." }` **and** `{ "otp": "123456" }` |
-| `ResetPassword` | Verify the same code, re-enable if needed, then send `UPDATE_PASSWORD` | `{ "email": "..." }` or `{ "username": "..." }` **and** `{ "otp": "123456" }` |
+| `ResetPassword` | Fully functional reset: verify OTP, unlock, set a temporary Keycloak password, create a follow-up ticket. Returns `temporary_password` and `ticket_url`. | `{ "email": "..." }` or `{ "username": "..." }` **and** `{ "otp": "123456" }` |
 
 Do **not** pass `method`, `url`, `headers`, `body`, a client secret, or an
 access token. Those stay on the skill workflow. Each run mints a **new**
@@ -55,13 +55,23 @@ rejected on that public URL and is not stored on the skill.
 5. Confirm the account is enabled. Do not dump client secrets, tokens, or API internals.
 
 Published skill versions in **dcm-test**: Check **35.9**, Send OTP **41.9**,
-Unlock **36.14**, Reset **33.13**. Unlock and reset require `otp`.
+Unlock **36.14**, Reset **33.14**. Unlock and reset require `otp`.
 Start a new Computer chat after those publishes.
 
 After a successful unlock or reset, Computer **creates a DevRev ticket**
 and returns `ticket_id` plus `ticket_url`
 (`https://app.devrev.ai/dcm-test/works/TKT-xx`). Show the user that
 working link in the same chat.
+
+`ResetPassword` **33.14** is a full reset, not just an email action. Realm
+SMTP is not required. The skill `PUT`s Keycloak
+`/users/{id}/reset-password` with a temporary password, then returns
+`temporary_password` so Computer can tell the user once. They must change
+it at the next Keycloak login. Do **not** write that password on the
+ticket. If they only asked to unlock, call `KeycloakUnlockAccount`. Do
+not unlock first and then reset with the same OTP — the code is consumed.
+If they asked to reset the password, call `ResetPassword` after they paste
+the code.
 
 For Daniel only, `KeycloakSendUnlockOtp` **41.9** emails
 `carvajaldae@gmail.com` through DevRev ticket **TKT-23** (external
@@ -80,6 +90,8 @@ looked up this way.
 - Do not reset someone else's account unless the requester is clearly helping
   that person and names their email or username.
 - Never paste a temporary password into a public ticket or customer thread.
+  Computer may show `temporary_password` in the chat once. The follow-up
+  ticket is the audit trail only.
 - If Keycloak is unreachable, tell the user to keep the laptop tunnel up.
 
 ## Demo accounts (realm `account-unlock`)

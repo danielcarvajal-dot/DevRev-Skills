@@ -68,13 +68,13 @@ export function formatRecoveryComment(result: RecoveryResult): string {
 
   if (result.resetEmailSent) {
     lines.push(`Sent a password-reset email to ${result.email}. The user should use the Keycloak link to set a new password.`);
-  } else if (result.resetEmailError) {
+  } else if (result.resetEmailError && !result.temporaryPassword) {
     lines.push(`Could not send the password-reset email: ${result.resetEmailError}`);
-    lines.push('The account was still unlocked/enabled. Use `/reset_password user@example.com --temp` if you need a temporary password for the demo.');
+    lines.push('The account was still unlocked/enabled.');
   }
 
   if (result.temporaryPassword) {
-    lines.push(`Set a temporary password. The user must change it at next login.`);
+    lines.push('Set a temporary password. The user must change it at next login.');
     lines.push(`Temporary password: \`${result.temporaryPassword}\``);
   }
 
@@ -86,8 +86,8 @@ export function usageHint(): string {
     'I can recover any Keycloak user from this discussion (email, username, or user ID):',
     '- `/send_otp user@example.com` — email a 6-digit unlock code',
     '- `/unlock_account user@example.com 123456` — verify the code, then unlock and re-enable',
-    '- `/reset_password user@example.com 123456` — verify the code, unlock, then email a reset link',
-    '- `/reset_password danielcarvajal 123456 --temp` — same recovery with a temporary password (posted internally)',
+    '- `/reset_password user@example.com 123456` — verify the code, unlock, then reset the password (email link if SMTP works, otherwise a temp password posted internally)',
+    '- `/reset_password danielcarvajal 123456 --temp` — same recovery, always set a temporary password (posted internally)',
     '- `/check_account user@example.com` — report lockout and enabled status (no OTP)',
     'Unlock and reset require the email OTP. Daniel\'s mailbox is daniel.carvajal@devrev.ai. @devrev.ai and @devrev.com aliases still match.',
   ].join('\n');

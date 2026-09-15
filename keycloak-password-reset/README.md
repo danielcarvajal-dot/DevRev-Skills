@@ -10,7 +10,7 @@ the missing password-reset step:
 3. **Check Lockout** — `GET /admin/realms/{realm}/attack-detection/brute-force/users/{userId}`
 4. **Unlock User** — `DELETE` the same brute-force path
 5. **Enable User** — `PUT /admin/realms/{realm}/users/{userId}` with `enabled: true`
-6. **Password reset** — `PUT .../execute-actions-email` with `["UPDATE_PASSWORD"]`, or `--temp` to set a temporary password
+6. **Password reset** — `PUT .../users/{id}/reset-password` with a temporary password (functional without realm SMTP). Optional: `execute-actions-email` `UPDATE_PASSWORD` when SMTP is configured, or `/reset_password … --temp` on a ticket
 
 ## Sales engineer enablement
 
@@ -39,18 +39,21 @@ Computer emails a 6-digit code (Daniel’s inbox is
 `carvajaldae@gmail.com`), waits for the user to paste it, then re-enables
 a permanent lockout (`enabled: false`). After unlock or reset it creates
 a DevRev ticket and returns `https://app.devrev.ai/dcm-test/works/TKT-xx`
-so Computer can show a working link. (`agent_handler` is the snap-in
-JSON entrypoint for check, send_otp, unlock, and reset.)
+so Computer can show a working link. Reset also returns
+`temporary_password` in Computer (not on the ticket). (`agent_handler` is
+the snap-in JSON entrypoint for check, send_otp, unlock, and reset.)
 
 See [ComputerPasswordResetSkill.md](../ComputerPasswordResetSkill.md).
 
 Open Computer and try:
 
 - `unlock my account` (Computer emails Daniel’s OTP to `carvajaldae@gmail.com` via TKT-23, then waits)
+- `reset my password` (same MFA gate, then a temporary Keycloak password in Computer plus a ticket link)
 - `check danielcarvajal`
 - `unlock testuser@yourcompany.com` (same MFA gate)
 
-If realm SMTP is not configured, ask Computer for a temporary password.
+Realm SMTP is not required. `ResetPassword` sets a temporary password
+through the Admin API. The user must change it at the next Keycloak login.
 
 ## Commands
 
@@ -60,7 +63,7 @@ Use these in the Discussions tab of a ticket, issue, or conversation:
 | --- | --- |
 | `/send_otp user@example.com` | Email a 6-digit MFA code |
 | `/unlock_account user@example.com 123456` | Verify the code, then unlock + enable |
-| `/reset_password user@example.com 123456` | Verify the code, unlock, send a reset email |
+| `/reset_password user@example.com 123456` | Verify the code, unlock, then email a reset link — or set a temp password if realm SMTP is down (internal comment) |
 | `/reset_password danielcarvajal 123456 --temp` | Same recovery, then set a temporary password (commented internally) |
 | `/check_account danielcarvajal` | Report lockout and enabled status (no OTP) |
 
@@ -86,8 +89,10 @@ Or use a snap-in secret that is only the client secret, and fill **Keycloak URL*
 The confidential client needs a service account with realm-management roles
 `manage-users`, `view-users`, and `query-users`.
 
-`execute-actions-email` requires realm SMTP. If email is not configured, use
-`--temp` for the demo.
+`execute-actions-email` requires realm SMTP. Computer `ResetPassword` and
+the snap-in reset path do not: they `PUT` `/reset-password` with a
+temporary password when SMTP is missing. `--temp` still forces that path
+on a ticket.
 
 ## Local Keycloak demo
 

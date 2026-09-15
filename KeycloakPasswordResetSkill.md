@@ -2,8 +2,8 @@
 
 ## Purpose
 Recover a Keycloak user from DevRev: look up the account, clear a brute-force
-lockout, re-enable the user, and send a password-reset email (or set a
-temporary password for a demo).
+lockout, re-enable the user, and reset the password (temporary Admin API
+password, or a Keycloak reset email when realm SMTP is configured).
 
 ## Trigger phrases
 - "reset their password"
@@ -29,8 +29,8 @@ See [ComputerPasswordResetSkill.md](ComputerPasswordResetSkill.md).
 
 Use the commands on a ticket or conversation:
 
-- `/reset_password user@example.com` — unlock, enable, email a reset link
-- `/reset_password danielcarvajal --temp` — unlock, enable, set a temp password
+- `/reset_password user@example.com 123456` — unlock, enable, then reset (email link if SMTP works, otherwise a temp password)
+- `/reset_password danielcarvajal 123456 --temp` — unlock, enable, set a temp password
 - `/unlock_account danielcarvajal` — unlock and enable only
 - `/check_account user@example.com` — report status only
 
@@ -53,8 +53,9 @@ comment. `--temp` posts internally on purpose.
 
 ## Escalation
 If Keycloak returns 401/403, the client credentials or realm-management roles
-are wrong. If execute-actions-email fails, the realm SMTP settings are missing
-— use `--temp` for the demo instead.
+are wrong. Reset is still functional without realm SMTP: Computer
+`ResetPassword` and the snap-in fall back to `PUT /reset-password` and
+return a temporary password. `--temp` forces that path on a ticket.
 
 If snap-in activate fails with Unauthorized on `command` objects, grant
 **Command Interactor** to the snap-in bot (or include `command:write` in the
