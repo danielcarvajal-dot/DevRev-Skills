@@ -1,0 +1,80 @@
+{
+  "realm": "account-unlock",
+  "enabled": true,
+  "displayName": "Account Unlock Demo",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "bruteForceProtected": true,
+  "permanentLockout": true,
+  "maxTemporaryLockouts": 0,
+  "failureFactor": 3,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "clients": [
+    {
+      "clientId": "unlock-agent",
+      "name": "Unlock Agent",
+      "description": "Confidential service account used by the DevRev snap-in",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "unlock-agent-demo-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-unlock-agent",
+      "enabled": true,
+      "serviceAccountClientId": "unlock-agent",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "query-groups",
+          "manage-realm"
+        ]
+      }
+    },
+    {
+      "username": "demo.user",
+      "email": "demo.user@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Demo",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "danielcarvajal",
+      "email": "daniel.carvajal@devrev.ai",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Daniel",
+      "lastName": "Carvajal",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DemoPass123!",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

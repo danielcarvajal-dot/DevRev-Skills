@@ -1,0 +1,43 @@
+[
+  {
+    "payload": {
+      "id": "don:integration:dvrv-us-1:devo/0:webhook/WRVqEXT7:webhook_event/31WPF0QWh8M",
+      "timestamp": "2023-02-07T10:08:42.591611Z",
+      "type": "work_created",
+      "work_created": {
+        "work": {
+          "body": "I forgot my password and I am locked out. Please reset it for demo.user@example.com",
+          "display_id": "TKT-12",
+          "id": "don:core:dvrv-us-1:devo/0:ticket/12",
+          "title": "Forgot password / locked out",
+          "type": "ticket"
+        }
+      }
+    },
+    "context": {
+      "dev_oid": "don:identity:dvrv-us-1:devo/0",
+      "automation_id": "don:integration:dvrv-us-1:devo/0:automation/00000001-0001-0001-0001-00000001",
+      "snap_in_id": "don:integration:dvrv-us-1:devo/0:snap_in/00000001-0001-0001-0001-00000001",
+      "snap_in_version_id": "don:integration:dvrv-us-1:devo/0:snap_in_package/pkg:snap_in_version/ver",
+      "secrets": {
+        "service_account_token": "TEST-TOKEN"
+      }
+    },
+    "execution_metadata": {
+      "request_id": "request-ticket",
+      "function_name": "on_ticket_created",
+      "devrev_endpoint": "https://api.devrev.ai"
+    },
+    "input_data": {
+      "global_values": {
+        "keycloak_url": "http://localhost:8080/",
+        "realm": "account-unlock",
+        "client_id": "unlock-agent"
+      },
+      "event_sources": {},
+      "keyrings": {
+        "keycloak": "{\"url\":\"http://localhost:8080/\",\"realm\":\"account-unlock\",\"client_id\":\"unlock-agent\",\"client_secret\":\"unlock-agent-demo-secret\"}"
+      }
+    }
+  }
+]
