@@ -79,6 +79,13 @@
     .qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; }
     .qty button { width: 32px; height: 32px; border: 0; background: none; cursor: pointer; }
     .chip { display: inline-block; background: var(--purple-soft); color: var(--purple); border-radius: 999px; padding: .15rem .55rem; font-size: 12px; font-weight: 600; }
+    .pills { display:flex; flex-wrap:wrap; gap:.4rem; margin:1rem 0 .4rem; }
+    .pill { border:1px solid var(--line); background:#fff; border-radius:999px; padding:.25rem .8rem; cursor:pointer; font-size:.9rem; }
+    .pill.on { background: var(--purple-deep); color:#fff; border-color:transparent; }
+    .cr-card { border:1px solid var(--line); border-radius:10px; padding:.75rem .85rem; margin:.5rem 0 0; }
+    .inline-controls { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin-top:.65rem; font-size:.88rem; }
+    .inline-controls label { margin:0; display:inline-flex; gap:.35rem; align-items:center; }
+    .inline-controls select, .inline-controls input { width:auto; padding:.3rem .45rem; }
     .danger { color: var(--danger); }
     .ok { color: var(--ok); }
     .split { display: grid; gap: 1rem; }
@@ -902,6 +909,7 @@ function orderNew() {
 
 function pharmacy() {
   if (!state.user || state.user.role!=="pharmacy") return `<h1>Operations sign-in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  seedLimsIfEmpty();
   return `
     <div class="row">
       <div>
@@ -931,7 +939,13 @@ function orderCards(orders, admin=false) {
         </div>
         <strong>${money(o.total)}</strong>
       </div>
-      ${o.items.map(i=>`<p>${i.productName} · ${i.doseLabel} × ${i.quantity}</p>`).join("")}
+      ${o.items.map((i, idx) => {
+        const cr = (state.crs||[]).find(c => c.orderId===o.id && (c.itemIndex===idx || c.productName===i.productName));
+        const note = cr && cr.compoundQty!=null
+          ? ` → compound ${cr.compoundQty}${cr.qtyManuallyAdjusted?" (adjusted)": cr.compoundQty!==i.quantity?" (auto-round)":""}`
+          : "";
+        return `<p>${i.productName} · ${i.doseLabel} · ordered ${i.quantity}${note}</p>`;
+      }).join("")}
       ${o.scripts?.length ? `<p class="muted">${o.scripts.length} document${o.scripts.length>1?"s":""} on the ticket</p>` : `<p class="muted">Documents live in the exchange for this demo order</p>`}
       ${admin ? `<ul>${(state.crs||[]).filter(c=>c.orderId===o.id).map(c=>`<li><a href="#batch?id=${c.id}">${c.batchLot} · ${STAGE_LABEL[c.stage]||c.stage}${c.hd?" · HD":""}</a></li>`).join("")}</ul>` : ""}
       ${admin ? `<label>Operations status (notifies provider)
@@ -1236,23 +1250,33 @@ function parseCsv(text) {
 const STAGE_LABEL = {intake:"Order intake",formula:"Formula / recipe",compounding:"Batch production",labeling:"Labeling",dispense:"Dispensing",shipped:"Shipping"};
 const STAGES = Object.keys(STAGE_LABEL);
 function daysFromNow(d) { return Date.now() + d*864e5; }
+const LAB_TECHS = ["Alex Chen", "Priya Shah", "Morgan Lee"];
+const REORDER_POINT = {estradiol:8,progesterone:15,testosterone:5,naltrexone:5,ketoprofen:160,versabase:400,"oil-cap":400,"ns-water":800,nad:9};
+const DEMO_FLOOR = {
+  "cr-e2-1": {orderedQty:30,compoundQty:30,priority:"stat",assignedTech:"Alex Chen",sortIndex:0},
+  "cr-p4-1": {orderedQty:30,compoundQty:30,priority:"today",assignedTech:"Priya Shah",sortIndex:1},
+  "cr-ldn-2": {orderedQty:25,compoundQty:30,priority:"today",assignedTech:"Morgan Lee",sortIndex:2},
+  "cr-keto-3": {orderedQty:60,compoundQty:60,priority:"routine",assignedTech:"Alex Chen",sortIndex:3},
+  "cr-nad-4": {orderedQty:10,compoundQty:15,priority:"today",assignedTech:"",sortIndex:4}
+};
+function defaultReorder(id, unit) { return REORDER_POINT[id] ?? (unit === "mL" ? 200 : 10); }
 function defaultIngredients() {
   return [
-    {id:"estradiol",name:"Estradiol USP",cas:"50-28-2",niosh:2,hd:true,cs:null,unit:"g"},
-    {id:"progesterone",name:"Progesterone USP micronized",cas:"57-83-0",niosh:2,hd:true,cs:null,unit:"g"},
-    {id:"testosterone",name:"Testosterone USP",cas:"58-22-0",niosh:2,hd:true,cs:"III",unit:"g"},
-    {id:"tretinoin",name:"Tretinoin USP",cas:"302-79-4",niosh:3,hd:true,cs:null,unit:"g"},
-    {id:"dhea",name:"DHEA USP",cas:"53-43-0",niosh:2,hd:true,cs:null,unit:"g"},
-    {id:"naltrexone",name:"Naltrexone HCl USP",cas:"16676-29-2",niosh:null,hd:false,cs:null,unit:"g"},
-    {id:"ketoprofen",name:"Ketoprofen USP",cas:"22071-15-4",niosh:null,hd:false,cs:null,unit:"g"},
-    {id:"nad",name:"NAD+",cas:"53-84-9",niosh:null,hd:false,cs:null,unit:"g"},
-    {id:"versabase",name:"VersaBase cream",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
-    {id:"avicel",name:"Microcrystalline cellulose",cas:"9004-34-6",niosh:null,hd:false,cs:null,unit:"g"},
-    {id:"oil-cap",name:"Sunflower oil capsule fill",cas:"",niosh:null,hd:false,cs:null,unit:"mL"},
-    {id:"parabens",name:"Paraben blend",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
-    {id:"hydrogel",name:"Alcohol hydrogel base",cas:"",niosh:null,hd:false,cs:null,unit:"g"},
-    {id:"nasal-vehicle",name:"Isotonic nasal vehicle",cas:"",niosh:null,hd:false,cs:null,unit:"mL"},
-    {id:"ns-water",name:"Sterile water for irrigation",cas:"7732-18-5",niosh:null,hd:false,cs:null,unit:"mL"}
+    {id:"estradiol",name:"Estradiol USP",cas:"50-28-2",niosh:2,hd:true,cs:null,unit:"g",reorderPoint:8},
+    {id:"progesterone",name:"Progesterone USP micronized",cas:"57-83-0",niosh:2,hd:true,cs:null,unit:"g",reorderPoint:15},
+    {id:"testosterone",name:"Testosterone USP",cas:"58-22-0",niosh:2,hd:true,cs:"III",unit:"g",reorderPoint:5},
+    {id:"tretinoin",name:"Tretinoin USP",cas:"302-79-4",niosh:3,hd:true,cs:null,unit:"g",reorderPoint:10},
+    {id:"dhea",name:"DHEA USP",cas:"53-43-0",niosh:2,hd:true,cs:null,unit:"g",reorderPoint:10},
+    {id:"naltrexone",name:"Naltrexone HCl USP",cas:"16676-29-2",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:5},
+    {id:"ketoprofen",name:"Ketoprofen USP",cas:"22071-15-4",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:160},
+    {id:"nad",name:"NAD+",cas:"53-84-9",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:9},
+    {id:"versabase",name:"VersaBase cream",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:400},
+    {id:"avicel",name:"Microcrystalline cellulose",cas:"9004-34-6",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:10},
+    {id:"oil-cap",name:"Sunflower oil capsule fill",cas:"",niosh:null,hd:false,cs:null,unit:"mL",reorderPoint:400},
+    {id:"parabens",name:"Paraben blend",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:10},
+    {id:"hydrogel",name:"Alcohol hydrogel base",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:10},
+    {id:"nasal-vehicle",name:"Isotonic nasal vehicle",cas:"",niosh:null,hd:false,cs:null,unit:"mL",reorderPoint:200},
+    {id:"ns-water",name:"Sterile water for irrigation",cas:"7732-18-5",niosh:null,hd:false,cs:null,unit:"mL",reorderPoint:800}
   ];
 }
 function defaultMfrs() {
@@ -1264,6 +1288,15 @@ function defaultMfrs() {
     {id:"mfr-t-20",productId:"testosterone-gel",doseId:"t-20",title:"Testosterone 20 mg/mL gel — MFR-795-018",chapter:"795",vehicle:"aqueous-unpreserved",preserved:false,refrig:true,form:"Gel",strength:"20 mg/mL",batchSize:30,batchUnit:"mL",hd:true,hdNote:"NIOSH Table 2 + C-III. Vault count-in.",stabilityDays:null,container:"30 mL pump",storage:"Refrigerate",lines:[{id:"testosterone",qty:0.6,unit:"g",role:"API"},{id:"hydrogel",qty:29.4,unit:"g",role:"base"}],procedure:["Two-person CS count-in.","C-PEC. QS 30 mL."],qc:["CS log complete"]},
     {id:"mfr-nad-50",productId:"nad-spray",doseId:"nad-50",title:"NAD+ 50 mg/mL nasal spray — MFR-797-003",chapter:"797",vehicle:"aqueous-unpreserved",preserved:false,refrig:true,sterileCat:1,form:"Nasal spray",strength:"50 mg/mL",batchSize:15,batchUnit:"mL",hd:false,hdNote:"",stabilityDays:null,container:"15 mL spray",storage:"Refrigerate",lines:[{id:"nad",qty:0.75,unit:"g",role:"API"},{id:"nasal-vehicle",qty:10,unit:"mL",role:"base"},{id:"ns-water",qty:4.25,unit:"mL",role:"excipient"}],procedure:["ISO 5 PEC in ISO 7 buffer. Category 1 CSP.","0.22 µm filter into bottle."],qc:["ISO 5 counts in spec"]}
   ];
+}
+function hydrateLot(lot) {
+  const ing = (state.ingredients||[]).find(i=>i.id===lot.ingredientId) || defaultIngredients().find(i=>i.id===lot.ingredientId) || {};
+  return Object.assign({}, lot, {
+    manufacturer: lot.manufacturer || lot.supplier || "",
+    storageLocation: lot.storageLocation || (ing.hd ? "HD cage A" : "CRT shelf 2"),
+    auxiliaryLabels: lot.auxiliaryLabels || [ing.hd?"USP <800>":"", ing.cs?("C-"+ing.cs):""].filter(Boolean).join(" · "),
+    cas: lot.cas || ing.cas || ""
+  });
 }
 function defaultLots() {
   return [
@@ -1280,7 +1313,7 @@ function defaultLots() {
     {id:"lot-nad-a",ingredientId:"nad",lotNumber:"NAD-25021",expiresAt:daysFromNow(90),remaining:8.2,quantity:10,unit:"g",potencyPct:98,coaName:"COA-NAD-25021.pdf",quarantine:false,supplier:"Fagron"},
     {id:"lot-nsw-a",ingredientId:"ns-water",lotNumber:"SW-26011",expiresAt:daysFromNow(700),remaining:3500,quantity:4000,unit:"mL",potencyPct:100,coaName:"COA-SW-26011.pdf",quarantine:false,supplier:"Hospira"},
     {id:"lot-nasal-a",ingredientId:"nasal-vehicle",lotNumber:"NV-25004",expiresAt:daysFromNow(180),remaining:860,quantity:1000,unit:"mL",potencyPct:100,coaName:"COA-NV-25004.pdf",quarantine:false,supplier:"PCCA"}
-  ];
+  ].map(hydrateLot);
 }
 function defaultEnv() {
   return [
@@ -1301,17 +1334,40 @@ function defaultEquip() {
 function defaultCrs() {
   const now = Date.now();
   return [
-    {id:"cr-e2-1",mfrId:"mfr-e2-05",orderId:"demo-order-1",productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",patientName:"Avery Nguyen",batchLot:"CR-20260814-4412",stage:"compounding",hd:true,createdAt:now-12*864e5,budHours:35*24,budDate:now-12*864e5+35*864e5,budBasis:"USP <795> preserved aqueous: 35 days CRT",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[{ingredientId:"estradiol",lotId:"lot-e2-a",formulaQty:0.015,weighedQty:0.015,unit:"g",potencyPct:99.2},{ingredientId:"versabase",lotId:"lot-vb-a",formulaQty:29.925,weighedQty:29.925,unit:"g",potencyPct:100}],labelText:"",notes:"Match last fill."},
-    {id:"cr-p4-1",mfrId:"mfr-p4-100",orderId:"demo-order-1",productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",patientName:"Avery Nguyen",batchLot:"CR-20260814-4413",stage:"formula",hd:true,createdAt:now-12*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Match last fill."},
-    {id:"cr-ldn-2",mfrId:"mfr-ldn-45",orderId:"demo-order-2",productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",patientName:"Sam Rivera",batchLot:"CR-20260822-1090",stage:"intake",hd:false,createdAt:now-4*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Clarification pending."},
-    {id:"cr-keto-3",mfrId:"mfr-keto-10",orderId:"demo-order-3",productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",patientName:"Lee Park",batchLot:"CR-20260824-7721",stage:"dispense",hd:false,createdAt:now-2*864e5,budHours:45*24,budDate:now-2*864e5+45*864e5,budBasis:"In-house stability study: 45 days",budStorage:"CRT",cappedBy:"stability",ingredientsUsed:[{ingredientId:"ketoprofen",lotId:"lot-keto-a",formulaQty:6,weighedQty:6.03,unit:"g",potencyPct:99.5}],labelText:"IsoEase Ketoprofen Cream 10%\\nPatient: Lee Park\\nBatch CR-20260824-7721\\nBUD · store CRT\\nUSP <795>",notes:""}
+    {id:"cr-e2-1",mfrId:"mfr-e2-05",orderId:"demo-order-1",itemIndex:0,productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",patientName:"Avery Nguyen",batchLot:"CR-20260814-4412",stage:"compounding",hd:true,createdAt:now-12*864e5,budHours:35*24,budDate:now-12*864e5+35*864e5,budBasis:"USP <795> preserved aqueous: 35 days CRT",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[{ingredientId:"estradiol",lotId:"lot-e2-a",formulaQty:0.015,weighedQty:0.015,unit:"g",potencyPct:99.2},{ingredientId:"versabase",lotId:"lot-vb-a",formulaQty:29.925,weighedQty:29.925,unit:"g",potencyPct:100}],labelText:"",notes:"Match last fill.",orderedQty:30,compoundQty:30,qtyManuallyAdjusted:false,priority:"stat",assignedTech:"Alex Chen",sortIndex:0},
+    {id:"cr-p4-1",mfrId:"mfr-p4-100",orderId:"demo-order-1",itemIndex:1,productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",patientName:"Avery Nguyen",batchLot:"CR-20260814-4413",stage:"formula",hd:true,createdAt:now-12*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Match last fill.",orderedQty:30,compoundQty:30,qtyManuallyAdjusted:false,priority:"today",assignedTech:"Priya Shah",sortIndex:1},
+    {id:"cr-ldn-2",mfrId:"mfr-ldn-45",orderId:"demo-order-2",itemIndex:0,productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",patientName:"Sam Rivera",batchLot:"CR-20260822-1090",stage:"intake",hd:false,createdAt:now-4*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"CRT",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Clarification pending.",orderedQty:25,compoundQty:30,qtyManuallyAdjusted:false,priority:"today",assignedTech:"Morgan Lee",sortIndex:2},
+    {id:"cr-keto-3",mfrId:"mfr-keto-10",orderId:"demo-order-3",itemIndex:0,productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",patientName:"Lee Park",batchLot:"CR-20260824-7721",stage:"dispense",hd:false,createdAt:now-2*864e5,budHours:45*24,budDate:now-2*864e5+45*864e5,budBasis:"In-house stability study: 45 days",budStorage:"CRT",cappedBy:"stability",ingredientsUsed:[{ingredientId:"ketoprofen",lotId:"lot-keto-a",formulaQty:6,weighedQty:6.03,unit:"g",potencyPct:99.5}],labelText:"IsoEase Ketoprofen Cream 10%\\nPatient: Lee Park\\nBatch CR-20260824-7721\\nBUD · store CRT\\nUSP <795>",notes:"",orderedQty:60,compoundQty:60,qtyManuallyAdjusted:false,priority:"routine",assignedTech:"Alex Chen",sortIndex:3},
+    {id:"cr-nad-4",mfrId:"mfr-nad-50",orderId:"demo-order-4",itemIndex:0,productName:"IsoPulse NAD+ Nasal Spray",doseLabel:"50 mg/mL",patientName:"Jordan Blake",batchLot:"CR-20260825-3301",stage:"formula",hd:false,createdAt:now-1*864e5,budHours:0,budDate:"",budBasis:"",budStorage:"refrigerated",cappedBy:"chapter",ingredientsUsed:[],labelText:"",notes:"Category 1 CSP — ISO 5 PEC.",orderedQty:10,compoundQty:15,qtyManuallyAdjusted:false,priority:"today",assignedTech:"",sortIndex:4}
   ];
+}
+function hydrateIngredient(ing) {
+  return Object.assign({}, ing, { reorderPoint: ing.reorderPoint ?? defaultReorder(ing.id, ing.unit) });
+}
+function normalizeCr(cr, index) {
+  const demo = DEMO_FLOOR[cr.id] || {};
+  const orderedQty = cr.orderedQty ?? demo.orderedQty ?? 1;
+  return Object.assign({}, cr, {
+    orderedQty,
+    compoundQty: cr.compoundQty ?? demo.compoundQty ?? orderedQty,
+    qtyManuallyAdjusted: !!cr.qtyManuallyAdjusted,
+    priority: cr.priority || demo.priority || (cr.hd ? "today" : "routine"),
+    assignedTech: cr.assignedTech == null ? (demo.assignedTech || "") : cr.assignedTech,
+    sortIndex: cr.sortIndex ?? demo.sortIndex ?? index ?? 0
+  });
 }
 function seedLimsIfEmpty() {
   if (!state.ingredients.length) state.ingredients = defaultIngredients();
+  else state.ingredients = state.ingredients.map(hydrateIngredient);
   if (!state.mfrs.length) state.mfrs = defaultMfrs();
   if (!state.lots.length) state.lots = defaultLots();
+  else state.lots = state.lots.map(hydrateLot);
   if (!state.crs.length) state.crs = defaultCrs();
+  else {
+    const have = new Set(state.crs.map(c=>c.id));
+    defaultCrs().forEach(c => { if (!have.has(c.id)) state.crs.push(c); });
+  }
+  state.crs = state.crs.map(normalizeCr);
   if (!state.envLogs.length) state.envLogs = defaultEnv();
   if (!state.equipmentLogs.length) state.equipmentLogs = defaultEquip();
   if (!state.csLogs) state.csLogs = [];
@@ -1348,40 +1404,175 @@ function pickLot(ingredientId) {
   return (state.lots||[]).filter(l => l.ingredientId===ingredientId && !l.quarantine && l.remaining>0 && l.expiresAt > Date.now())
     .sort((a,b)=>a.expiresAt-b.expiresAt)[0];
 }
+function roundUpToBatch(ordered, batchSize) {
+  const qty = Number(ordered), batch = Number(batchSize);
+  if (!Number.isFinite(qty) || qty <= 0) return batch > 0 ? batch : 1;
+  if (!Number.isFinite(batch) || batch <= 0) return Math.ceil(qty);
+  return Math.ceil(qty / batch) * batch;
+}
+function isSterile(mfr) { return mfr && mfr.chapter === "797"; }
+function kpiPoints(cr, mfr) {
+  let points = 1;
+  if (cr.hd) points += 2;
+  if (isSterile(mfr)) points += 2;
+  if (cr.priority === "stat") points += 2;
+  if (cr.priority === "today") points += 1;
+  return points;
+}
+function priorityLabel(priority) { return priority === "stat" ? "STAT" : priority === "today" ? "Today" : "Routine"; }
+function primaryApi(cr) {
+  const mfr = state.mfrs.find(m => m.id === cr.mfrId);
+  const line = (mfr?.lines || []).find(l => l.role === "API") || (mfr?.lines || [])[0];
+  if (!line) return null;
+  return state.ingredients.find(i => i.id === line.id) || null;
+}
+function onHand(ingredientId) {
+  return (state.lots || []).filter(l => l.ingredientId === ingredientId && !l.quarantine && l.expiresAt > Date.now())
+    .reduce((sum, l) => sum + l.remaining, 0);
+}
+function reorderAlerts() {
+  return (state.ingredients || []).map(ingredient => {
+    const remaining = onHand(ingredient.id);
+    const point = ingredient.reorderPoint ?? 0;
+    return { ingredient, remaining, point, low: point > 0 && remaining < point };
+  }).filter(row => row.low);
+}
+function filterFloor(filter) {
+  const rank = {stat:0, today:1, routine:2};
+  return (state.crs || []).filter(c => c.stage !== "shipped").map(normalizeCr).filter(cr => {
+    const mfr = state.mfrs.find(m => m.id === cr.mfrId);
+    if (filter === "priority") return cr.priority === "stat" || cr.priority === "today";
+    if (filter === "hd") return cr.hd;
+    if (filter === "sterile") return isSterile(mfr);
+    if (filter === "nonsterile") return !isSterile(mfr);
+    return true;
+  }).sort((a,b) => (rank[a.priority||"routine"]-rank[b.priority||"routine"]) || ((a.sortIndex||0)-(b.sortIndex||0)));
+}
+function groupByApi(crs) {
+  const groups = new Map();
+  crs.forEach(cr => {
+    const api = primaryApi(cr);
+    const apiId = api?.id || "unmapped";
+    const existing = groups.get(apiId) || {apiId, apiName: api?.name || "Unmapped API", cas: api?.cas || "", compounds: [], points: 0};
+    existing.compounds.push(cr);
+    existing.points += kpiPoints(cr, state.mfrs.find(m => m.id === cr.mfrId));
+    groups.set(apiId, existing);
+  });
+  return [...groups.values()].sort((a,b) => b.compounds.length - a.compounds.length);
+}
+function updateCompound(id, patch) {
+  const cr = state.crs.find(c => c.id === id); if (!cr) return;
+  Object.assign(cr, patch);
+  Object.assign(cr, normalizeCr(cr));
+  save(); route();
+}
+function moveCompound(id, direction) {
+  const ordered = [...state.crs].sort((a,b) => (a.sortIndex||0)-(b.sortIndex||0));
+  const index = ordered.findIndex(c => c.id === id);
+  const swap = index + direction;
+  if (index < 0 || swap < 0 || swap >= ordered.length) return;
+  const a = ordered[index], b = ordered[swap];
+  const ai = a.sortIndex ?? index, bi = b.sortIndex ?? swap;
+  a.sortIndex = bi; b.sortIndex = ai;
+  save(); route();
+}
 function createCrsForOrder(order) {
   seedLimsIfEmpty();
-  return order.items.map(item => {
+  return order.items.map((item, itemIndex) => {
     const mfr = state.mfrs.find(m => m.productId===item.productId && m.doseId===item.doseId) || state.mfrs.find(m => m.productId===item.productId);
-    return {id:crypto.randomUUID(), mfrId:mfr?.id||"", orderId:order.id, productName:item.productName, doseLabel:item.doseLabel, patientName:order.patientName, batchLot:"CR-"+Date.now().toString().slice(-8), stage:"intake", hd:!!mfr?.hd, createdAt:Date.now(), budHours:0, budDate:"", budBasis:"", budStorage:"CRT", cappedBy:"chapter", ingredientsUsed:[], labelText:"", notes:order.notes||""};
+    const orderedQty = item.quantity;
+    const compoundQty = roundUpToBatch(orderedQty, mfr?.batchSize || 0);
+    return {id:crypto.randomUUID(), mfrId:mfr?.id||"", orderId:order.id, itemIndex, productName:item.productName, doseLabel:item.doseLabel, patientName:order.patientName, batchLot:"CR-"+Date.now().toString().slice(-8), stage:"intake", hd:!!mfr?.hd, createdAt:Date.now(), budHours:0, budDate:"", budBasis:"", budStorage:"CRT", cappedBy:"chapter", ingredientsUsed:[], labelText:"", notes:order.notes||"", orderedQty, compoundQty, qtyManuallyAdjusted:false, priority:"routine", assignedTech:"", sortIndex:itemIndex};
   });
 }
 function requireOps() {
   if (!state.user || state.user.role!=="pharmacy") return `<h1>Lab sign-in required</h1><p class="muted">The LIMS/MOM core is internal.</p><button class="btn" onclick="go('login')">Operations login</button>`;
 }
-function ops() {
+function ops(params) {
   const gate = requireOps(); if (gate) return gate;
   seedLimsIfEmpty(); save();
+  const filter = params.filter || "all";
   const expired = state.lots.filter(l => l.expiresAt < Date.now()).length;
   const soon = state.lots.filter(l => l.expiresAt >= Date.now() && l.expiresAt < Date.now()+30*864e5).length;
   const hdOpen = state.crs.filter(c => c.hd && c.stage!=="shipped").length;
+  const envOut = state.envLogs.filter(l => !l.ok).length;
+  const low = reorderAlerts();
+  const floor = filterFloor(filter);
+  const groups = groupByApi(floor);
+  const daily = LAB_TECHS.map(tech => {
+    const assigned = floor.filter(cr => cr.assignedTech === tech);
+    const points = assigned.reduce((sum, cr) => sum + kpiPoints(cr, state.mfrs.find(m => m.id === cr.mfrId)), 0);
+    return {tech, assigned, points};
+  });
+  const unassigned = floor.filter(cr => !cr.assignedTech);
+  const filters = [["all","All"],["priority","Priority"],["hd","HD"],["sterile","Sterile"],["nonsterile","Nonsterile"]];
   return `
     <p class="kicker">Operations · LIMS / MOM</p>
-    <h1>Electric Lab</h1>
-    <p class="muted">Orders arrive from the provider portal. This system owns MFR, compounding records, BUD, lot traceability, USP &lt;800&gt; HD flags, inventory, and environment logs.</p>
+    <h1>Lab floor</h1>
+    <p class="muted">Every compound lands here from the provider portal. Filter by priority, HD, sterile, or nonsterile. Group similar APIs into a daily list and assign a tech. Points track KPI load.</p>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin:1rem 0">
-      <div class="tile" onclick="go('pharmacy')"><p class="kicker">Intake</p><strong>${state.orders.length} portal orders</strong></div>
-      <div class="tile" onclick="go('inventory')"><p class="kicker">Inventory</p><strong>${expired} expired · ${soon} &lt;30d</strong></div>
-      <div class="tile" onclick="go('ingredients')"><p class="kicker">USP &lt;800&gt;</p><strong>${hdOpen} open HD batches</strong></div>
-      <div class="tile" onclick="go('environment')"><p class="kicker">Environment</p><strong>${state.envLogs.length} readings</strong></div>
+      <div class="tile" onclick="go('pharmacy')"><p class="kicker">Intake</p><strong>${state.orders.length}</strong><p class="muted">Provider orders — qty auto-rounds</p></div>
+      <div class="tile" onclick="go('inventory')"><p class="kicker">Inventory</p><strong>${low.length}</strong><p class="muted">Below reorder · ${expired} expired · ${soon} &lt;30d</p></div>
+      <div class="tile" onclick="go('ingredients')"><p class="kicker">USP &lt;800&gt;</p><strong>${hdOpen}</strong><p class="muted">Open HD batches</p></div>
+      <div class="tile" onclick="go('environment')"><p class="kicker">Environment</p><strong>${envOut}</strong><p class="muted">Out-of-spec readings</p></div>
     </div>
-    <h2>Production pipeline</h2>
-    <p class="muted">Intake → formula/recipe → batch production → labeling → dispensing/shipping</p>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:1rem">
-      ${STAGES.map(s => {
-        const rows = state.crs.filter(c=>c.stage===s);
-        return `<div class="panel pad"><p class="kicker">${STAGE_LABEL[s]}</p><strong>${rows.length}</strong>${rows.slice(0,3).map(c=>`<p><a href="#batch?id=${c.id}">${c.patientName.split(" ")[0]} · ${c.doseLabel}</a>${c.hd?" <span class='danger'>HD</span>":""}</p>`).join("")||"<p class='muted'>Empty</p>"}</div>`;
-      }).join("")}
-    </div>`;
+    <div class="pills">${filters.map(([id,label]) => `<button class="pill ${filter===id?"on":""}" type="button" onclick="go('ops',{filter:'${id}'})">${label}</button>`).join("")}</div>
+    <h2>Grouped by API</h2>
+    <p class="muted">Similar APIs sit together so you can build a complete daily list and assign it per tech. Move rows to change the board order.</p>
+    ${groups.length ? groups.map(group => `
+      <section class="panel pad" style="margin:.7rem 0">
+        <div class="row">
+          <div>
+            <p class="kicker">${group.compounds.length} compound${group.compounds.length===1?"":"s"}${group.cas?` · CAS ${group.cas}`:""}</p>
+            <h3 style="margin:.2rem 0 0">${group.apiName}</h3>
+          </div>
+          <span class="chip">${group.points} KPI pts</span>
+        </div>
+        ${group.compounds.map(cr => {
+          const mfr = state.mfrs.find(m => m.id === cr.mfrId);
+          const qtyNote = cr.qtyManuallyAdjusted ? " (adjusted)" : cr.compoundQty !== cr.orderedQty ? " (auto-round)" : "";
+          return `<article class="cr-card">
+            <div class="row">
+              <div>
+                <p class="kicker">${priorityLabel(cr.priority)} · ${STAGE_LABEL[cr.stage]||cr.stage}${cr.hd?" · HD":""}${isSterile(mfr)?" · Sterile":" · Nonsterile"}</p>
+                <p><a href="#batch?id=${cr.id}"><strong>${cr.productName} · ${cr.doseLabel}</strong></a></p>
+                <p class="muted">${cr.patientName} · ordered ${cr.orderedQty} → compound ${cr.compoundQty}${qtyNote}</p>
+              </div>
+              <p class="muted">${kpiPoints(cr, mfr)} pts</p>
+            </div>
+            <div class="inline-controls">
+              <label>Priority
+                <select onchange="updateCompound('${cr.id}',{priority:this.value})">
+                  <option value="stat" ${cr.priority==="stat"?"selected":""}>STAT</option>
+                  <option value="today" ${cr.priority==="today"?"selected":""}>Today</option>
+                  <option value="routine" ${cr.priority==="routine"?"selected":""}>Routine</option>
+                </select>
+              </label>
+              <label>Tech
+                <select onchange="updateCompound('${cr.id}',{assignedTech:this.value})">
+                  <option value="">Unassigned</option>
+                  ${LAB_TECHS.map(t=>`<option ${cr.assignedTech===t?"selected":""}>${t}</option>`).join("")}
+                </select>
+              </label>
+              <button class="btn ghost" type="button" onclick="moveCompound('${cr.id}',-1)">Up</button>
+              <button class="btn ghost" type="button" onclick="moveCompound('${cr.id}',1)">Down</button>
+            </div>
+          </article>`;
+        }).join("")}
+      </section>`).join("") : `<p class="muted">No open compounds for this filter.</p>`}
+    <h2>Daily list by tech</h2>
+    <p class="muted">Point totals are the KPI load for today. Reassign from the API groups above.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:1rem">
+      ${daily.map(row => `
+        <section class="panel pad">
+          <p class="kicker">${row.points} KPI pts</p>
+          <h3 style="margin:.2rem 0">${row.tech}</h3>
+          ${row.assigned.length ? row.assigned.map(cr => `<p><a href="#batch?id=${cr.id}">${cr.patientName.split(" ")[0]} · ${cr.doseLabel}</a>${cr.hd?" <span class='danger'>HD</span>":""}</p>`).join("") : `<p class="muted">No compounds assigned</p>`}
+        </section>`).join("")}
+    </div>
+    ${unassigned.length ? `<p class="muted" style="margin-top:.8rem">${unassigned.length} unassigned compound${unassigned.length===1?"":"s"}.</p>` : ""}
+    ${low.length ? `<h2 style="margin-top:1.5rem">Below reorder point</h2><ul>${low.map(row => `<li><strong>${row.ingredient.name}</strong> · on hand ${row.remaining} ${row.ingredient.unit} · reorder at ${row.point}</li>`).join("")}</ul>` : ""}
+    <p class="muted" style="margin-top:1.2rem">Pipeline stages still live on each compounding record. Open a row to advance intake → formula → batch → label → ship.</p>`;
 }
 function mfrs() {
   const gate = requireOps(); if (gate) return gate;
@@ -1419,7 +1610,13 @@ function batch(params) {
     <h1>${cr.productName} · ${cr.doseLabel}</h1>
     <p class="muted">${cr.patientName} · ${cr.batchLot}</p>
     ${cr.stage!=="shipped"?`<button class="btn" onclick="advanceBatch('${cr.id}')">Advance to next stage</button>`:""}
-    <div class="panel pad" style="margin-top:1rem"><strong>1. Order intake</strong><p class="muted">Received from the provider portal. Compounding math stays in the lab.</p></div>
+    <div class="panel pad" style="margin-top:1rem"><strong>1. Order intake</strong>
+      <p class="muted">Received from the provider portal. Compounding math stays in the lab.</p>
+      <label>Compound quantity
+        <span class="muted" style="display:block;font-weight:400">Ordered ${cr.orderedQty ?? "—"}${rec?` · batch size ${rec.batchSize} ${rec.batchUnit}`:""}${cr.qtyManuallyAdjusted?" · manually adjusted": cr.compoundQty!==cr.orderedQty?" · auto-rounded":""}</span>
+        <input type="number" min="1" value="${cr.compoundQty ?? ""}" onchange="updateCompound('${cr.id}',{compoundQty:Number(this.value)||0,qtyManuallyAdjusted:true})">
+      </label>
+    </div>
     <div class="panel pad" style="margin-top:1rem"><strong>2. Formula / recipe (MFR)</strong>
       <label>Assigned MFR<select onchange="assignMfr('${cr.id}', this.value)"><option value="">Select</option>${state.mfrs.map(m=>`<option value="${m.id}" ${m.id===cr.mfrId?"selected":""}>${m.title}</option>`).join("")}</select></label>
       ${rec?`<p><a href="#mfr?id=${rec.id}">Open MFR</a> · USP &lt;${rec.chapter}&gt;</p>`:`<p class="danger">No MFR assigned.</p>`}
@@ -1478,20 +1675,88 @@ function advanceBatch(crId) {
   if (order && status && order.status !== status) { order.status = status; notifyForStatus(order, status); }
   save(); route();
 }
-function inventory() {
+function setIngredientReorder(id, value) {
+  const ing = state.ingredients.find(i => i.id === id); if (!ing) return;
+  ing.reorderPoint = Number(value) || 0;
+  save(); route();
+}
+function receiveLot(e) {
+  e.preventDefault();
+  const f = e.target;
+  const ing = state.ingredients.find(i => i.id === f.ingredientId.value);
+  if (!ing || !f.lotNumber.value || !f.expires.value) return false;
+  state.lots.unshift(hydrateLot({
+    id: crypto.randomUUID(),
+    ingredientId: f.ingredientId.value,
+    lotNumber: f.lotNumber.value,
+    supplier: f.manufacturer.value || "Receiving",
+    manufacturer: f.manufacturer.value || "Receiving",
+    storageLocation: f.location.value,
+    auxiliaryLabels: f.aux.value,
+    cas: f.cas.value || ing.cas,
+    receivedAt: Date.now(),
+    expiresAt: new Date(f.expires.value).getTime(),
+    quantity: Number(f.qty.value) || 0,
+    remaining: Number(f.qty.value) || 0,
+    unit: f.unit.value || ing.unit,
+    potencyPct: Number(f.potency.value) || 100,
+    coaName: f.coa.value || ("COA-" + f.lotNumber.value + ".pdf"),
+    quarantine: false
+  }));
+  save(); route();
+  return false;
+}
+function inventory(params) {
   const gate = requireOps(); if (gate) return gate;
   seedLimsIfEmpty();
+  const selectedId = params.ingredientId || state.ingredients[0]?.id || "";
+  const selected = state.ingredients.find(i => i.id === selectedId) || state.ingredients[0] || {};
+  const low = reorderAlerts();
   return `
     <p class="kicker">Operations inventory</p>
-    <h1>Lots, COAs, expiration, controlled substances</h1>
-    <p class="muted">FEFO during compounding. Expired and quarantined lots cannot be used. C-III issues write the perpetual log.</p>
+    <h1>Receive lots</h1>
+    <p class="muted">Enter manufacturer, lot #, storage location, units, auxiliary labels, and CAS. Reorder points sit on the ingredient — FEFO still applies during compounding.</p>
+    ${low.length ? `<div class="panel pad" style="margin:1rem 0;border-color:var(--danger)"><strong class="danger">Below reorder point</strong><ul>${low.map(row=>`<li>${row.ingredient.name} · ${row.remaining} ${row.ingredient.unit} on hand (reorder ${row.point})</li>`).join("")}</ul></div>` : ""}
+    <form class="panel pad grid" style="margin:1rem 0;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))" onsubmit="return receiveLot(event)">
+      <label>Ingredient
+        <select name="ingredientId" onchange="go('inventory',{ingredientId:this.value})">
+          ${state.ingredients.map(i=>`<option value="${i.id}" ${i.id===selected.id?"selected":""}>${i.name}</option>`).join("")}
+        </select>
+      </label>
+      <label>Manufacturer <input name="manufacturer" required placeholder="PCCA, Medisca…"></label>
+      <label>Lot # <input name="lotNumber" required></label>
+      <label>Storage location <input name="location" placeholder="HD cage A / CRT shelf 2"></label>
+      <label>Units <input name="qty" value="25"></label>
+      <label>Unit of measure <input name="unit" value="${selected.unit||"g"}"></label>
+      <label>Auxiliary labels <input name="aux" placeholder="USP <800> · Protect from light"></label>
+      <label>CAS # <input name="cas" value="${selected.cas||""}" placeholder="50-28-2"></label>
+      <label>Expiration <input type="date" name="expires" required></label>
+      <label>Potency % <input name="potency" value="99.5"></label>
+      <label>COA file name <input name="coa" placeholder="COA-lot.pdf"></label>
+      <label>Reorder point (${selected.unit||"g"})
+        <input name="reorder" value="${selected.reorderPoint??""}" onchange="setIngredientReorder('${selected.id}', this.value)">
+      </label>
+      <button class="btn" type="submit" style="grid-column:1/-1">Receive lot</button>
+    </form>
     <div class="panel" style="overflow:auto;margin-top:1rem"><table>
-      <thead><tr><th>Lot</th><th>Ingredient</th><th>Remaining</th><th>Assay</th><th>Expires</th><th>COA</th><th>Status</th></tr></thead>
+      <thead><tr><th>Lot #</th><th>Ingredient</th><th>Manufacturer</th><th>Location</th><th>On hand</th><th>CAS</th><th>Aux labels</th><th>Expires</th><th>Status</th></tr></thead>
       <tbody>${state.lots.map(l=>{
         const expired = l.expiresAt < Date.now(); const soon = !expired && l.expiresAt < Date.now()+30*864e5;
         const flag = l.quarantine?"Quarantine":expired?"Expired":soon?"Expiring":"Released";
         const ing = state.ingredients.find(i=>i.id===l.ingredientId)||{};
-        return `<tr><td>${l.lotNumber}</td><td>${ing.name||l.ingredientId}${ing.niosh?" <span class='danger'>NIOSH T"+ing.niosh+"</span>":""}${ing.cs?" C-"+ing.cs:""}</td><td>${l.remaining} ${l.unit}</td><td>${l.potencyPct}%</td><td>${new Date(l.expiresAt).toLocaleDateString()}</td><td>${l.coaName}</td><td class="${expired||l.quarantine?"danger":""}">${flag}</td></tr>`;
+        const remainingAll = onHand(l.ingredientId);
+        const lowStock = remainingAll < (ing.reorderPoint || 0);
+        return `<tr>
+          <td>${l.lotNumber}</td>
+          <td>${ing.name||l.ingredientId}${ing.niosh?" <span class='danger'>NIOSH T"+ing.niosh+"</span>":""}</td>
+          <td>${l.manufacturer||l.supplier||"—"}</td>
+          <td>${l.storageLocation||"—"}</td>
+          <td>${l.remaining} / ${l.quantity} ${l.unit}${lowStock?" <span class='danger'>reorder</span>":""}</td>
+          <td>${l.cas||ing.cas||"—"}</td>
+          <td>${l.auxiliaryLabels||"—"}</td>
+          <td>${new Date(l.expiresAt).toLocaleDateString()}</td>
+          <td class="${expired||l.quarantine?"danger":""}">${flag}</td>
+        </tr>`;
       }).join("")}</tbody></table></div>
     <h2 style="margin-top:1.5rem">Controlled substance log</h2>
     ${(state.csLogs||[]).length?state.csLogs.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${ingName(l.ingredientId)} · ${l.quantity} ${l.unit}</strong><p class="muted">${new Date(l.at).toLocaleString()} · remaining ${l.remaining} · ${l.pharmacist}</p></article>`).join(""):"<p class='muted'>No CS issues yet. Advance a testosterone batch through production to write a line.</p>"}`;
@@ -1530,8 +1795,8 @@ function ingredients() {
     <h1>Hazardous drug list (NIOSH)</h1>
     <p class="muted">Table 1 antineoplastics, Table 2 non-antineoplastic HDs, Table 3 reproductive risk.</p>
     <div class="panel" style="overflow:auto"><table>
-      <thead><tr><th>Ingredient</th><th>CAS</th><th>NIOSH</th><th>HD</th><th>CS</th></tr></thead>
-      <tbody>${state.ingredients.map(i=>`<tr><td>${i.name}</td><td>${i.cas||"—"}</td><td class="${i.niosh?"danger":""}">${i.niosh?("Table "+i.niosh):"—"}</td><td>${i.hd?"Yes":"No"}</td><td>${i.cs?("C-"+i.cs):"—"}</td></tr>`).join("")}</tbody>
+      <thead><tr><th>Ingredient</th><th>CAS</th><th>NIOSH</th><th>HD</th><th>CS</th><th>Reorder</th></tr></thead>
+      <tbody>${state.ingredients.map(i=>`<tr><td>${i.name}</td><td>${i.cas||"—"}</td><td class="${i.niosh?"danger":""}">${i.niosh?("Table "+i.niosh):"—"}</td><td>${i.hd?"Yes":"No"}</td><td>${i.cs?("C-"+i.cs):"—"}</td><td>${i.reorderPoint??"—"} ${i.unit||""}</td></tr>`).join("")}</tbody>
     </table></div>`;
 }
 

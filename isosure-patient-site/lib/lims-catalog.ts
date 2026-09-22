@@ -7,7 +7,7 @@ import type {
   MasterFormulationRecord,
 } from "./lims-types";
 
-export const INGREDIENTS: Ingredient[] = [
+const INGREDIENT_ROWS: Omit<Ingredient, "reorderPoint">[] = [
   { id: "estradiol", name: "Estradiol USP", cas: "50-28-2", nioshTable: 2, hazardous: true, controlledSchedule: null, defaultPotencyPct: 99.2, unit: "g" },
   { id: "progesterone", name: "Progesterone USP micronized", cas: "57-83-0", nioshTable: 2, hazardous: true, controlledSchedule: null, defaultPotencyPct: 99.4, unit: "g" },
   { id: "testosterone", name: "Testosterone USP", cas: "58-22-0", nioshTable: 2, hazardous: true, controlledSchedule: "III", defaultPotencyPct: 98.8, unit: "g" },
@@ -36,8 +36,43 @@ export const INGREDIENTS: Ingredient[] = [
   { id: "nasal-vehicle", name: "Isotonic nasal vehicle", cas: "", nioshTable: null, hazardous: false, controlledSchedule: null, defaultPotencyPct: 100, unit: "mL" },
 ];
 
+const REORDER_POINT: Record<string, number> = {
+  estradiol: 8,
+  progesterone: 15,
+  testosterone: 5,
+  naltrexone: 5,
+  ketoprofen: 160,
+  versabase: 400,
+  "oil-cap": 400,
+  "ns-water": 800,
+  nad: 9,
+};
+
+export const INGREDIENTS: Ingredient[] = INGREDIENT_ROWS.map((row) => ({
+  ...row,
+  reorderPoint: REORDER_POINT[row.id] ?? (row.unit === "mL" ? 200 : 10),
+}));
+
 function daysFromNow(days: number) {
   return new Date(Date.now() + days * 864e5).toISOString();
+}
+
+function withReceiving(
+  lot: Omit<InventoryLot, "manufacturer" | "storageLocation" | "auxiliaryLabels" | "cas"> &
+    Partial<Pick<InventoryLot, "manufacturer" | "storageLocation" | "auxiliaryLabels" | "cas">>,
+): InventoryLot {
+  const ingredient = INGREDIENTS.find((item) => item.id === lot.ingredientId);
+  return {
+    ...lot,
+    manufacturer: lot.manufacturer || lot.supplier,
+    storageLocation: lot.storageLocation || (ingredient?.hazardous ? "HD cage A" : "CRT shelf 2"),
+    auxiliaryLabels:
+      lot.auxiliaryLabels ??
+      [ingredient?.hazardous ? "USP <800>" : "", ingredient?.controlledSchedule ? `C-${ingredient.controlledSchedule}` : ""]
+        .filter(Boolean)
+        .join(" · "),
+    cas: lot.cas || ingredient?.cas || "",
+  };
 }
 
 export function seedLots(): InventoryLot[] {
@@ -56,7 +91,7 @@ export function seedLots(): InventoryLot[] {
     { id: "lot-nsw-a", ingredientId: "ns-water", lotNumber: "SW-26011", supplier: "Hospira", receivedAt: daysFromNow(-3), expiresAt: daysFromNow(700), quantity: 4000, remaining: 3500, unit: "mL", potencyPct: 100, coaName: "COA-SW-26011.pdf", quarantine: false },
     { id: "lot-nasal-a", ingredientId: "nasal-vehicle", lotNumber: "NV-25004", supplier: "PCCA", receivedAt: daysFromNow(-14), expiresAt: daysFromNow(180), quantity: 1000, remaining: 860, unit: "mL", potencyPct: 100, coaName: "COA-NV-25004.pdf", quarantine: false },
     { id: "lot-tret-a", ingredientId: "tretinoin", lotNumber: "TRET-24177", supplier: "Medisca", receivedAt: daysFromNow(-25), expiresAt: daysFromNow(150), quantity: 10, remaining: 7.4, unit: "g", potencyPct: 99.1, coaName: "COA-TRET-24177.pdf", quarantine: false },
-  ];
+  ].map(withReceiving);
 }
 
 export const MFRS: MasterFormulationRecord[] = [

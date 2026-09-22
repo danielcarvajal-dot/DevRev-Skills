@@ -1,5 +1,6 @@
 import { calculateBud, potencyAdjustedQty } from "./bud";
 import { findMfr, getIngredient } from "./lims-catalog";
+import { roundUpToBatch } from "./ops-floor";
 import type {
   CompoundingRecord,
   ControlledSubstanceLog,
@@ -65,6 +66,8 @@ export function createCrsForOrder(input: {
     const hd = Boolean(
       mfr?.ingredients.some((line) => getIngredient(line.ingredientId, input.ingredients)?.hazardous),
     );
+    const orderedQty = item.quantity;
+    const compoundQty = roundUpToBatch(orderedQty, mfr?.batchSize ?? 0);
     return {
       id: crypto.randomUUID(),
       mfrId: mfr?.id || "",
@@ -88,6 +91,12 @@ export function createCrsForOrder(input: {
       labelText: "",
       notes: input.order.notes,
       hd,
+      orderedQty,
+      compoundQty,
+      qtyManuallyAdjusted: false,
+      priority: "routine",
+      assignedTech: "",
+      sortIndex: itemIndex,
     };
   });
 }
@@ -280,6 +289,12 @@ export function seedDemoCrs(): CompoundingRecord[] {
       labelText: "",
       notes: "Match last fill.",
       hd: true,
+      orderedQty: 30,
+      compoundQty: 30,
+      qtyManuallyAdjusted: false,
+      priority: "stat",
+      assignedTech: "Alex Chen",
+      sortIndex: 0,
     },
     {
       id: "cr-p4-1",
@@ -304,6 +319,12 @@ export function seedDemoCrs(): CompoundingRecord[] {
       labelText: "",
       notes: "Match last fill.",
       hd: true,
+      orderedQty: 30,
+      compoundQty: 30,
+      qtyManuallyAdjusted: false,
+      priority: "today",
+      assignedTech: "Priya Shah",
+      sortIndex: 1,
     },
     {
       id: "cr-ldn-2",
@@ -328,6 +349,12 @@ export function seedDemoCrs(): CompoundingRecord[] {
       labelText: "",
       notes: "Clarification pending from provider.",
       hd: false,
+      orderedQty: 25,
+      compoundQty: 30,
+      qtyManuallyAdjusted: false,
+      priority: "today",
+      assignedTech: "Morgan Lee",
+      sortIndex: 2,
     },
     {
       id: "cr-keto-3",
@@ -357,6 +384,42 @@ export function seedDemoCrs(): CompoundingRecord[] {
       labelText: "IsoEase Ketoprofen Cream 10%\nPatient: Lee Park\nBatch CR-20260824-7721\nBUD pending pickup · store CRT\nFor external use only · Avoid broken skin\nUSP <795>  60 g ointment jar",
       notes: "",
       hd: false,
+      orderedQty: 60,
+      compoundQty: 60,
+      qtyManuallyAdjusted: false,
+      priority: "routine",
+      assignedTech: "Alex Chen",
+      sortIndex: 3,
+    },
+    {
+      id: "cr-nad-4",
+      mfrId: "mfr-nad-50",
+      orderId: "demo-order-4",
+      itemIndex: 0,
+      productName: "IsoPulse NAD+ Nasal Spray",
+      doseLabel: "50 mg/mL",
+      patientName: "Jordan Blake",
+      batchLot: "CR-20260825-3301",
+      stage: "formula",
+      createdAt: new Date(now - 1 * 864e5).toISOString(),
+      compoundedBy: "Jordan Hale, RPh",
+      verifiedBy: "",
+      ingredientsUsed: [],
+      budDate: "",
+      budHours: 0,
+      budBasis: "",
+      budStorage: "refrigerated",
+      budCappedBy: "chapter",
+      labelPrinted: false,
+      labelText: "",
+      notes: "Category 1 CSP — ISO 5 PEC.",
+      hd: false,
+      orderedQty: 10,
+      compoundQty: 15,
+      qtyManuallyAdjusted: false,
+      priority: "today",
+      assignedTech: "",
+      sortIndex: 4,
     },
   ];
 }

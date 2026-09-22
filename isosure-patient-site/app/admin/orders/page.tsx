@@ -66,11 +66,16 @@ export default function AdminOrdersPage() {
               <p className="text-lg">{formatMoney(order.total)}</p>
             </div>
             <ul className="mt-3 text-sm">
-              {order.items.map((item) => (
-                <li key={`${order.id}-${item.productId}-${item.doseId}`}>
-                  {item.productName} · {item.doseLabel} × {item.quantity}
-                </li>
-              ))}
+              {order.items.map((item) => {
+                const cr = crs.find((row) => row.orderId === order.id && row.itemIndex === order.items.indexOf(item));
+                return (
+                  <li key={`${order.id}-${item.productId}-${item.doseId}`}>
+                    {item.productName} · {item.doseLabel} · ordered {item.quantity}
+                    {cr?.compoundQty != null ? ` → compound ${cr.compoundQty}` : ""}
+                    {cr?.qtyManuallyAdjusted ? " (adjusted)" : cr && cr.compoundQty !== item.quantity ? " (auto-round)" : ""}
+                  </li>
+                );
+              })}
             </ul>
             <p className="mt-2 text-sm text-ink-soft">
               {order.scripts.length} document{order.scripts.length === 1 ? "" : "s"} on the ticket

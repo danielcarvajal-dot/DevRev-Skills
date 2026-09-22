@@ -13,6 +13,7 @@ export type SterileCategory = 1 | 2 | 3;
 export type StorageCondition = "CRT" | "refrigerated" | "frozen";
 export type IsoClass = "ISO 5" | "ISO 7" | "ISO 8" | "unclassified";
 export type CrStage = "intake" | "formula" | "compounding" | "labeling" | "dispense" | "shipped";
+export type CrPriority = "stat" | "today" | "routine";
 export type EquipmentKind = "balance" | "hood" | "fridge" | "incubator" | "room";
 
 export type Ingredient = {
@@ -24,6 +25,7 @@ export type Ingredient = {
   controlledSchedule: ControlledSchedule | null;
   defaultPotencyPct: number;
   unit: string;
+  reorderPoint: number;
 };
 
 export type InventoryLot = {
@@ -31,6 +33,10 @@ export type InventoryLot = {
   ingredientId: string;
   lotNumber: string;
   supplier: string;
+  manufacturer: string;
+  storageLocation: string;
+  auxiliaryLabels: string;
+  cas: string;
   receivedAt: string;
   expiresAt: string;
   quantity: number;
@@ -107,6 +113,12 @@ export type CompoundingRecord = {
   labelText: string;
   notes: string;
   hd: boolean;
+  orderedQty?: number;
+  compoundQty?: number;
+  qtyManuallyAdjusted?: boolean;
+  priority?: CrPriority;
+  assignedTech?: string;
+  sortIndex?: number;
 };
 
 export type EnvironmentLog = {

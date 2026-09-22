@@ -31,6 +31,7 @@ import {
   seedLots,
 } from "./lims-catalog";
 import { aggregateOrderStatus, createCrsForOrder, seedDemoCrs, advanceCr as stepCr } from "./lims";
+import { normalizeCr } from "./ops-floor";
 import type {
   CompoundingRecord,
   ControlledSubstanceLog,
@@ -146,6 +147,9 @@ type StoreValue = Persisted & {
   addEnvironmentLog: (log: Omit<EnvironmentLog, "id">) => void;
   addEquipmentLog: (log: Omit<EquipmentLog, "id">) => void;
   receiveLot: (lot: Omit<InventoryLot, "id" | "remaining">) => void;
+  updateCompound: (id: string, patch: Partial<CompoundingRecord>) => void;
+  moveCompound: (id: string, direction: -1 | 1) => void;
+  setIngredientReorder: (id: string, reorderPoint: number) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -178,10 +182,10 @@ function loadState(): Persisted {
       documents: parsed.documents ?? [],
       notifications: parsed.notifications ?? [],
       refills: parsed.refills ?? [],
-      ingredients: parsed.ingredients?.length ? parsed.ingredients : DEFAULT_INGREDIENTS,
-      lots: parsed.lots ?? [],
+      ingredients: mergeIngredients(parsed.ingredients),
+      lots: (parsed.lots ?? []).map(hydrateLot),
       mfrs: parsed.mfrs?.length ? parsed.mfrs : DEFAULT_MFRS,
-      crs: parsed.crs ?? [],
+      crs: mergeCrs(parsed.crs),
       envLogs: parsed.envLogs ?? [],
       equipmentLogs: parsed.equipmentLogs ?? [],
       csLogs: parsed.csLogs ?? [],
@@ -189,6 +193,36 @@ function loadState(): Persisted {
   } catch {
     return emptyState;
   }
+}
+
+function mergeCrs(stored: CompoundingRecord[] | undefined) {
+  if (!stored?.length) return [];
+  const byId = new Map(stored.map((item) => [item.id, normalizeCr(item)]));
+  for (const cr of seedDemoCrs()) {
+    if (!byId.has(cr.id)) byId.set(cr.id, cr);
+  }
+  return [...byId.values()];
+}
+
+function mergeIngredients(stored: Ingredient[] | undefined) {
+  if (!stored?.length) return DEFAULT_INGREDIENTS;
+  const byId = new Map(stored.map((item) => [item.id, item]));
+  return DEFAULT_INGREDIENTS.map((item) => {
+    const existing = byId.get(item.id);
+    return existing
+      ? { ...item, ...existing, reorderPoint: existing.reorderPoint ?? item.reorderPoint }
+      : item;
+  });
+}
+
+function hydrateLot(lot: InventoryLot): InventoryLot {
+  return {
+    ...lot,
+    manufacturer: lot.manufacturer || lot.supplier || "",
+    storageLocation: lot.storageLocation || "",
+    auxiliaryLabels: lot.auxiliaryLabels || "",
+    cas: lot.cas || "",
+  };
 }
 
 function persist(state: Persisted) {
@@ -744,9 +778,57 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             ...lot,
             id: crypto.randomUUID(),
             remaining: lot.quantity,
+            manufacturer: lot.manufacturer || lot.supplier,
+            storageLocation: lot.storageLocation || "",
+            auxiliaryLabels: lot.auxiliaryLabels || "",
+            cas: lot.cas || "",
           },
           ...prev.lots,
         ],
+      }));
+    },
+    [commit],
+  );
+
+  const updateCompound: StoreValue["updateCompound"] = useCallback(
+    (id, patch) => {
+      commit((prev) => ({
+        ...prev,
+        crs: prev.crs.map((item) => (item.id === id ? normalizeCr({ ...item, ...patch }) : item)),
+      }));
+    },
+    [commit],
+  );
+
+  const moveCompound: StoreValue["moveCompound"] = useCallback(
+    (id, direction) => {
+      commit((prev) => {
+        const ordered = [...prev.crs].sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0));
+        const index = ordered.findIndex((item) => item.id === id);
+        const swap = index + direction;
+        if (index < 0 || swap < 0 || swap >= ordered.length) return prev;
+        const current = ordered[index]!;
+        const other = ordered[swap]!;
+        const currentIndex = current.sortIndex ?? index;
+        const otherIndex = other.sortIndex ?? swap;
+        return {
+          ...prev,
+          crs: prev.crs.map((item) => {
+            if (item.id === current.id) return { ...item, sortIndex: otherIndex };
+            if (item.id === other.id) return { ...item, sortIndex: currentIndex };
+            return item;
+          }),
+        };
+      });
+    },
+    [commit],
+  );
+
+  const setIngredientReorder: StoreValue["setIngredientReorder"] = useCallback(
+    (id, reorderPoint) => {
+      commit((prev) => ({
+        ...prev,
+        ingredients: prev.ingredients.map((item) => (item.id === id ? { ...item, reorderPoint } : item)),
       }));
     },
     [commit],
@@ -800,6 +882,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addEnvironmentLog,
       addEquipmentLog,
       receiveLot,
+      updateCompound,
+      moveCompound,
+      setIngredientReorder,
     }),
     [
       state,
@@ -837,6 +922,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addEnvironmentLog,
       addEquipmentLog,
       receiveLot,
+      updateCompound,
+      moveCompound,
+      setIngredientReorder,
     ],
   );
 

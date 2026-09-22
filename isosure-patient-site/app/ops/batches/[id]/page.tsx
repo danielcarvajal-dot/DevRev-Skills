@@ -11,7 +11,7 @@ import { useStore } from "@/lib/store";
 
 export default function BatchWorkbenchPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { crs, mfrs, ingredients, lots, orders, documents, advanceBatch, assignMfr } = useStore();
+  const { crs, mfrs, ingredients, lots, orders, documents, advanceBatch, assignMfr, updateCompound } = useStore();
   const cr = crs.find((item) => item.id === id);
   const mfr = mfrs.find((item) => item.id === cr?.mfrId);
   const order = orders.find((item) => item.id === cr?.orderId);
@@ -75,6 +75,23 @@ export default function BatchWorkbenchPage({ params }: { params: Promise<{ id: s
               {order.notes ? ` · Note: ${order.notes}` : ""}
             </p>
           ) : null}
+          <label className="mt-3 block max-w-xs text-sm">
+            Compound quantity
+            <span className="block text-xs text-ink-soft">
+              Ordered {cr.orderedQty ?? "—"}
+              {mfr ? ` · batch size ${mfr.batchSize} ${mfr.batchUnit}` : ""}
+              {cr.qtyManuallyAdjusted ? " · manually adjusted" : cr.compoundQty !== cr.orderedQty ? " · auto-rounded" : ""}
+            </span>
+            <input
+              type="number"
+              min={1}
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2"
+              value={cr.compoundQty ?? ""}
+              onChange={(e) =>
+                updateCompound(cr.id, { compoundQty: Number(e.target.value) || 0, qtyManuallyAdjusted: true })
+              }
+            />
+          </label>
           <ul className="mt-2 text-sm">
             {relatedDocs.map((doc) => (
               <li key={doc.id}>{doc.kind.toUpperCase()} · {doc.name}</li>

@@ -25,6 +25,7 @@ export default function IngredientsPage() {
                 <th className="px-3 py-2">NIOSH</th>
                 <th className="px-3 py-2">HD</th>
                 <th className="px-3 py-2">CS</th>
+                <th className="px-3 py-2">Reorder</th>
               </tr>
             </thead>
             <tbody>
@@ -37,6 +38,7 @@ export default function IngredientsPage() {
                   </td>
                   <td className="px-3 py-2">{ing.hazardous ? "Yes" : "No"}</td>
                   <td className="px-3 py-2">{ing.controlledSchedule ? `C-${ing.controlledSchedule}` : "—"}</td>
+                  <td className="px-3 py-2">{ing.reorderPoint} {ing.unit}</td>
                 </tr>
               ))}
             </tbody>
