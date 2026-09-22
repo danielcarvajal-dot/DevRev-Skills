@@ -254,14 +254,14 @@ function selectDose(productId, doseId) {
 function demoOrders() {
   return [
     {id:"demo-order-1",placedAt:Date.now()-12*864e5,status:"InProduction",total:120,patientName:"Avery Nguyen",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"Match last fill.",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
-      {productId:"estradiol-cream",doseId:"e2-05",quantity:1,productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",unitPrice:56},
-      {productId:"progesterone-caps",doseId:"p4-100",quantity:1,productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",unitPrice:52}
+      {productId:"estradiol-cream",doseId:"e2-05",quantity:30,productName:"IsoBalance Estradiol Cream",doseLabel:"0.5 mg/g",unitPrice:56},
+      {productId:"progesterone-caps",doseId:"p4-100",quantity:30,productName:"IsoCalm Progesterone Capsules",doseLabel:"100 mg",unitPrice:52}
     ]},
     {id:"demo-order-2",placedAt:Date.now()-4*864e5,status:"ClarificationNeeded",total:46,patientName:"Sam Rivera",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
-      {productId:"ldn-caps",doseId:"ldn-45",quantity:1,productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",unitPrice:38}
+      {productId:"ldn-caps",doseId:"ldn-45",quantity:25,productName:"IsoReset Low-Dose Naltrexone",doseLabel:"4.5 mg",unitPrice:38}
     ]},
     {id:"demo-order-3",placedAt:Date.now()-2*864e5,status:"ReadyPickup",total:72,patientName:"Lee Park",practiceName:"Hawthorne Family Medicine",prescriberName:"Dr. Maya Ellison, MD",npi:"1234567890",notes:"",address:"418 Hawthorne Blvd, Portland, OR 97214",scripts:[],items:[
-      {productId:"ketoprofen-cream",doseId:"keto-10",quantity:1,productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",unitPrice:46}
+      {productId:"ketoprofen-cream",doseId:"keto-10",quantity:60,productName:"IsoEase Ketoprofen Cream",doseLabel:"10%",unitPrice:46}
     ]}
   ];
 }
@@ -941,10 +941,11 @@ function orderCards(orders, admin=false) {
       </div>
       ${o.items.map((i, idx) => {
         const cr = (state.crs||[]).find(c => c.orderId===o.id && (c.itemIndex===idx || c.productName===i.productName));
+        const ordered = cr?.orderedQty ?? i.quantity;
         const note = cr && cr.compoundQty!=null
-          ? ` → compound ${cr.compoundQty}${cr.qtyManuallyAdjusted?" (adjusted)": cr.compoundQty!==i.quantity?" (auto-round)":""}`
+          ? ` → compound ${cr.compoundQty}${cr.qtyManuallyAdjusted?" (adjusted)": cr.compoundQty!==ordered?" (auto-round)":""}`
           : "";
-        return `<p>${i.productName} · ${i.doseLabel} · ordered ${i.quantity}${note}</p>`;
+        return `<p>${i.productName} · ${i.doseLabel} · ordered ${ordered}${note}</p>`;
       }).join("")}
       ${o.scripts?.length ? `<p class="muted">${o.scripts.length} document${o.scripts.length>1?"s":""} on the ticket</p>` : `<p class="muted">Documents live in the exchange for this demo order</p>`}
       ${admin ? `<ul>${(state.crs||[]).filter(c=>c.orderId===o.id).map(c=>`<li><a href="#batch?id=${c.id}">${c.batchLot} · ${STAGE_LABEL[c.stage]||c.stage}${c.hd?" · HD":""}</a></li>`).join("")}</ul>` : ""}
@@ -1259,23 +1260,23 @@ const DEMO_FLOOR = {
   "cr-keto-3": {orderedQty:60,compoundQty:60,priority:"routine",assignedTech:"Alex Chen",sortIndex:3},
   "cr-nad-4": {orderedQty:10,compoundQty:15,priority:"today",assignedTech:"",sortIndex:4}
 };
-function defaultReorder(id, unit) { return REORDER_POINT[id] ?? (unit === "mL" ? 200 : 10); }
+function defaultReorder(id) { return REORDER_POINT[id] ?? 0; }
 function defaultIngredients() {
   return [
     {id:"estradiol",name:"Estradiol USP",cas:"50-28-2",niosh:2,hd:true,cs:null,unit:"g",reorderPoint:8},
     {id:"progesterone",name:"Progesterone USP micronized",cas:"57-83-0",niosh:2,hd:true,cs:null,unit:"g",reorderPoint:15},
     {id:"testosterone",name:"Testosterone USP",cas:"58-22-0",niosh:2,hd:true,cs:"III",unit:"g",reorderPoint:5},
-    {id:"tretinoin",name:"Tretinoin USP",cas:"302-79-4",niosh:3,hd:true,cs:null,unit:"g",reorderPoint:10},
-    {id:"dhea",name:"DHEA USP",cas:"53-43-0",niosh:2,hd:true,cs:null,unit:"g",reorderPoint:10},
+    {id:"tretinoin",name:"Tretinoin USP",cas:"302-79-4",niosh:3,hd:true,cs:null,unit:"g",reorderPoint:0},
+    {id:"dhea",name:"DHEA USP",cas:"53-43-0",niosh:2,hd:true,cs:null,unit:"g",reorderPoint:0},
     {id:"naltrexone",name:"Naltrexone HCl USP",cas:"16676-29-2",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:5},
     {id:"ketoprofen",name:"Ketoprofen USP",cas:"22071-15-4",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:160},
     {id:"nad",name:"NAD+",cas:"53-84-9",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:9},
     {id:"versabase",name:"VersaBase cream",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:400},
-    {id:"avicel",name:"Microcrystalline cellulose",cas:"9004-34-6",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:10},
+    {id:"avicel",name:"Microcrystalline cellulose",cas:"9004-34-6",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:0},
     {id:"oil-cap",name:"Sunflower oil capsule fill",cas:"",niosh:null,hd:false,cs:null,unit:"mL",reorderPoint:400},
-    {id:"parabens",name:"Paraben blend",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:10},
-    {id:"hydrogel",name:"Alcohol hydrogel base",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:10},
-    {id:"nasal-vehicle",name:"Isotonic nasal vehicle",cas:"",niosh:null,hd:false,cs:null,unit:"mL",reorderPoint:200},
+    {id:"parabens",name:"Paraben blend",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:0},
+    {id:"hydrogel",name:"Alcohol hydrogel base",cas:"",niosh:null,hd:false,cs:null,unit:"g",reorderPoint:0},
+    {id:"nasal-vehicle",name:"Isotonic nasal vehicle",cas:"",niosh:null,hd:false,cs:null,unit:"mL",reorderPoint:0},
     {id:"ns-water",name:"Sterile water for irrigation",cas:"7732-18-5",niosh:null,hd:false,cs:null,unit:"mL",reorderPoint:800}
   ];
 }
@@ -1434,7 +1435,8 @@ function reorderAlerts() {
   return (state.ingredients || []).map(ingredient => {
     const remaining = onHand(ingredient.id);
     const point = ingredient.reorderPoint ?? 0;
-    return { ingredient, remaining, point, low: point > 0 && remaining < point };
+    const stocked = (state.lots || []).some(l => l.ingredientId === ingredient.id);
+    return { ingredient, remaining, point, low: point > 0 && stocked && remaining < point };
   }).filter(row => row.low);
 }
 function filterFloor(filter) {

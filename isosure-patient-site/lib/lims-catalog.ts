@@ -50,7 +50,7 @@ const REORDER_POINT: Record<string, number> = {
 
 export const INGREDIENTS: Ingredient[] = INGREDIENT_ROWS.map((row) => ({
   ...row,
-  reorderPoint: REORDER_POINT[row.id] ?? (row.unit === "mL" ? 200 : 10),
+  reorderPoint: REORDER_POINT[row.id] ?? 0,
 }));
 
 function daysFromNow(days: number) {

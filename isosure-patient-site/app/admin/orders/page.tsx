@@ -70,9 +70,13 @@ export default function AdminOrdersPage() {
                 const cr = crs.find((row) => row.orderId === order.id && row.itemIndex === order.items.indexOf(item));
                 return (
                   <li key={`${order.id}-${item.productId}-${item.doseId}`}>
-                    {item.productName} · {item.doseLabel} · ordered {item.quantity}
+                    {item.productName} · {item.doseLabel} · ordered {cr?.orderedQty ?? item.quantity}
                     {cr?.compoundQty != null ? ` → compound ${cr.compoundQty}` : ""}
-                    {cr?.qtyManuallyAdjusted ? " (adjusted)" : cr && cr.compoundQty !== item.quantity ? " (auto-round)" : ""}
+                    {cr?.qtyManuallyAdjusted
+                      ? " (adjusted)"
+                      : cr && cr.compoundQty !== (cr.orderedQty ?? item.quantity)
+                        ? " (auto-round)"
+                        : ""}
                   </li>
                 );
               })}

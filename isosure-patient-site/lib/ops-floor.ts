@@ -127,7 +127,8 @@ export function reorderAlerts(ingredients: Ingredient[], lots: InventoryLot[]) {
     .map((ingredient) => {
       const remaining = onHand(ingredient.id, lots);
       const point = ingredient.reorderPoint ?? 0;
-      return { ingredient, remaining, point, low: point > 0 && remaining < point };
+      const stocked = lots.some((lot) => lot.ingredientId === ingredient.id);
+      return { ingredient, remaining, point, low: point > 0 && stocked && remaining < point };
     })
     .filter((row) => row.low);
 }

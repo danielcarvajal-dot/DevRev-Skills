@@ -142,7 +142,7 @@ export function seedDemoOrders(): Order[] {
         {
           productId: "estradiol-cream",
           doseId: "e2-05",
-          quantity: 1,
+          quantity: 30,
           productName: "IsoBalance Estradiol Cream",
           doseLabel: "0.5 mg/g",
           unitPrice: 56,
@@ -150,7 +150,7 @@ export function seedDemoOrders(): Order[] {
         {
           productId: "progesterone-caps",
           doseId: "p4-100",
-          quantity: 1,
+          quantity: 30,
           productName: "IsoCalm Progesterone Capsules",
           doseLabel: "100 mg",
           unitPrice: 52,
@@ -177,7 +177,7 @@ export function seedDemoOrders(): Order[] {
         {
           productId: "ldn-caps",
           doseId: "ldn-45",
-          quantity: 1,
+          quantity: 25,
           productName: "IsoReset Low-Dose Naltrexone",
           doseLabel: "4.5 mg",
           unitPrice: 38,
@@ -204,7 +204,7 @@ export function seedDemoOrders(): Order[] {
         {
           productId: "ketoprofen-cream",
           doseId: "keto-10",
-          quantity: 1,
+          quantity: 60,
           productName: "IsoEase Ketoprofen Cream",
           doseLabel: "10%",
           unitPrice: 46,
