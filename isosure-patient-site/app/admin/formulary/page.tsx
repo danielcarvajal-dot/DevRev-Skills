@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { parseFormularyCsv, parseFormularyJson, SAMPLE_CSV } from "@/lib/catalog-io";
+import { canAccessOps } from "@/lib/auth";
 import { formatMoney } from "@/lib/format";
 import { useStore } from "@/lib/store";
 
@@ -19,7 +20,7 @@ export default function FormularyAdminPage() {
   const [error, setError] = useState("");
 
   if (!ready) return <div className="mx-auto max-w-6xl px-4 py-16 text-ink-soft">Loading…</div>;
-  if (user?.role !== "pharmacy") {
+  if (!canAccessOps(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Pharmacy admin only</h1>

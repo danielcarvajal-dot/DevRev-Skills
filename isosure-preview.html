@@ -105,7 +105,7 @@
 </head>
 <body>
   <header>
-    <img class="logo" src="brand/isosure-logo.png" alt="ISOSure Consulting" onclick="go('home')" />
+    <img class="logo" src="brand/isosure-logo.png" alt="ISOSure Consulting" onclick="go(state.user?homeFor():'home')" />
     <nav id="nav"></nav>
     <div class="actions">
       <button class="btn ghost" id="roleBtn" onclick="go('login')">Sign in</button>
@@ -218,19 +218,23 @@ function route() {
   const [name, qs] = raw.split("?");
   const params = Object.fromEntries(new URLSearchParams(qs || ""));
   chrome();
-  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients, "order-new": orderNew, patients: patientsView};
+  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients, qa, hub, "order-new": orderNew, patients: patientsView};
   document.getElementById("app").innerHTML = (views[name] || home)(params);
 }
 function chrome() {
   const u = state.user;
   const count = (state.cart||[]).reduce((s,i)=>s+i.quantity,0);
   const roleBtn = document.getElementById("roleBtn");
-  if (roleBtn) roleBtn.textContent = u ? (u.role==="pharmacy" ? u.pharmacyName : u.practiceName) : "Sign in";
+  if (roleBtn) roleBtn.textContent = u ? staffLabel(u) : "Sign in";
+  if (roleBtn) roleBtn.onclick = () => go(u ? homeFor() : "login");
   const unread = (state.notifications||[]).filter(n=>!n.read).length;
   const drafts = (state.drafts||[]).length;
-  document.getElementById("nav").innerHTML = u?.role === "pharmacy"
-    ? `<a href="#ops">Lab</a><a href="#pharmacy">Intake</a><a href="#mfrs">MFRs</a><a href="#inventory">Inventory</a><a href="#environment">Environment</a>`
-    : `<a href="#order-new">New order</a><a href="#patients">Patients</a><a href="#practice">Orders</a><a href="#practice">Drafts${drafts?` (${drafts})`:""}</a><a href="#notifications">Messages${unread?` (${unread})`:""}</a>`;
+  const links = [];
+  if (u?.role === "rph") links.push(`<a href="#hub">Desk</a>`);
+  if (canAccessOps(u)) links.push(`<a href="#ops">Lab</a><a href="#pharmacy">Intake</a><a href="#inventory">Inventory</a>`);
+  if (canAccessProvider(u)) links.push(`<a href="#order-new">New order</a><a href="#patients">Patients</a><a href="#practice">Orders</a><a href="#practice">Drafts${drafts?` (${drafts})`:""}</a><a href="#notifications">Messages${unread?` (${unread})`:""}</a>`);
+  if (canAccessQa(u)) links.push(`<a href="#qa">Quality</a>`);
+  document.getElementById("nav").innerHTML = links.join("");
 }
 
 function addLine(productId, qty=1) {
@@ -330,32 +334,58 @@ function setOrderStatus(id, status) {
   save(); route();
 }
 
-function home() {
-  return `
-    <div class="hero">
-      <div>
-        <p class="kicker" style="color:#e8ede3">Provider portal · External thin client</p>
-        <h1 style="color:#fff">Prescribers submit. Operations compounds.</h1>
-        <p class="muted">External-facing access for prescribers and facilities: login, order submission, status, refill requests, document exchange, and notifications. This portal does not hold clinical or compounding logic.</p>
-        <p>
-          <button class="btn mid" onclick="go('login')">Prescriber or facility login</button>
-          <button class="btn ghost" onclick="go('order-new')">New medication order</button>
-        </p>
-      </div>
-      <img src="brand/isosure-logo-inverse.png" alt="" style="width:min(320px,100%);justify-self:end" />
-    </div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:1.2rem">
-      <div class="tile" onclick="go('order-new')"><p class="kicker">Order</p><h2>New medication order</h2><p class="muted">Start with the patient, then the product. Operations compounds.</p></div>
-      <div class="tile" onclick="go('practice')"><p class="kicker">Status</p><h2>Order status</h2><p class="muted">See only the labels Operations publishes — never compounding steps.</p></div>
-      <div class="tile" onclick="go('refills')"><p class="kicker">Refills</p><h2>Refill requests</h2><p class="muted">Ask Operations to repeat a prior order. The lab decides.</p></div>
-      <div class="tile" onclick="go('documents')"><p class="kicker">Exchange</p><h2>Documents</h2><p class="muted">Rx images, PA forms, and patient-specific formulas.</p></div>
-      <div class="tile" onclick="go('notifications')"><p class="kicker">Alerts</p><h2>Notifications</h2><p class="muted">Backorder, clarification needed, ready for pickup or delivery.</p></div>
-    </div>
-    <p class="muted" style="margin-top:1.2rem;text-align:center">Lab staff use a separate Operations login. <a href="#ops">Open the LIMS</a></p>`;
+const LOGIN_ACCOUNTS = [
+  {username:"hkitner-Ops",portal:"ops",label:"Operations",home:"ops",description:"Lab floor, intake, inventory, compounding."},
+  {username:"hkitner-Provider",portal:"provider",label:"Provider",home:"practice",description:"Prescriber portal — patients, orders, refills."},
+  {username:"hkitner-QA",portal:"qa",label:"Quality",home:"qa",description:"QMS — release, deviations, environment holds."},
+  {username:"hkitner-RPh",portal:"all",label:"Pharmacist",home:"hub",description:"Access to Operations, Provider, and Quality."}
+];
+function resolveLogin(username) {
+  const key = String(username||"").trim().toLowerCase();
+  return LOGIN_ACCOUNTS.find(a => a.username.toLowerCase()===key) || null;
 }
+function canAccessOps(u) { return u && (u.role==="pharmacy" || u.role==="rph"); }
+function canAccessProvider(u) { return u && (u.role==="doctor" || u.role==="rph"); }
+function canAccessQa(u) { return u && (u.role==="qa" || u.role==="rph"); }
+function homeFor() {
+  const u = state.user;
+  if (!u) return "login";
+  if (u.role==="rph") return "hub";
+  if (u.role==="qa") return "qa";
+  if (u.role==="pharmacy") return "ops";
+  return "practice";
+}
+function staffName(u) {
+  if (!u) return "";
+  if (u.role==="doctor") return u.prescriberName;
+  if (u.role==="pharmacy") return u.contactName;
+  return u.displayName || "Hannah Kitner";
+}
+function staffLabel(u) {
+  if (!u) return "Sign in";
+  if (u.role==="doctor") return u.practiceName;
+  if (u.role==="pharmacy" || u.role==="rph") return u.pharmacyName || "ISOSure Compounding Lab";
+  return "Quality";
+}
+function userForAccount(account) {
+  if (account.portal==="ops") return {role:"pharmacy",username:"hkitner-Ops",pharmacyName:"ISOSure Compounding Lab",contactName:"Hannah Kitner",email:"hkitner-ops@isosure.example",phone:"(800) 555-4767"};
+  if (account.portal==="provider") return {role:"doctor",username:"hkitner-Provider",loginKind:"prescriber",practiceName:"Hawthorne Family Medicine",prescriberName:"Hannah Kitner, NP",npi:"1234567890",dea:"BK1234563",email:"hkitner-provider@hawthornefm.example",phone:"(503) 555-0148"};
+  if (account.portal==="qa") return {role:"qa",username:"hkitner-QA",displayName:"Hannah Kitner",email:"hkitner-qa@isosure.example"};
+  return {role:"rph",username:"hkitner-RPh",displayName:"Hannah Kitner, RPh",pharmacyName:"ISOSure Compounding Lab",email:"hkitner-rph@isosure.example"};
+}
+function signInUsername(username) {
+  const account = resolveLogin(username);
+  if (!account) { alert("Unknown username. Use hkitner-Ops, hkitner-Provider, hkitner-QA, or hkitner-RPh."); return false; }
+  state.user = userForAccount(account);
+  seedPortalIfEmpty();
+  save();
+  go(account.home);
+  return false;
+}
+function home() { return login(); }
 
 function catalog(params) {
-  if (state.user?.role === "pharmacy") {
+  if (canAccessOps(state.user)) {
     return `<p class="muted">Pharmacy staff manage the list on the formulary admin screen.</p><button class="btn" onclick="go('formulary')">Open formulary admin</button>`;
   }
   const q = (params.q||"").toLowerCase();
@@ -435,7 +465,7 @@ function cart() {
 
 function checkout() {
   if (!state.cart.length) return `<h1>Nothing to send</h1><button class="btn" onclick="go('catalog')">Return to formulary</button>`;
-  if (state.user?.role === "pharmacy") return `<h1>Pharmacy accounts review orders; they do not place them.</h1>`;
+  if (canAccessOps(state.user) && !canAccessProvider(state.user)) return `<h1>Pharmacy accounts review orders; they do not place them.</h1>`;
   if (!state.user) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
   const u = state.user;
   return `
@@ -540,37 +570,52 @@ function placeOrder(e) {
 
 function login() {
   return `
-    <p class="kicker">Provider portal</p>
-    <h1>Prescriber or facility login</h1>
-    <p class="muted">External-facing access only. This portal does not run compounding or clinical calculations — it submits work to Operations.</p>
-    <div class="split checkout">
-      <form class="panel pad grid" onsubmit="return signDoctor(event)">
-        <strong>Prescriber / facility</strong>
-        <div class="doses">
-          <label><input type="radio" name="loginKind" value="prescriber" checked> Prescriber</label>
-          <label><input type="radio" name="loginKind" value="facility"> Facility</label>
-        </div>
-        <input name="practiceName" required placeholder="Practice or facility name">
-        <input name="prescriberName" required placeholder="Prescriber name">
-        <input name="npi" placeholder="NPI">
-        <input name="dea" placeholder="DEA">
-        <input name="email" type="email" required placeholder="Office email">
-        <input name="phone" placeholder="Phone">
-        <button class="btn" type="submit">Enter provider portal</button>
-        <button type="button" class="btn ghost" onclick="loadDoctor()">Demo prescriber (Hawthorne Family Medicine)</button>
-        <button type="button" class="btn ghost" onclick="loadFacility()">Demo facility (Riverside Women’s Clinic)</button>
-      </form>
-      <form class="panel pad grid" onsubmit="return signPharmacy(event)">
-        <strong>Operations (pharmacy admin)</strong>
-        <p class="muted">Internal lab access. Compounding logic lives here, not in the provider portal.</p>
-        <input name="pharmacyName" required placeholder="Pharmacy name" value="ISOSure Compounding Lab">
-        <input name="contactName" required placeholder="Pharmacist / admin name">
-        <input name="email" type="email" required placeholder="Lab email">
-        <input name="phone" placeholder="Phone">
-        <button class="btn mid" type="submit">Enter operations</button>
-        <button type="button" class="btn ghost" onclick="loadPharmacy()">Demo operations (Jordan Hale, RPh)</button>
-      </form>
+    <p class="kicker" style="text-align:center">ISOSure · Compliance · Quality · Growth</p>
+    <h1 style="text-align:center">Sign in</h1>
+    <p class="muted" style="text-align:center">One login. Three pages: Operations, Provider, and Quality. The pharmacist account can open all three.</p>
+    <form class="panel pad grid" style="max-width:28rem;margin:1.2rem auto" onsubmit="return signInUsername(this.username.value)">
+      <label>Username <input name="username" required placeholder="hkitner-Ops"></label>
+      <label>Password <input name="password" type="password" placeholder="Any value for this demo"></label>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+    <div class="panel pad" style="max-width:28rem;margin:0 auto">
+      <p class="kicker">Login examples</p>
+      ${LOGIN_ACCOUNTS.map(a => `<button type="button" class="btn ghost" style="width:100%;margin:.4rem 0;text-align:left" onclick="signInUsername('${a.username}')"><strong>${a.username}</strong> · ${a.label}<br><span class="muted">${a.description}</span></button>`).join("")}
     </div>`;
+}
+function hub() {
+  if (!state.user || state.user.role!=="rph") return `<h1>Pharmacist sign-in required</h1><button class="btn" onclick="go('login')">Main login</button>`;
+  return `
+    <p class="kicker">Pharmacist · all access</p>
+    <h1>${staffName(state.user)}</h1>
+    <p class="muted">This account opens every ISOSure surface: Operations, Provider, and Quality.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:1rem">
+      <div class="tile" onclick="go('ops')"><p class="kicker">Operations</p><h2>Lab floor</h2><p class="muted">Compounding, inventory, MFRs, intake.</p></div>
+      <div class="tile" onclick="go('practice')"><p class="kicker">Provider</p><h2>Provider portal</h2><p class="muted">Patients, orders, status, refills.</p></div>
+      <div class="tile" onclick="go('qa')"><p class="kicker">Quality</p><h2>QMS</h2><p class="muted">Release review, deviations, holds.</p></div>
+    </div>
+    <p style="margin-top:1rem"><button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button></p>`;
+}
+function qa() {
+  if (!canAccessQa(state.user)) return `<h1>Quality sign-in required</h1><button class="btn" onclick="go('login')">Main login</button>`;
+  seedLimsIfEmpty();
+  const release = (state.crs||[]).filter(c => c.stage==="labeling" || c.stage==="dispense");
+  const holds = (state.lots||[]).filter(l => l.quarantine || l.expiresAt < Date.now());
+  const envOut = (state.envLogs||[]).filter(l => !l.ok);
+  return `
+    <p class="kicker">Quality · QMS</p>
+    <h1>Quality</h1>
+    <p class="muted">Release review, deviations, and environment holds. Compounding stays on the Operations floor.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:1rem 0">
+      <div class="panel pad"><p class="kicker">Release</p><strong>${release.length}</strong><p class="muted">Batches at label / dispense</p></div>
+      <div class="panel pad"><p class="kicker">Holds</p><strong>${holds.length}</strong><p class="muted">Quarantine or expired lots</p></div>
+      <div class="panel pad"><p class="kicker">Environment</p><strong>${envOut.length}</strong><p class="muted">Out-of-spec readings</p></div>
+    </div>
+    <h2>Release queue</h2>
+    ${release.length?release.map(c=>`<article class="panel pad" style="margin:.5rem 0"><strong>${c.productName} · ${c.doseLabel}</strong><p class="muted">${c.patientName} · ${c.batchLot} · ${c.stage}</p></article>`).join(""):`<p class="muted">No batches waiting on Quality release.</p>`}
+    <h2>Material holds</h2>
+    ${holds.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${l.lotNumber}</strong><p class="muted">${l.quarantine?"Quarantine":"Expired"} · ${l.manufacturer||l.supplier||""}</p></article>`).join("")}
+    <p style="margin-top:1rem"><button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button></p>`;
 }
 function signDoctor(e) {
   e.preventDefault();
@@ -602,16 +647,17 @@ function loadPharmacy() {
 }
 
 function practice() {
-  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Prescriber / facility login</button>`;
+  if (!canAccessProvider(state.user)) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Main login</button>`;
   const unread = (state.notifications||[]).filter(n=>!n.read).length;
   const kind = state.user.loginKind === "facility" ? "Facility" : "Prescriber";
   const drafts = state.drafts||[];
+  const practiceName = state.user.practiceName || "ISOSure Compounding Lab";
   return `
     <div class="row">
       <div>
         <p class="kicker">Provider portal · ${kind}</p>
-        <h1>${timeGreeting()}, ${greetingName(state.user.prescriberName)}</h1>
-        <p class="muted">${state.user.practiceName}</p>
+        <h1>${timeGreeting()}, ${greetingName(staffName(state.user))}</h1>
+        <p class="muted">${practiceName}</p>
       </div>
       <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
     </div>
@@ -756,7 +802,7 @@ function addHtmlPatient(form) {
   save(); route();
 }
 function submitWizard() {
-  if (!state.user || state.user.role!=="doctor") { go("login"); return; }
+  if (!canAccessProvider(state.user)) { go("login"); return; }
   const alerts = wizardAlerts();
   const blocks = alerts.filter(a => a.severity==="block");
   const warns = alerts.filter(a => a.severity==="warn");
@@ -796,7 +842,7 @@ function submitWizard() {
 }
 
 function patientsView() {
-  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (!canAccessProvider(state.user)) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
   const q = state.wizard.q || "";
   const list = searchPatientList(q);
   return `
@@ -817,7 +863,7 @@ function patientsView() {
 }
 
 function orderNew() {
-  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Prescriber / facility login</button>`;
+  if (!canAccessProvider(state.user)) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Prescriber / facility login</button>`;
   if (!state.wizard) state.wizard = emptyWizard();
   const w = state.wizard;
   const steps = ["patient","medication","prescription","review"];
@@ -883,7 +929,7 @@ function orderNew() {
         <label>Quantity (${w.unit||""})<input type="number" value="${w.quantity||""}" oninput="state.wizard.quantity=this.value;save()"></label>
         <label>Refills<input type="number" value="${w.refills||0}" oninput="state.wizard.refills=this.value;save()"></label>
         <label><input type="checkbox" ${w.daw?"checked":""} onchange="state.wizard.daw=this.checked;save()"> Dispense as written</label>
-        <p class="muted">Prescriber · ${state.user.prescriberName}</p>
+        <p class="muted">Prescriber · ${staffName(state.user)}</p>
         <label>Prescription notes<textarea oninput="state.wizard.notes=this.value;save()">${w.notes||""}</textarea></label>
       </article>
     </div>`;
@@ -908,7 +954,7 @@ function orderNew() {
 }
 
 function pharmacy() {
-  if (!state.user || state.user.role!=="pharmacy") return `<h1>Operations sign-in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (!canAccessOps(state.user)) return `<h1>Operations sign-in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
   seedLimsIfEmpty();
   return `
     <div class="row">
@@ -965,7 +1011,7 @@ function order(params) {
     ...(o.scripts||[]),
     ...(state.documents||[]).filter(d => d.orderId===o.id && !(o.scripts||[]).some(s => s.id===d.id))
   ];
-  const isProvider = state.user?.role === "doctor";
+  const isProvider = canAccessProvider(state.user);
   return `
     <p class="kicker">${STATUS_LABEL[o.status] || o.status}</p>
     <h1>Order ISO-${o.id.slice(-6).toUpperCase()}</h1>
@@ -990,7 +1036,7 @@ function order(params) {
 }
 
 function notifications() {
-  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (!canAccessProvider(state.user)) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
   const notes = state.notifications || [];
   return `
     <p class="kicker">Provider portal</p>
@@ -1012,7 +1058,7 @@ function notifications() {
 }
 
 function documents() {
-  if (!state.user || state.user.role!=="doctor") return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
+  if (!canAccessProvider(state.user)) return `<h1>Provider login required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
   const docs = state.documents || [];
   return `
     <p class="kicker">Provider portal</p>
@@ -1064,7 +1110,7 @@ function attachExchange(e) {
 
 function refills(params) {
   if (!state.user) return `<h1>Sign in required</h1><button class="btn" onclick="go('login')">Sign in</button>`;
-  if (state.user.role === "pharmacy") return refillInbox();
+  if (canAccessOps(state.user) && !canAccessProvider(state.user)) return refillInbox();
   const selected = params.order || state.orders[0]?.id || "";
   return `
     <p class="kicker">Provider portal</p>
@@ -1322,7 +1368,8 @@ function defaultEnv() {
     {id:"env-2",area:"HD C-PEC room",iso:"unclassified",temp:22.1,rh:41,at:Date.now()-2*36e5,by:"Jordan Hale, RPh",ok:true},
     {id:"env-3",area:"ISO 7 buffer",iso:"ISO 7",temp:20.8,rh:48,at:Date.now()-90*60e3,by:"Jordan Hale, RPh",ok:true},
     {id:"env-4",area:"ISO 5 PEC",iso:"ISO 5",temp:20.6,rh:47,at:Date.now()-90*60e3,by:"Jordan Hale, RPh",ok:true},
-    {id:"env-5",area:"CS fridge",iso:"unclassified",temp:4.2,rh:38,at:Date.now()-30*60e3,by:"Jordan Hale, RPh",ok:true}
+    {id:"env-5",area:"CS fridge",iso:"unclassified",temp:4.2,rh:38,at:Date.now()-30*60e3,by:"Jordan Hale, RPh",ok:true},
+    {id:"env-6",area:"ISO 7 buffer",iso:"ISO 7",temp:26.4,rh:62,at:Date.now()-20*60e3,by:"Hannah Kitner",ok:false}
   ];
 }
 function defaultEquip() {
@@ -1488,7 +1535,7 @@ function createCrsForOrder(order) {
   });
 }
 function requireOps() {
-  if (!state.user || state.user.role!=="pharmacy") return `<h1>Lab sign-in required</h1><p class="muted">The LIMS/MOM core is internal.</p><button class="btn" onclick="go('login')">Operations login</button>`;
+  if (!canAccessOps(state.user)) return `<h1>Lab sign-in required</h1><p class="muted">Use hkitner-Ops or hkitner-RPh.</p><button class="btn" onclick="go('login')">Main login</button>`;
 }
 function ops(params) {
   const gate = requireOps(); if (gate) return gate;

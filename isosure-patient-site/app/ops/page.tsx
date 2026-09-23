@@ -6,6 +6,7 @@ import { OpsGate } from "@/components/OpsGate";
 import { formatDate, orderNumber } from "@/lib/format";
 import { CR_STAGE_LABEL } from "@/lib/lims";
 import { lotAlerts } from "@/lib/lims";
+import { staffName } from "@/lib/auth";
 import {
   LAB_TECHS,
   filterFloor,
@@ -58,7 +59,7 @@ export default function OperationsDashboard() {
         <p className="mt-2 max-w-2xl text-ink-soft">
           Every compound lands here from the provider portal. Filter by priority, HD, sterile, or
           nonsterile. Group similar APIs into a daily list and assign a tech. Points track KPI load.
-          {user?.role === "pharmacy" ? ` Signed in as ${user.contactName}.` : ""}
+          {user ? ` Signed in as ${staffName(user)}.` : ""}
         </p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

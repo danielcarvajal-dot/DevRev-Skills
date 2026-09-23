@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { canAccessOps, staffName } from "@/lib/auth";
 import { formatDate, formatMoney, orderNumber } from "@/lib/format";
 import { CR_STAGE_LABEL } from "@/lib/lims";
 import { ORDER_STATUSES, PROVIDER_STATUS_LABEL } from "@/lib/operations";
@@ -11,12 +12,12 @@ export default function AdminOrdersPage() {
   const { user, orders, crs, ready, signOut, setOrderStatus } = useStore();
 
   if (!ready) return <div className="mx-auto max-w-6xl px-4 py-16 text-ink-soft">Loading queue…</div>;
-  if (user?.role !== "pharmacy") {
+  if (!canAccessOps(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Operations sign-in required</h1>
         <Link href="/login" className="mt-4 inline-block rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white">
-          Sign in
+          Main login
         </Link>
       </div>
     );
@@ -29,7 +30,7 @@ export default function AdminOrdersPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">Operations</p>
           <h1 className="mt-2 text-3xl font-semibold">Incoming provider orders</h1>
           <p className="mt-2 text-ink-soft">
-            {user.contactName} · {user.pharmacyName}. Status changes notify the provider portal.
+            {staffName(user)} · ISOSure Compounding Lab. Status changes notify the provider portal.
             Compounding stays in Operations.
           </p>
         </div>

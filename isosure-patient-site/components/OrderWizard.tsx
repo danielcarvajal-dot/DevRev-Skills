@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { canAccessProvider, providerIdentity } from "@/lib/auth";
 import { canSubmitOrder, evaluateOrderAlerts } from "@/lib/order-alerts";
 import { fieldsForWorkflow, orderableMeta, searchOrderables } from "@/lib/orderables";
 import {
@@ -204,16 +205,17 @@ export function OrderWizard() {
   if (!ready) {
     return <div className="mx-auto max-w-5xl px-4 py-16 text-ink-soft">Loading order…</div>;
   }
-  if (!user || user.role !== "doctor") {
+  if (!user || !canAccessProvider(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Provider login required</h1>
         <Link href="/login" className="mt-5 inline-block rounded-lg bg-purple-deep px-5 py-2.5 text-sm font-semibold text-white">
-          Prescriber / facility login
+          Main login
         </Link>
       </div>
     );
   }
+  const identity = providerIdentity(user);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-10">
@@ -469,7 +471,7 @@ export function OrderWizard() {
               <input type="checkbox" checked={Boolean(rx.daw)} onChange={(e) => setRx({ ...rx, daw: e.target.checked })} />
               Dispense as written
             </label>
-            <p className="text-sm text-ink-soft">Prescriber · {user.prescriberName}</p>
+            <p className="text-sm text-ink-soft">Prescriber · {identity.prescriberName}</p>
             <label className="block text-sm">
               Prescription notes
               <textarea className="mt-1 w-full rounded-lg border border-line px-3 py-2" rows={2} value={rx.notes || ""} onChange={(e) => setRx({ ...rx, notes: e.target.value })} />

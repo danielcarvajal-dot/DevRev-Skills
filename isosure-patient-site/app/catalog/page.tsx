@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { MedicationList } from "@/components/MedicationList";
+import { canAccessOps } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 
 export default function CatalogPage() {
@@ -11,7 +12,7 @@ export default function CatalogPage() {
     return <div className="mx-auto max-w-6xl px-4 py-16 text-ink-soft">Loading formulary…</div>;
   }
 
-  if (user?.role === "pharmacy") {
+  if (canAccessOps(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
         <h1 className="text-3xl font-semibold">Pharmacy staff manage the list here</h1>

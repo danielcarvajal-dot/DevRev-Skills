@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { canAccessProvider } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 
@@ -14,7 +15,7 @@ function RefillsClient() {
   const [message, setMessage] = useState("");
 
   if (!ready) return <div className="text-ink-soft">Loading…</div>;
-  if (!user || user.role !== "doctor") {
+  if (!user || !canAccessProvider(user)) {
     return (
       <div>
         <h1 className="text-3xl font-semibold">Provider login required</h1>

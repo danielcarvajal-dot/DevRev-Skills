@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { OpsGate } from "@/components/OpsGate";
+import { staffName } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import type { EquipmentKind, IsoClass } from "@/lib/lims-types";
@@ -11,7 +12,7 @@ const KINDS: EquipmentKind[] = ["balance", "hood", "fridge", "incubator", "room"
 
 export default function EnvironmentPage() {
   const { envLogs, equipmentLogs, user, addEnvironmentLog, addEquipmentLog } = useStore();
-  const by = user?.role === "pharmacy" ? user.contactName : "Lab";
+  const by = user ? staffName(user) : "Lab";
   const [area, setArea] = useState("Nonsterile suite");
   const [isoClass, setIsoClass] = useState<IsoClass>("unclassified");
   const [temp, setTemp] = useState("21.5");

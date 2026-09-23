@@ -283,6 +283,7 @@ export function seedEnvironmentLogs(): EnvironmentLog[] {
     { id: "env-3", area: "ISO 7 buffer", isoClass: "ISO 7", temperatureC: 20.8, humidityPct: 48, recordedAt: new Date(Date.now() - 90 * 60e3).toISOString(), recordedBy: by, inSpec: true, note: "Dynamic particle count in spec" },
     { id: "env-4", area: "ISO 5 PEC", isoClass: "ISO 5", temperatureC: 20.6, humidityPct: 47, recordedAt: new Date(Date.now() - 90 * 60e3).toISOString(), recordedBy: by, inSpec: true, note: "Prefilter differential OK" },
     { id: "env-5", area: "Controlled-substance fridge", isoClass: "unclassified", temperatureC: 4.2, humidityPct: 38, recordedAt: new Date(Date.now() - 30 * 60e3).toISOString(), recordedBy: by, inSpec: true, note: "2–8 °C" },
+    { id: "env-6", area: "ISO 7 buffer", isoClass: "ISO 7", temperatureC: 26.4, humidityPct: 62, recordedAt: new Date(Date.now() - 20 * 60e3).toISOString(), recordedBy: by, inSpec: false, note: "Temp and RH over limit — hold sterile work" },
   ];
 }
 

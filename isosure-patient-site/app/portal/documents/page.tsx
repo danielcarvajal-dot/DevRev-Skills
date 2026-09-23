@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { canAccessProvider } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { DOCUMENT_KIND_LABEL } from "@/lib/operations";
 import { useStore } from "@/lib/store";
@@ -13,7 +14,7 @@ export default function DocumentsPage() {
   const [orderId, setOrderId] = useState("");
 
   if (!ready) return <div className="mx-auto max-w-4xl px-4 py-16 text-ink-soft">Loading…</div>;
-  if (!user || user.role !== "doctor") {
+  if (!user || !canAccessProvider(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Provider login required</h1>
