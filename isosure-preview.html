@@ -1174,7 +1174,7 @@ function orderNew() {
       <article class="panel pad">
         <p class="kicker">Prescription</p><h2>What you are ordering for this patient</h2>
         <p>${prod.shortName} · ${dose.label}</p>
-        ${isInjection(prod) ? `<div class="panel pad" style="background:var(--bg);margin:.6rem 0"><p><strong>Compounding details (provider view)</strong></p><p class="muted">Dose and volume only.</p>
+        ${isInjection(prod) ? `<div class="panel pad" style="background:var(--bg);margin:.6rem 0"><p><strong>Injection details</strong></p><p class="muted">Enter the prescribed dose and volume for this formula.</p>
           <label>Dose (mg)<input value="${w.doseAmount||""}" oninput="state.wizard.doseAmount=this.value;save()"></label>
           <label>Volume (mL)<input value="${w.volumeMl||""}" oninput="state.wizard.volumeMl=this.value;save()"></label></div>` : ""}
         <label>Directions<textarea oninput="state.wizard.directions=this.value;save()">${w.directions||""}</textarea></label>

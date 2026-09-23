@@ -444,8 +444,8 @@ export function OrderWizard() {
             </p>
             {rxFields.includes("doseAmount") ? (
               <div className="rounded-lg border border-line bg-bg p-3">
-                <p className="text-sm font-semibold">Compounding details (provider view)</p>
-                <p className="mb-2 text-xs text-ink-soft">Dose and volume only. The lab chooses the formula.</p>
+                <p className="text-sm font-semibold">Injection details</p>
+                <p className="mb-2 text-xs text-ink-soft">Enter the prescribed dose and volume for this formula.</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <label className="text-sm">
                     Dose (mg)
