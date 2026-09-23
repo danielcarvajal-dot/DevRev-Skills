@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatMoney } from "@/lib/format";
+import { CATEGORIES } from "@/lib/products";
 import { useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
 
@@ -12,10 +13,7 @@ export function MedicationList({ products }: { products: Product[] }) {
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [added, setAdded] = useState<string | null>(null);
 
-  const categories = useMemo(
-    () => ["All", ...Array.from(new Set(products.map((p) => p.category)))],
-    [products],
-  );
+  const categories = useMemo(() => ["All", ...CATEGORIES], []);
 
   const list = products.filter((product) => {
     if (category !== "All" && product.category !== category) return false;
@@ -40,7 +38,7 @@ export function MedicationList({ products }: { products: Product[] }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="estradiol, pain, thyroid…"
+            placeholder="hormones, pain, weight…"
             className="mt-1 w-full rounded-lg border border-line px-3 py-2"
           />
         </label>

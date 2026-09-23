@@ -1,14 +1,11 @@
 import type { Product } from "@/lib/types";
 
 const palettes: Record<string, [string, string]> = {
-  "Hormone Therapy": ["#1d3c32", "#b68b3d"],
-  "Women's Health": ["#3d2a32", "#d9b7a3"],
-  "Men's Health": ["#1b2d3a", "#8aa3b5"],
-  Thyroid: ["#3a2d1b", "#d4a24c"],
-  "Pain & Inflammation": ["#2c1d1d", "#c47b6a"],
+  Hormones: ["#1d3c32", "#b68b3d"],
+  "Pain Management": ["#2c1d1d", "#c47b6a"],
   Dermatology: ["#24312c", "#9ec3b0"],
-  Wellness: ["#243326", "#7ea36b"],
-  Pediatric: ["#2d3142", "#9aa4d4"],
+  "Weight Management": ["#243326", "#7ea36b"],
+  "Sexual Health": ["#1b2d3a", "#8aa3b5"],
 };
 
 export function ProductArt({

@@ -134,31 +134,46 @@ const STATUS_LABEL = {Submitted:"Submitted to operations",Received:"Received by 
 const STATUS_LIST = Object.keys(STATUS_LABEL);
 const DOC_LABEL = {rx:"Rx image",pa:"PA form",formula:"Patient-specific formula",other:"Other"};
 const NOTE_LABEL = {backorder:"Backorder",clarification:"Clarification needed",ready_pickup:"Ready for pickup",ready_delivery:"Ready for delivery",order_update:"Order update",refill:"Refill"};
-const CATEGORIES = ["Hormone Therapy","Women's Health","Men's Health","Thyroid","Pain & Inflammation","Dermatology","Wellness","Pediatric"];
+const CATEGORIES = ["Hormones","Pain Management","Dermatology","Weight Management","Sexual Health"];
+const LEGACY_CATEGORIES = {
+  "Hormone Therapy":"Hormones","Women's Health":"Hormones","Men's Health":"Hormones",Thyroid:"Hormones",
+  "Pain & Inflammation":"Pain Management",Dermatology:"Dermatology",Wellness:"Weight Management",Pediatric:"Pain Management"
+};
+const CATEGORY_BY_PRODUCT_ID = {
+  "sildenafil-troche":"Sexual Health","ldn-caps":"Pain Management","melatonin-troche":"Hormones",
+  "omeprazole-susp":"Pain Management",glutathione:"Weight Management","nad-spray":"Weight Management",
+  "semaglutide-injection":"Weight Management","semaglutide-troche":"Weight Management","semaglutide-capsule":"Weight Management"
+};
+function normalizeCategory(category, productId) {
+  if (productId && CATEGORY_BY_PRODUCT_ID[productId]) return CATEGORY_BY_PRODUCT_ID[productId];
+  if (category && CATEGORIES.includes(category)) return category;
+  if (category && LEGACY_CATEGORIES[category]) return LEGACY_CATEGORIES[category];
+  return "Hormones";
+}
 const DEFAULT_PRODUCTS = [
-  {id:"estradiol-cream",name:"IsoBalance Estradiol Cream",shortName:"Estradiol Cream",category:"Hormone Therapy",form:"Cream",summary:"Bioidentical estradiol cream for transdermal hormone support.",doses:[{id:"e2-025",label:"0.25 mg/g",price:48},{id:"e2-05",label:"0.5 mg/g",price:56},{id:"e2-1",label:"1 mg/g",price:64}]},
-  {id:"progesterone-caps",name:"IsoCalm Progesterone Capsules",shortName:"Progesterone Capsules",category:"Women's Health",form:"Capsule",family:"Progesterone",startingDoseMg:100,summary:"Micronized progesterone for evening hormone balance.",doses:[{id:"p4-50",label:"50 mg",price:42},{id:"p4-100",label:"100 mg",price:52},{id:"p4-200",label:"200 mg",price:68}]},
-  {id:"testosterone-gel",name:"IsoVigor Testosterone Gel",shortName:"Testosterone Gel",category:"Men's Health",form:"Gel",summary:"Quick-dry testosterone gel in measured daily strengths.",doses:[{id:"t-10",label:"10 mg/mL",price:62},{id:"t-20",label:"20 mg/mL",price:74},{id:"t-50",label:"50 mg/mL",price:88}]},
-  {id:"thyroid-combo",name:"IsoThyroid T3/T4 Capsules",shortName:"T3/T4 Capsules",category:"Thyroid",form:"Capsule",summary:"Custom liothyronine and levothyroxine ratios.",doses:[{id:"th-5-25",label:"5 / 25 mcg",price:38},{id:"th-10-50",label:"10 / 50 mcg",price:44},{id:"th-15-75",label:"15 / 75 mcg",price:52}]},
-  {id:"ketoprofen-cream",name:"IsoEase Ketoprofen Cream",shortName:"Ketoprofen Cream",category:"Pain & Inflammation",form:"Cream",summary:"High-strength topical NSAID for joint and muscle pain.",doses:[{id:"keto-10",label:"10%",price:46},{id:"keto-15",label:"15%",price:54},{id:"keto-20",label:"20%",price:62}]},
-  {id:"gabapentin-topical",name:"IsoNerve Gabapentin Topical",shortName:"Gabapentin Topical",category:"Pain & Inflammation",form:"Topical",summary:"Targeted gabapentin gel for neuropathic pain.",doses:[{id:"gaba-6",label:"6%",price:58},{id:"gaba-10",label:"10%",price:68}]},
-  {id:"diclofenac-gel",name:"IsoFlex Diclofenac Gel",shortName:"Diclofenac Gel",category:"Pain & Inflammation",form:"Gel",summary:"Compounded diclofenac in strengths above typical retail.",doses:[{id:"diclo-3",label:"3%",price:36},{id:"diclo-5",label:"5%",price:44},{id:"diclo-10",label:"10%",price:55}]},
-  {id:"ldn-caps",name:"IsoReset Low-Dose Naltrexone",shortName:"Low-Dose Naltrexone",category:"Wellness",form:"Capsule",summary:"Precise LDN capsules, dye- and filler-conscious.",doses:[{id:"ldn-15",label:"1.5 mg",price:34},{id:"ldn-3",label:"3 mg",price:36},{id:"ldn-45",label:"4.5 mg",price:38}]},
+  {id:"estradiol-cream",name:"IsoBalance Estradiol Cream",shortName:"Estradiol Cream",category:"Hormones",form:"Cream",summary:"Bioidentical estradiol cream for transdermal hormone support.",doses:[{id:"e2-025",label:"0.25 mg/g",price:48},{id:"e2-05",label:"0.5 mg/g",price:56},{id:"e2-1",label:"1 mg/g",price:64}]},
+  {id:"progesterone-caps",name:"IsoCalm Progesterone Capsules",shortName:"Progesterone Capsules",category:"Hormones",form:"Capsule",family:"Progesterone",startingDoseMg:100,summary:"Micronized progesterone for evening hormone balance.",doses:[{id:"p4-50",label:"50 mg",price:42},{id:"p4-100",label:"100 mg",price:52},{id:"p4-200",label:"200 mg",price:68}]},
+  {id:"testosterone-gel",name:"IsoVigor Testosterone Gel",shortName:"Testosterone Gel",category:"Hormones",form:"Gel",summary:"Quick-dry testosterone gel in measured daily strengths.",doses:[{id:"t-10",label:"10 mg/mL",price:62},{id:"t-20",label:"20 mg/mL",price:74},{id:"t-50",label:"50 mg/mL",price:88}]},
+  {id:"thyroid-combo",name:"IsoThyroid T3/T4 Capsules",shortName:"T3/T4 Capsules",category:"Hormones",form:"Capsule",summary:"Custom liothyronine and levothyroxine ratios.",doses:[{id:"th-5-25",label:"5 / 25 mcg",price:38},{id:"th-10-50",label:"10 / 50 mcg",price:44},{id:"th-15-75",label:"15 / 75 mcg",price:52}]},
+  {id:"ketoprofen-cream",name:"IsoEase Ketoprofen Cream",shortName:"Ketoprofen Cream",category:"Pain Management",form:"Cream",summary:"High-strength topical NSAID for joint and muscle pain.",doses:[{id:"keto-10",label:"10%",price:46},{id:"keto-15",label:"15%",price:54},{id:"keto-20",label:"20%",price:62}]},
+  {id:"gabapentin-topical",name:"IsoNerve Gabapentin Topical",shortName:"Gabapentin Topical",category:"Pain Management",form:"Topical",summary:"Targeted gabapentin gel for neuropathic pain.",doses:[{id:"gaba-6",label:"6%",price:58},{id:"gaba-10",label:"10%",price:68}]},
+  {id:"diclofenac-gel",name:"IsoFlex Diclofenac Gel",shortName:"Diclofenac Gel",category:"Pain Management",form:"Gel",summary:"Compounded diclofenac in strengths above typical retail.",doses:[{id:"diclo-3",label:"3%",price:36},{id:"diclo-5",label:"5%",price:44},{id:"diclo-10",label:"10%",price:55}]},
+  {id:"ldn-caps",name:"IsoReset Low-Dose Naltrexone",shortName:"Low-Dose Naltrexone",category:"Pain Management",form:"Capsule",summary:"Precise LDN capsules, dye- and filler-conscious.",doses:[{id:"ldn-15",label:"1.5 mg",price:34},{id:"ldn-3",label:"3 mg",price:36},{id:"ldn-45",label:"4.5 mg",price:38}]},
   {id:"hydroquinone",name:"IsoGlow Hydroquinone Cream",shortName:"Hydroquinone Cream",category:"Dermatology",form:"Cream",summary:"Prescription hydroquinone for stubborn discoloration.",doses:[{id:"hq-4",label:"4%",price:41},{id:"hq-6",label:"6%",price:49},{id:"hq-8",label:"8%",price:58}]},
   {id:"tretinoin",name:"IsoClear Tretinoin Cream",shortName:"Tretinoin Cream",category:"Dermatology",form:"Cream",summary:"Tretinoin in a soothing cream base.",doses:[{id:"tret-025",label:"0.025%",price:39},{id:"tret-05",label:"0.05%",price:45},{id:"tret-1",label:"0.1%",price:52}]},
   {id:"minoxidil",name:"IsoFollicle Minoxidil Compound",shortName:"Minoxidil Compound",category:"Dermatology",form:"Topical",summary:"Higher-strength minoxidil scalp solution.",doses:[{id:"mino-5",label:"5%",price:44},{id:"mino-7",label:"7%",price:54},{id:"mino-10",label:"10%",price:66}]},
-  {id:"omeprazole-susp",name:"IsoSoothe Pediatric Omeprazole",shortName:"Pediatric Omeprazole",category:"Pediatric",form:"Suspension",summary:"Flavored omeprazole suspension for children.",doses:[{id:"ome-2",label:"2 mg/mL",price:48},{id:"ome-5",label:"5 mg/mL",price:56}]},
-  {id:"melatonin-troche",name:"IsoRest Melatonin Troches",shortName:"Melatonin Troches",category:"Wellness",form:"Troche",summary:"Slow-dissolve melatonin in titratable strengths.",doses:[{id:"mel-1",label:"1 mg",price:22},{id:"mel-3",label:"3 mg",price:24},{id:"mel-5",label:"5 mg",price:26}]},
-  {id:"dhea-caps",name:"IsoPrime DHEA Capsules",shortName:"DHEA Capsules",category:"Hormone Therapy",form:"Capsule",summary:"Micronized DHEA for clinician-guided protocols.",doses:[{id:"dhea-5",label:"5 mg",price:28},{id:"dhea-10",label:"10 mg",price:32},{id:"dhea-25",label:"25 mg",price:38}]},
-  {id:"pregnenolone",name:"IsoBloom Pregnenolone Capsules",shortName:"Pregnenolone Capsules",category:"Hormone Therapy",form:"Capsule",summary:"Pregnenolone precursor support in conservative strengths.",doses:[{id:"preg-10",label:"10 mg",price:29},{id:"preg-25",label:"25 mg",price:34},{id:"preg-50",label:"50 mg",price:40}]},
-  {id:"sildenafil-troche",name:"IsoLift Sildenafil Troches",shortName:"Sildenafil Troches",category:"Men's Health",form:"Troche",summary:"Fast-dissolve sildenafil troches.",doses:[{id:"sild-25",label:"25 mg",price:48},{id:"sild-50",label:"50 mg",price:62},{id:"sild-100",label:"100 mg",price:78}]},
-  {id:"glutathione",name:"IsoShield Glutathione Capsules",shortName:"Glutathione Capsules",category:"Wellness",form:"Capsule",summary:"Reduced glutathione in acid-resistant capsules.",doses:[{id:"glu-250",label:"250 mg",price:36},{id:"glu-500",label:"500 mg",price:48}]},
-  {id:"nad-spray",name:"IsoPulse NAD+ Nasal Spray",shortName:"NAD+ Nasal Spray",category:"Wellness",form:"Nasal spray",family:"NAD+",summary:"Metered NAD+ nasal spray.",doses:[{id:"nad-50",label:"50 mg/mL",price:84},{id:"nad-100",label:"100 mg/mL",price:112}]},
-  {id:"progesterone-cream",name:"IsoCalm Progesterone Cream",shortName:"Progesterone Cream",category:"Women's Health",form:"Cream",family:"Progesterone",summary:"Transdermal micronized progesterone cream.",doses:[{id:"p4c-20",label:"20 mg/g",price:46},{id:"p4c-40",label:"40 mg/g",price:54}]},
-  {id:"progesterone-supp",name:"IsoCalm Progesterone Suppositories",shortName:"Progesterone Suppositories",category:"Women's Health",form:"Suppository",family:"Progesterone",summary:"Vaginal progesterone suppositories.",doses:[{id:"p4s-100",label:"100 mg",price:58},{id:"p4s-200",label:"200 mg",price:72}]},
-  {id:"semaglutide-injection",name:"IsoShape Semaglutide + B12 Injection",shortName:"Semaglutide + B12",category:"Wellness",form:"Injection",family:"Semaglutide",requireWeight:true,startingDoseMg:0.25,summary:"Compounded semaglutide with B12 injection.",doses:[{id:"sema-25",label:"2.5 mg/mL",price:186},{id:"sema-5",label:"5 mg/mL",price:248}]},
-  {id:"semaglutide-troche",name:"IsoShape Semaglutide Troches",shortName:"Semaglutide Troches",category:"Wellness",form:"Troche",family:"Semaglutide",startingDoseMg:0.25,summary:"Buccal semaglutide troches.",doses:[{id:"sema-t-025",label:"0.25 mg",price:96},{id:"sema-t-05",label:"0.5 mg",price:118},{id:"sema-t-1",label:"1 mg",price:142}]},
-  {id:"semaglutide-capsule",name:"IsoShape Semaglutide Capsules",shortName:"Semaglutide Capsules",category:"Wellness",form:"Capsule",family:"Semaglutide",startingDoseMg:0.25,summary:"Oral semaglutide capsules.",doses:[{id:"sema-c-025",label:"0.25 mg",price:88},{id:"sema-c-05",label:"0.5 mg",price:108},{id:"sema-c-1",label:"1 mg",price:128}]}
+  {id:"omeprazole-susp",name:"IsoSoothe Pediatric Omeprazole",shortName:"Pediatric Omeprazole",category:"Pain Management",form:"Suspension",summary:"Flavored omeprazole suspension for children.",doses:[{id:"ome-2",label:"2 mg/mL",price:48},{id:"ome-5",label:"5 mg/mL",price:56}]},
+  {id:"melatonin-troche",name:"IsoRest Melatonin Troches",shortName:"Melatonin Troches",category:"Hormones",form:"Troche",summary:"Slow-dissolve melatonin in titratable strengths.",doses:[{id:"mel-1",label:"1 mg",price:22},{id:"mel-3",label:"3 mg",price:24},{id:"mel-5",label:"5 mg",price:26}]},
+  {id:"dhea-caps",name:"IsoPrime DHEA Capsules",shortName:"DHEA Capsules",category:"Hormones",form:"Capsule",summary:"Micronized DHEA for clinician-guided protocols.",doses:[{id:"dhea-5",label:"5 mg",price:28},{id:"dhea-10",label:"10 mg",price:32},{id:"dhea-25",label:"25 mg",price:38}]},
+  {id:"pregnenolone",name:"IsoBloom Pregnenolone Capsules",shortName:"Pregnenolone Capsules",category:"Hormones",form:"Capsule",summary:"Pregnenolone precursor support in conservative strengths.",doses:[{id:"preg-10",label:"10 mg",price:29},{id:"preg-25",label:"25 mg",price:34},{id:"preg-50",label:"50 mg",price:40}]},
+  {id:"sildenafil-troche",name:"IsoLift Sildenafil Troches",shortName:"Sildenafil Troches",category:"Sexual Health",form:"Troche",summary:"Fast-dissolve sildenafil troches.",doses:[{id:"sild-25",label:"25 mg",price:48},{id:"sild-50",label:"50 mg",price:62},{id:"sild-100",label:"100 mg",price:78}]},
+  {id:"glutathione",name:"IsoShield Glutathione Capsules",shortName:"Glutathione Capsules",category:"Weight Management",form:"Capsule",summary:"Reduced glutathione in acid-resistant capsules.",doses:[{id:"glu-250",label:"250 mg",price:36},{id:"glu-500",label:"500 mg",price:48}]},
+  {id:"nad-spray",name:"IsoPulse NAD+ Nasal Spray",shortName:"NAD+ Nasal Spray",category:"Weight Management",form:"Nasal spray",family:"NAD+",summary:"Metered NAD+ nasal spray.",doses:[{id:"nad-50",label:"50 mg/mL",price:84},{id:"nad-100",label:"100 mg/mL",price:112}]},
+  {id:"progesterone-cream",name:"IsoCalm Progesterone Cream",shortName:"Progesterone Cream",category:"Hormones",form:"Cream",family:"Progesterone",summary:"Transdermal micronized progesterone cream.",doses:[{id:"p4c-20",label:"20 mg/g",price:46},{id:"p4c-40",label:"40 mg/g",price:54}]},
+  {id:"progesterone-supp",name:"IsoCalm Progesterone Suppositories",shortName:"Progesterone Suppositories",category:"Hormones",form:"Suppository",family:"Progesterone",summary:"Vaginal progesterone suppositories.",doses:[{id:"p4s-100",label:"100 mg",price:58},{id:"p4s-200",label:"200 mg",price:72}]},
+  {id:"semaglutide-injection",name:"IsoShape Semaglutide + B12 Injection",shortName:"Semaglutide + B12",category:"Weight Management",form:"Injection",family:"Semaglutide",requireWeight:true,startingDoseMg:0.25,summary:"Compounded semaglutide with B12 injection.",doses:[{id:"sema-25",label:"2.5 mg/mL",price:186},{id:"sema-5",label:"5 mg/mL",price:248}]},
+  {id:"semaglutide-troche",name:"IsoShape Semaglutide Troches",shortName:"Semaglutide Troches",category:"Weight Management",form:"Troche",family:"Semaglutide",startingDoseMg:0.25,summary:"Buccal semaglutide troches.",doses:[{id:"sema-t-025",label:"0.25 mg",price:96},{id:"sema-t-05",label:"0.5 mg",price:118},{id:"sema-t-1",label:"1 mg",price:142}]},
+  {id:"semaglutide-capsule",name:"IsoShape Semaglutide Capsules",shortName:"Semaglutide Capsules",category:"Weight Management",form:"Capsule",family:"Semaglutide",startingDoseMg:0.25,summary:"Oral semaglutide capsules.",doses:[{id:"sema-c-025",label:"0.25 mg",price:88},{id:"sema-c-05",label:"0.5 mg",price:108},{id:"sema-c-1",label:"1 mg",price:128}]}
 ];
 
 function emptyWizard() {
@@ -194,6 +209,11 @@ try {
   state = Object.assign(state, saved, { selections: saved.selections || {}, wizard: saved.wizard || emptyWizard() });
   if (!state.products?.length) state.products = DEFAULT_PRODUCTS;
   DEFAULT_PRODUCTS.forEach(p => { if (!state.products.some(x => x.id===p.id)) state.products.push(p); });
+  const defaultById = Object.fromEntries(DEFAULT_PRODUCTS.map(p => [p.id, p]));
+  state.products = state.products.map(p => ({
+    ...p,
+    category: defaultById[p.id] ? defaultById[p.id].category : normalizeCategory(p.category, p.id)
+  }));
   state.patients = state.patients || [];
   state.drafts = state.drafts || [];
   state.documents = state.documents || [];
@@ -423,7 +443,7 @@ function catalog(params) {
     <p class="muted">This list is published by Operations. Choose a dose and submit the request. Compounding formulas, BUD, and mixing steps stay in the lab — not in this portal.</p>
     <div class="split" style="margin-top:1rem">
       <aside class="panel pad">
-        <label>Search<input value="${params.q||""}" oninput="go('catalog',{category:'${category}',q:this.value})" placeholder="estradiol, pain, thyroid…"></label>
+        <label>Search<input value="${params.q||""}" oninput="go('catalog',{category:'${category}',q:this.value})" placeholder="hormones, pain, weight…"></label>
         <label>Therapy area
           <select onchange="go('catalog',{category:this.value,q:'${params.q||""}'})">
             <option>All</option>${CATEGORIES.map(c=>`<option ${c===category?"selected":""}>${c}</option>`).join("")}
@@ -1409,7 +1429,7 @@ function importList(e) {
 function normalizeImported(row) {
   return {
     id: (row.id || row.name || crypto.randomUUID()).toString().toLowerCase().replace(/[^a-z0-9]+/g,"-"),
-    name: row.name, shortName: row.shortName || row.name, category: row.category || "Wellness",
+    name: row.name, shortName: row.shortName || row.name, category: normalizeCategory(row.category, row.id),
     form: row.form || "Capsule", summary: row.summary || "",
     doses: Array.isArray(row.doses) ? row.doses.map((d,i)=>({id:d.id||("d"+i), label:d.label, price:Number(d.price)||0})) : parseDoses(String(row.doses||"Standard:0"))
   };

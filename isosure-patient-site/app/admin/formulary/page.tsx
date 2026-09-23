@@ -5,6 +5,7 @@ import Link from "next/link";
 import { parseFormularyCsv, parseFormularyJson, SAMPLE_CSV } from "@/lib/catalog-io";
 import { canAccessOps } from "@/lib/auth";
 import { formatMoney } from "@/lib/format";
+import { CATEGORIES } from "@/lib/products";
 import { useStore } from "@/lib/store";
 
 export default function FormularyAdminPage() {
@@ -12,7 +13,7 @@ export default function FormularyAdminPage() {
   const [form, setForm] = useState({
     name: "",
     shortName: "",
-    category: "Hormone Therapy",
+    category: "Hormones",
     form: "Capsule",
     doses: "50 mg:42|100 mg:52",
     summary: "",
@@ -121,7 +122,11 @@ export default function FormularyAdminPage() {
         <div className="grid gap-3 md:grid-cols-2">
           <input required placeholder="Medication name" className="rounded-lg border border-line px-3 py-2" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input placeholder="Short name" className="rounded-lg border border-line px-3 py-2" value={form.shortName} onChange={(e) => setForm({ ...form, shortName: e.target.value })} />
-          <input placeholder="Category" className="rounded-lg border border-line px-3 py-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+          <select className="rounded-lg border border-line px-3 py-2" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            {CATEGORIES.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
           <input required placeholder="Form" className="rounded-lg border border-line px-3 py-2" value={form.form} onChange={(e) => setForm({ ...form, form: e.target.value })} />
         </div>
         <input required placeholder="Doses, e.g. 50 mg:42|100 mg:52" className="w-full rounded-lg border border-line px-3 py-2" value={form.doses} onChange={(e) => setForm({ ...form, doses: e.target.value })} />

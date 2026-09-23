@@ -2,14 +2,11 @@ export type Role = "doctor" | "pharmacy" | "qa" | "rph";
 export type ProviderLoginKind = "prescriber" | "facility";
 
 export type Category =
-  | "Hormone Therapy"
-  | "Thyroid"
-  | "Pain & Inflammation"
+  | "Hormones"
+  | "Pain Management"
   | "Dermatology"
-  | "Wellness"
-  | "Pediatric"
-  | "Men's Health"
-  | "Women's Health";
+  | "Weight Management"
+  | "Sexual Health";
 
 export type Form =
   | "Cream"
