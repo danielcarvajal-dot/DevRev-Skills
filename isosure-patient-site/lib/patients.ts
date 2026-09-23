@@ -50,6 +50,7 @@ export function emptyPatientDraft(): Omit<Patient, "id" | "createdAt"> {
     email: "",
     address: { ...EMPTY_ADDRESS },
     allergies: "",
+    card: null,
     clinicalNotes: "",
     weightKg: "",
   };

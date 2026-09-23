@@ -291,10 +291,10 @@ function seedDemoRefills() {
 }
 function demoPatients() {
   return [
-    {id:"pat-avery",firstName:"Avery",lastName:"Nguyen",dob:"1986-04-12",sex:"female",phone:"(503) 555-0112",email:"avery.nguyen@example.com",address:{line1:"88 Division St",city:"Portland",state:"OR",zip:"97214"},allergies:"Penicillin",clinicalNotes:"On estradiol + progesterone HRT.",weightKg:"68"},
-    {id:"pat-sam",firstName:"Sam",lastName:"Rivera",dob:"1979-11-02",sex:"male",phone:"(503) 555-0177",email:"sam.rivera@example.com",address:{line1:"12 Belmont Ave",city:"Portland",state:"OR",zip:"97215"},allergies:"Naltrexone",clinicalNotes:"LDN for inflammatory symptoms.",weightKg:"91"},
-    {id:"pat-lee",firstName:"Lee",lastName:"Park",dob:"1991-07-19",sex:"female",phone:"(503) 555-0144",email:"lee.park@example.com",address:{line1:"410 Hawthorne Blvd",city:"Portland",state:"OR",zip:"97214"},allergies:"",clinicalNotes:"Ketoprofen cream for knee pain.",weightKg:"62"},
-    {id:"pat-john",firstName:"John",lastName:"Smith",dob:"1980-04-12",sex:"male",phone:"(503) 555-0188",email:"john.smith@example.com",address:{line1:"220 Stark St",line2:"Apt 4",city:"Portland",state:"OR",zip:"97204"},allergies:"",clinicalNotes:"",weightKg:""}
+    {id:"pat-avery",firstName:"Avery",lastName:"Nguyen",dob:"1986-04-12",sex:"female",phone:"(503) 555-0112",email:"avery.nguyen@example.com",address:{line1:"88 Division St",city:"Portland",state:"OR",zip:"97214"},allergies:"Penicillin",card:{nameOnCard:"Avery Nguyen",brand:"Visa",last4:"1111",expMonth:"12",expYear:"28"},clinicalNotes:"On estradiol + progesterone HRT.",weightKg:"68"},
+    {id:"pat-sam",firstName:"Sam",lastName:"Rivera",dob:"1979-11-02",sex:"male",phone:"(503) 555-0177",email:"sam.rivera@example.com",address:{line1:"12 Belmont Ave",city:"Portland",state:"OR",zip:"97215"},allergies:"Naltrexone",card:{nameOnCard:"Sam Rivera",brand:"Visa",last4:"2222",expMonth:"12",expYear:"28"},clinicalNotes:"LDN for inflammatory symptoms.",weightKg:"91"},
+    {id:"pat-lee",firstName:"Lee",lastName:"Park",dob:"1991-07-19",sex:"female",phone:"(503) 555-0144",email:"lee.park@example.com",address:{line1:"410 Hawthorne Blvd",city:"Portland",state:"OR",zip:"97214"},allergies:"NKDA",card:{nameOnCard:"Lee Park",brand:"Visa",last4:"3333",expMonth:"12",expYear:"28"},clinicalNotes:"Ketoprofen cream for knee pain.",weightKg:"62"},
+    {id:"pat-john",firstName:"John",lastName:"Smith",dob:"1980-04-12",sex:"male",phone:"(503) 555-0188",email:"john.smith@example.com",address:{line1:"220 Stark St",line2:"Apt 4",city:"Portland",state:"OR",zip:"97204"},allergies:"NKDA",card:{nameOnCard:"John Smith",brand:"Visa",last4:"4444",expMonth:"12",expYear:"28"},clinicalNotes:"",weightKg:""}
   ];
 }
 function seedPortalIfEmpty() {
@@ -824,6 +824,14 @@ function wizardAlerts() {
   }
   return alerts;
 }
+function wizardContinue(next) {
+  if (state.wizard.step === "patient") {
+    const p = (state.patients||[]).find(x => x.id===state.wizard.patientId);
+    const err = p ? patientProfileErrors(p) : {patient:"Select or add a patient."};
+    if (Object.keys(err).length) { alert(Object.values(err)[0]); return; }
+  }
+  setWizard({step: next});
+}
 function setWizard(patch) {
   Object.assign(state.wizard, patch);
   save(); route();
@@ -871,23 +879,73 @@ function resumeDraft(id) {
   if (d) state.wizard = Object.assign(emptyWizard(), d, {draftId:d.id});
   save(); go("order-new");
 }
+function patientProfileErrors(p) {
+  const err = {};
+  if (!p.firstName) err.firstName = "First name is required.";
+  if (!p.lastName) err.lastName = "Last name is required.";
+  if (!p.dob) err.dob = "DOB is required.";
+  const a = p.address || {};
+  if (!a.line1 || !a.city || !/^[A-Za-z]{2}$/.test(a.state||"") || !/^\d{5}/.test(a.zip||"")) err.address = "Address is required.";
+  if (String(p.phone||"").replace(/\D/g,"").length < 10) err.phone = "Phone # is required.";
+  if (!String(p.allergies||"").trim()) err.allergies = "Allergies are required.";
+  if (!p.card || !p.card.last4) err.card = "Card on file is required. Clinic and patient price will be different.";
+  return err;
+}
 function addHtmlPatient(form) {
+  const card = tokenizeCard(form);
   const patient = {
     id: crypto.randomUUID(),
     firstName: form.firstName.value.trim(),
     lastName: form.lastName.value.trim(),
     dob: form.dob.value,
     sex: form.sex.value,
-    phone: form.phone?.value || "",
+    phone: form.phone.value,
     email: form.email?.value || "",
-    address: {line1:"",city:"",state:"",zip:""},
-    allergies:"", clinicalNotes:"", weightKg:""
+    address: {line1:form.line1.value, line2:form.line2?.value||"", city:form.city.value, state:form.st.value.toUpperCase(), zip:form.zip.value},
+    allergies: form.allergies.value,
+    card,
+    clinicalNotes:"", weightKg:""
   };
-  if (!patient.firstName || !patient.lastName || !patient.dob) return;
+  const err = patientProfileErrors(patient);
+  const box = form.querySelector(".danger") || form.querySelector("#patientErr");
+  if (Object.keys(err).length) { if (box) box.textContent = Object.values(err)[0]; return; }
   state.patients.unshift(patient);
   state.wizard.patientId = patient.id;
   state.wizard.adding = false;
   save(); route();
+}
+function htmlPatientForm() {
+  return `<form class="panel pad" style="margin-top:.8rem" onsubmit="event.preventDefault();addHtmlPatient(this)">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <label>First name <input name="firstName" required></label>
+      <label>Last name <input name="lastName" required></label>
+      <label>DOB <input name="dob" type="date" required></label>
+      <label>Sex <select name="sex"><option value="unspecified">Unspecified</option><option value="female">Female</option><option value="male">Male</option></select></label>
+    </div>
+    <label>Address <input name="line1" required placeholder="Street address"></label>
+    <input name="line2" placeholder="Suite / unit (optional)">
+    <div class="grid" style="grid-template-columns:1fr 80px 120px">
+      <input name="city" required placeholder="City">
+      <input name="st" required placeholder="ST" maxlength="2">
+      <input name="zip" required placeholder="ZIP">
+    </div>
+    <label>Phone # <input name="phone" required placeholder="(503) 555-0112"></label>
+    <label>Allergies <textarea name="allergies" required placeholder="Penicillin, or NKDA if none"></textarea></label>
+    <label>Email <input name="email" type="email" placeholder="optional"></label>
+    <div class="panel pad">
+      <strong>Card on file</strong>
+      <p class="muted">Clinic and patient price will be different.</p>
+      <label>Name on card <input name="cardName" required></label>
+      <label>Card number <input name="cardNumber" required placeholder="4242424242424242"></label>
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+        <input name="expMonth" required placeholder="MM">
+        <input name="expYear" required placeholder="YY">
+        <input name="cvc" required placeholder="CVC">
+      </div>
+    </div>
+    <p id="patientErr" class="danger"></p>
+    <button class="btn" style="margin-top:.6rem">Save patient</button>
+  </form>`;
 }
 function submitWizard() {
   if (!canAccessProvider(state.user)) { go("login"); return; }
@@ -939,15 +997,7 @@ function patientsView() {
     <input placeholder="Name, DOB, patient ID, or phone" value="${q}" oninput="state.wizard.q=this.value;save();route()">
     ${list.map(p => `<article class="panel pad" style="margin:.5rem 0"><div class="row"><div><strong>${patientName(p)}</strong><p class="muted">DOB ${dobFmt(p.dob)} · ${p.phone||"No phone"} · ID ${p.id.slice(-6).toUpperCase()}</p></div><button class="btn ghost" onclick="state.wizard=Object.assign(emptyWizard(),{patientId:'${p.id}'});save();go('order-new')">Order for this patient</button></div></article>`).join("")}
     <button class="btn ghost" onclick="state.wizard.adding=!state.wizard.adding;save();route()">+ Add new patient</button>
-    ${state.wizard.adding ? `<form class="panel pad" style="margin-top:.8rem" onsubmit="event.preventDefault();addHtmlPatient(this)">
-      <div class="grid" style="grid-template-columns:1fr 1fr">
-        <input name="firstName" required placeholder="First name">
-        <input name="lastName" required placeholder="Last name">
-        <input name="dob" type="date" required>
-        <select name="sex"><option value="unspecified">Sex (optional)</option><option value="female">Female</option><option value="male">Male</option></select>
-      </div>
-      <button class="btn" style="margin-top:.6rem">Save patient</button>
-    </form>` : ""}`;
+    ${state.wizard.adding ? htmlPatientForm() : ""}`;
 }
 
 function orderNew() {
@@ -971,27 +1021,19 @@ function orderNew() {
     body = patient ? `
       <article class="panel pad">
         <p><strong>✓ ${patientName(patient)}</strong></p>
-        <p class="muted">DOB: ${dobFmt(patient.dob)}</p>
+        <p class="muted">DOB: ${dobFmt(patient.dob)} · ${patient.phone||"No phone"} · Allergies: ${patient.allergies||"—"}</p>
+        <p class="muted">${patient.card?`${patient.card.brand} •••• ${patient.card.last4}`:"No card on file"}. Clinic and patient price will be different.</p>
         <button class="btn ghost" onclick="setWizard({patientId:null})">Change patient</button>
-        <p style="margin-top:.8rem"><strong>Additional information</strong></p>
-        <details class="extra"><summary>Allergies</summary><textarea oninput="savePatientField('${patient.id}','allergies',this.value)">${patient.allergies||""}</textarea></details>
-        <details class="extra"><summary>Contact information</summary><input placeholder="Phone" value="${patient.phone||""}" oninput="savePatientField('${patient.id}','phone',this.value)"><input placeholder="Email" value="${patient.email||""}" oninput="savePatientField('${patient.id}','email',this.value)"></details>
-        <details class="extra"><summary>Shipping address</summary><input placeholder="Address" value="${(patient.address&&patient.address.line1)||""}" oninput="savePatientField('${patient.id}','address.line1',this.value)"></details>
-        <details class="extra"><summary>Relevant clinical information</summary><input placeholder="Weight (kg)" value="${patient.weightKg||""}" oninput="savePatientField('${patient.id}','weightKg',this.value)"><textarea placeholder="Clinical notes" oninput="savePatientField('${patient.id}','clinicalNotes',this.value)">${patient.clinicalNotes||""}</textarea></details>
+        <p style="margin-top:.8rem"><strong>Required profile</strong></p>
+        <label>Allergies <textarea oninput="savePatientField('${patient.id}','allergies',this.value)">${patient.allergies||""}</textarea></label>
+        <label>Phone # <input placeholder="Phone" value="${patient.phone||""}" oninput="savePatientField('${patient.id}','phone',this.value)"></label>
+        <label>Address <input placeholder="Address" value="${(patient.address&&patient.address.line1)||""}" oninput="savePatientField('${patient.id}','address.line1',this.value)"></label>
+        <details class="extra"><summary>Email / clinical</summary><input placeholder="Email" value="${patient.email||""}" oninput="savePatientField('${patient.id}','email',this.value)"><input placeholder="Weight (kg)" value="${patient.weightKg||""}" oninput="savePatientField('${patient.id}','weightKg',this.value)"><textarea placeholder="Clinical notes" oninput="savePatientField('${patient.id}','clinicalNotes',this.value)">${patient.clinicalNotes||""}</textarea></details>
       </article>` : `
       <label>Search existing patient<input placeholder="Name, DOB, patient ID, or phone" value="${w.q||""}" oninput="state.wizard.q=this.value;save();route()"></label>
       ${searchPatientList(w.q).map(p => `<article class="panel pad" style="margin:.4rem 0;cursor:pointer" onclick="setWizard({patientId:'${p.id}'})"><strong>${patientName(p)}</strong><p class="muted">DOB ${dobFmt(p.dob)} · ${p.phone||"No phone"}</p></article>`).join("")}
       <button class="btn ghost" onclick="setWizard({adding:!state.wizard.adding})">+ Add new patient</button>
-      ${w.adding ? `<form class="panel pad" onsubmit="event.preventDefault();addHtmlPatient(this)">
-        <div class="grid" style="grid-template-columns:1fr 1fr">
-          <input name="firstName" required placeholder="First name">
-          <input name="lastName" required placeholder="Last name">
-          <input name="dob" type="date" required>
-          <select name="sex"><option value="unspecified">Sex (optional)</option><option value="female">Female</option><option value="male">Male</option></select>
-        </div>
-        <p class="muted">Phone, address, allergies, and clinical details can be added after selection.</p>
-        <button class="btn">Save patient</button>
-      </form>` : ""}`;
+      ${w.adding ? htmlPatientForm() : ""}`;
   } else if (w.step==="medication") {
     body = `
       <h2>What would you like to order?</h2>
@@ -1036,7 +1078,7 @@ function orderNew() {
     ${body}
     <p style="margin-top:1rem">
       ${idx>0?`<button class="btn ghost" onclick="setWizard({step:'${steps[idx-1]}'})">Back</button>`:""}
-      ${w.step!=="review"?`<button class="btn" onclick="setWizard({step:'${steps[Math.min(steps.length-1,idx+1)]}'})">Continue</button>`:`<button class="btn" ${canSubmit?"":"disabled"} onclick="submitWizard()">Submit to Operations</button>`}
+      ${w.step!=="review"?`<button class="btn" onclick="wizardContinue('${steps[Math.min(steps.length-1,idx+1)]}')">Continue</button>`:`<button class="btn" ${canSubmit?"":"disabled"} onclick="submitWizard()">Submit to Operations</button>`}
       <button class="btn ghost" onclick="exitDraft()">Save draft & exit</button>
     </p>`;
 }
