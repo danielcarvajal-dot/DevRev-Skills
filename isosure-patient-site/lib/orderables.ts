@@ -130,6 +130,22 @@ const OVERRIDES: Record<string, Partial<OrderableMeta>> = {
     allergyTags: ["estradiol", "estrogen"],
     searchTerms: ["estradiol", "e2", "estrogen", "cream"],
   },
+  "testosterone-gel": {
+    family: "Testosterone",
+    allergyTags: ["testosterone"],
+    searchTerms: ["testosterone", "gel", "transdermal"],
+  },
+  "testosterone-cypionate": {
+    family: "Testosterone",
+    workflowKind: "injection",
+    requireWeight: false,
+    startingDoseMg: 100,
+    defaultDirections: "Inject the prescribed volume intramuscularly once weekly",
+    quantityUnit: "mL",
+    defaultQuantity: 10,
+    allergyTags: ["testosterone", "cottonseed", "sesame"],
+    searchTerms: ["testosterone", "cypionate", "injection", "im", "trt"],
+  },
   "ldn-caps": {
     family: "Low-Dose Naltrexone",
     startingDoseMg: 1.5,

@@ -29,6 +29,7 @@ const CATEGORY_BY_PRODUCT_ID: Partial<Record<string, Category>> = {
   "semaglutide-injection": "Weight Management",
   "semaglutide-troche": "Weight Management",
   "semaglutide-capsule": "Weight Management",
+  "testosterone-cypionate": "Hormones",
 };
 
 export function normalizeCategory(category?: string, productId?: string): Category {
@@ -96,6 +97,8 @@ export const PRODUCTS: Product[] = [
     slug: "isovigor-testosterone-gel",
     name: "IsoVigor Testosterone Gel",
     shortName: "Testosterone Gel",
+    family: "Testosterone",
+    familySlug: "testosterone",
     category: "Hormones",
     form: "Gel",
     featured: true,
@@ -109,6 +112,35 @@ export const PRODUCTS: Product[] = [
       { id: "t-10", label: "10 mg/mL", strength: "10 mg/mL", price: 62 },
       { id: "t-20", label: "20 mg/mL", strength: "20 mg/mL", price: 74 },
       { id: "t-50", label: "50 mg/mL", strength: "50 mg/mL", price: 88 },
+    ],
+  },
+  {
+    id: "testosterone-cypionate",
+    slug: "isovigor-testosterone-cypionate",
+    name: "IsoVigor Testosterone Cypionate",
+    shortName: "Testosterone Cypionate",
+    family: "Testosterone",
+    familySlug: "testosterone",
+    category: "Hormones",
+    form: "Injection",
+    workflowKind: "injection",
+    featured: true,
+    requiresRx: true,
+    requireWeight: false,
+    startingDoseMg: 100,
+    allergyTags: ["testosterone", "cottonseed", "sesame"],
+    tags: ["hrt", "testosterone", "men", "injection", "cypionate"],
+    searchTerms: ["testosterone", "cypionate", "injection", "im", "trt"],
+    summary: "Oil-based testosterone cypionate injection in pharmacy-offered strengths.",
+    description:
+      "A pharmacist-compounded testosterone cypionate injection. Providers select the formulation, offered strength, and IM route. The formula ingredients can be reviewed before ordering.",
+    howToUse: "Inject the prescribed volume intramuscularly as directed.",
+    defaultDirections: "Inject the prescribed volume intramuscularly once weekly",
+    quantityUnit: "mL",
+    defaultQuantity: 10,
+    doses: [
+      { id: "tcyp-200", label: "200 mg/mL", strength: "200 mg/mL", price: 78 },
+      { id: "tcyp-100", label: "100 mg/mL", strength: "100 mg/mL", price: 68 },
     ],
   },
   {
