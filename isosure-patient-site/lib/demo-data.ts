@@ -8,6 +8,7 @@ import type {
   RefillRequest,
 } from "./types";
 import { EMPTY_ADDRESS } from "./patients";
+import { hawthorneAddress, hawthorneClinicCard } from "./provider-profile";
 
 export function demoDoctor(): Doctor {
   return {
@@ -16,10 +17,13 @@ export function demoDoctor(): Doctor {
     loginKind: "prescriber",
     practiceName: "Hawthorne Family Medicine",
     prescriberName: "Dr. Maya Ellison, MD",
-    npi: "1234567890",
-    dea: "BE1234563",
-    email: "orders@hawthornefm.example",
+    address: hawthorneAddress(),
     phone: "(503) 555-0148",
+    npi: "1234567890",
+    stateLicense: "OR-MD-22109",
+    dea: "BE1234563",
+    clinicCard: hawthorneClinicCard("Maya Ellison"),
+    email: "orders@hawthornefm.example",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 80).toISOString(),
   };
 }
@@ -31,10 +35,13 @@ export function demoFacility(): Doctor {
     loginKind: "facility",
     practiceName: "Riverside Women's Clinic",
     prescriberName: "Clinic orders desk",
-    npi: "1987654321",
-    dea: "BR1987654",
-    email: "orders@riversidewc.example",
+    address: { line1: "910 Water Ave", line2: "", city: "Portland", state: "OR", zip: "97214" },
     phone: "(503) 555-0190",
+    npi: "1987654321",
+    stateLicense: "OR-CL-44012",
+    dea: "BR1987654",
+    clinicCard: hawthorneClinicCard("Riverside Women's Clinic"),
+    email: "orders@riversidewc.example",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
   };
 }

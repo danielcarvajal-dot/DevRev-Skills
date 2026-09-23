@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BRAND } from "@/lib/brand";
 import { LOGIN_ACCOUNTS } from "@/lib/auth";
@@ -95,6 +96,12 @@ export function MainLogin() {
           ))}
         </ul>
       </div>
+      <p className="mt-6 text-center text-sm text-ink-soft">
+        New practice?{" "}
+        <Link href="/provider/register" className="underline underline-offset-4">
+          Create a provider profile
+        </Link>
+      </p>
     </div>
   );
 }

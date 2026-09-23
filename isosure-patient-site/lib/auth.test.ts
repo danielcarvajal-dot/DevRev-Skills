@@ -8,6 +8,7 @@ import {
   resolveLogin,
   userForAccount,
 } from "./auth";
+import { isCompleteProviderProfile } from "./provider-profile";
 
 test("example usernames resolve to Operations, Provider, Quality, or the pharmacist hub", () => {
   assert.equal(resolveLogin("hkitner-Ops")?.home, "/ops");
@@ -42,4 +43,5 @@ test("pharmacist account can open every portal; others stay on their lane", () =
   assert.equal(canAccessOps(rph), true);
   assert.equal(canAccessProvider(rph), true);
   assert.equal(canAccessQa(rph), true);
+  assert.equal(provider.role === "doctor" && isCompleteProviderProfile(provider), true);
 });

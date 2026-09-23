@@ -111,6 +111,7 @@ type StoreValue = Persisted & {
   signInDoctor: (input: Omit<Doctor, "id" | "createdAt" | "role">) => void;
   signInPharmacy: (input: Omit<PharmacyUser, "id" | "createdAt" | "role">) => void;
   signInUsername: (username: string) => { ok: true; home: string } | { ok: false; error: string };
+  updateProviderProfile: (input: Omit<Doctor, "id" | "createdAt" | "role">) => void;
   loadDemoDoctor: () => void;
   loadDemoFacility: () => void;
   loadDemoPharmacy: () => void;
@@ -272,6 +273,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           createdAt: new Date().toISOString(),
         },
       }));
+    },
+    [commit],
+  );
+
+  const updateProviderProfile: StoreValue["updateProviderProfile"] = useCallback(
+    (input) => {
+      commit((prev) => {
+        if (!prev.user || prev.user.role !== "doctor") return prev;
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            ...input,
+          },
+        };
+      });
     },
     [commit],
   );
@@ -890,6 +907,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       signInDoctor,
       signInPharmacy,
       signInUsername,
+      updateProviderProfile,
       loadDemoDoctor,
       loadDemoFacility,
       loadDemoPharmacy,
@@ -931,6 +949,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       signInDoctor,
       signInPharmacy,
       signInUsername,
+      updateProviderProfile,
       loadDemoDoctor,
       loadDemoFacility,
       loadDemoPharmacy,
