@@ -39,7 +39,14 @@ export default function AccountPage() {
           <h1 className="mt-2 text-3xl font-semibold">{greeting}</h1>
           <p className="mt-2 text-ink-soft">{identity.practiceName}</p>
         </div>
-        <button type="button" onClick={signOut} className="w-fit rounded-lg border border-line px-4 py-2 text-sm">
+        <button
+          type="button"
+          onClick={() => {
+            signOut();
+            window.location.href = "/login";
+          }}
+          className="w-fit rounded-lg border border-line px-4 py-2 text-sm"
+        >
           Sign out
         </button>
       </section>

@@ -26,7 +26,14 @@ export default function QualityPage() {
               floor. Quality does not write MFRs or weigh lots.
             </p>
           </div>
-          <button type="button" onClick={signOut} className="rounded-lg border border-line px-4 py-2 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              signOut();
+              window.location.href = "/login";
+            }}
+            className="rounded-lg border border-line px-4 py-2 text-sm"
+          >
             Sign out
           </button>
         </div>

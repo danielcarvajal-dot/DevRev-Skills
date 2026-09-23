@@ -6,7 +6,7 @@ import { canAccessOps, canAccessProvider, canAccessQa, homePath, staffLabel } fr
 import { useStore } from "@/lib/store";
 
 export function Header() {
-  const { user, ready, unreadCount, drafts } = useStore();
+  const { user, ready, unreadCount, drafts, signOut } = useStore();
   const ops = canAccessOps(user);
   const provider = canAccessProvider(user);
   const qa = canAccessQa(user);
@@ -80,6 +80,18 @@ export function Header() {
           >
             {label}
           </Link>
+          {user ? (
+            <button
+              type="button"
+              className="rounded-lg border border-line px-3 py-1.5 text-sm"
+              onClick={() => {
+                signOut();
+                window.location.href = "/login";
+              }}
+            >
+              Sign out
+            </button>
+          ) : null}
           {provider ? (
             <Link
               href="/order/new"

@@ -29,7 +29,14 @@ export default function PharmacistHubPage() {
             This account opens every ISOSure surface: Operations, Provider, and Quality.
           </p>
         </div>
-        <button type="button" onClick={signOut} className="rounded-lg border border-line px-4 py-2 text-sm">
+        <button
+          type="button"
+          onClick={() => {
+            signOut();
+            window.location.href = "/login";
+          }}
+          className="rounded-lg border border-line px-4 py-2 text-sm"
+        >
           Sign out
         </button>
       </div>
