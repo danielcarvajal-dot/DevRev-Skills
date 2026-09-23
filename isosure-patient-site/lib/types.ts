@@ -1,4 +1,4 @@
-export type Role = "doctor" | "pharmacy";
+export type Role = "doctor" | "pharmacy" | "qa" | "rph";
 export type ProviderLoginKind = "prescriber" | "facility";
 
 export type Category =
@@ -79,6 +79,7 @@ export type CartItem = {
 export type Doctor = {
   id: string;
   role: "doctor";
+  username?: string;
   loginKind: ProviderLoginKind;
   practiceName: string;
   prescriberName: string;
@@ -92,6 +93,7 @@ export type Doctor = {
 export type PharmacyUser = {
   id: string;
   role: "pharmacy";
+  username?: string;
   pharmacyName: string;
   contactName: string;
   email: string;
@@ -99,7 +101,26 @@ export type PharmacyUser = {
   createdAt: string;
 };
 
-export type SessionUser = Doctor | PharmacyUser;
+export type QualityUser = {
+  id: string;
+  role: "qa";
+  username?: string;
+  displayName: string;
+  email: string;
+  createdAt: string;
+};
+
+export type PharmacistUser = {
+  id: string;
+  role: "rph";
+  username?: string;
+  displayName: string;
+  pharmacyName: string;
+  email: string;
+  createdAt: string;
+};
+
+export type SessionUser = Doctor | PharmacyUser | QualityUser | PharmacistUser;
 
 export type Address = {
   line1: string;

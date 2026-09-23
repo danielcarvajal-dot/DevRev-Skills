@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { canAccessOps } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import type { RefillStatus } from "@/lib/types";
@@ -11,7 +12,7 @@ export default function AdminRefillsPage() {
   const { user, refills, ready, setRefillStatus } = useStore();
 
   if (!ready) return <div className="mx-auto max-w-4xl px-4 py-16 text-ink-soft">Loading…</div>;
-  if (user?.role !== "pharmacy") {
+  if (!canAccessOps(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Operations sign-in required</h1>

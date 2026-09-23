@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { canAccessProvider } from "@/lib/auth";
 import { emptyPatientDraft, formatDob, patientDisplayName, searchPatients } from "@/lib/patients";
 import { useStore } from "@/lib/store";
 import type { Sex } from "@/lib/types";
@@ -16,12 +17,12 @@ export default function PatientsPage() {
   if (!ready) {
     return <div className="mx-auto max-w-5xl px-4 py-16 text-ink-soft">Loading patients…</div>;
   }
-  if (!user || user.role !== "doctor") {
+  if (!user || !canAccessProvider(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Provider login required</h1>
         <Link href="/login" className="mt-5 inline-block rounded-lg bg-purple-deep px-5 py-2.5 text-sm font-semibold text-white">
-          Sign in
+          Main login
         </Link>
       </div>
     );

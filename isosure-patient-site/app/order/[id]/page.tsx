@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { canAccessOps, canAccessProvider } from "@/lib/auth";
 import { formatDate, formatMoney, orderNumber } from "@/lib/format";
 import { DOCUMENT_KIND_LABEL, PROVIDER_STATUS_LABEL } from "@/lib/operations";
 import { useStore } from "@/lib/store";
@@ -10,7 +11,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params);
   const { orders, documents, ready, user } = useStore();
   const order = orders.find((item) => item.id === id);
-  const back = user?.role === "pharmacy" ? "/admin/orders" : "/account";
+  const back = canAccessOps(user) ? "/admin/orders" : "/account";
   const relatedDocs = [
     ...(order?.scripts || []),
     ...documents.filter((doc) => doc.orderId === id && !order?.scripts.some((s) => s.id === doc.id)),
@@ -124,7 +125,7 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         <Link href={back} className="rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white">
           Back
         </Link>
-        {user?.role === "doctor" ? (
+        {canAccessProvider(user) ? (
           <Link
             href={`/portal/refills?order=${order.id}`}
             className="rounded-lg border border-line px-4 py-2 text-sm"

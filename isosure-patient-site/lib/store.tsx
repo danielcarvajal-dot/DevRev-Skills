@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { productFromPartial } from "./catalog-io";
+import { canAccessProvider, providerIdentity, resolveLogin, staffName, userForAccount } from "./auth";
 import {
   demoDoctor,
   demoFacility,
@@ -109,6 +110,7 @@ type StoreValue = Persisted & {
   unreadCount: number;
   signInDoctor: (input: Omit<Doctor, "id" | "createdAt" | "role">) => void;
   signInPharmacy: (input: Omit<PharmacyUser, "id" | "createdAt" | "role">) => void;
+  signInUsername: (username: string) => { ok: true; home: string } | { ok: false; error: string };
   loadDemoDoctor: () => void;
   loadDemoFacility: () => void;
   loadDemoPharmacy: () => void;
@@ -289,6 +291,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  const seedDemoWorkspace = useCallback((user: SessionUser) => {
+    commit((prev) => ({
+      ...prev,
+      user,
+      orders: seedIfEmpty(prev.orders, seedDemoOrders()),
+      patients: seedIfEmpty(prev.patients, seedDemoPatients()),
+      documents: seedIfEmpty(prev.documents, seedDemoDocuments()),
+      notifications: seedIfEmpty(prev.notifications, seedDemoNotifications()),
+      refills: seedIfEmpty(prev.refills, seedDemoRefills()),
+      lots: seedIfEmpty(prev.lots, seedLots()),
+      crs: seedIfEmpty(prev.crs, seedDemoCrs()),
+      envLogs: seedIfEmpty(prev.envLogs, seedEnvironmentLogs()),
+      equipmentLogs: seedIfEmpty(prev.equipmentLogs, seedEquipmentLogs()),
+      csLogs: seedIfEmpty(prev.csLogs, seedCsLogs()),
+      ingredients: prev.ingredients.length ? prev.ingredients : DEFAULT_INGREDIENTS,
+      mfrs: prev.mfrs.length ? prev.mfrs : DEFAULT_MFRS,
+    }));
+  }, [commit]);
+
+  const signInUsername: StoreValue["signInUsername"] = useCallback(
+    (username) => {
+      const account = resolveLogin(username);
+      if (!account) {
+        return { ok: false as const, error: "Unknown username. Use hkitner-Ops, hkitner-Provider, hkitner-QA, or hkitner-RPh." };
+      }
+      seedDemoWorkspace(userForAccount(account));
+      return { ok: true as const, home: account.home };
+    },
+    [seedDemoWorkspace],
+  );
+
   const seedPortalDemo = useCallback(
     (user: ReturnType<typeof demoDoctor>) => {
       commit((prev) => ({
@@ -415,7 +448,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const placeOrder: StoreValue["placeOrder"] = useCallback(
     ({ address, notes, patientName, patientDob }) => {
-      const doctor = state.user?.role === "doctor" ? state.user : null;
+      const doctor = state.user && canAccessProvider(state.user) ? providerIdentity(state.user) : null;
       const items = state.cart
         .map((item) => {
           const product = state.products.find((p) => p.id === item.productId);
@@ -617,7 +650,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const submitMedicationOrder: StoreValue["submitMedicationOrder"] = useCallback(
     ({ patientId, prescription, acknowledgedAlertIds, draftId }) => {
-      const doctor = state.user?.role === "doctor" ? state.user : null;
+      const doctor = state.user && canAccessProvider(state.user) ? providerIdentity(state.user) : null;
       const patient = state.patients.find((item) => item.id === patientId) || null;
       const product = state.products.find((item) => item.id === prescription.productId);
       const dose = product?.doses.find((item) => item.id === prescription.doseId) || null;
@@ -714,7 +747,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           error = "Batch not found.";
           return prev;
         }
-        const pharmacist = prev.user?.role === "pharmacy" ? prev.user.contactName : "ISOSure lab";
+        const pharmacist = prev.user && (prev.user.role === "pharmacy" || prev.user.role === "rph")
+          ? staffName(prev.user)
+          : "ISOSure lab";
         const stepped = stepCr({
           cr,
           mfrs: prev.mfrs,
@@ -854,6 +889,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       unreadCount,
       signInDoctor,
       signInPharmacy,
+      signInUsername,
       loadDemoDoctor,
       loadDemoFacility,
       loadDemoPharmacy,
@@ -894,6 +930,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       unreadCount,
       signInDoctor,
       signInPharmacy,
+      signInUsername,
       loadDemoDoctor,
       loadDemoFacility,
       loadDemoPharmacy,

@@ -15,11 +15,11 @@ export function Footer() {
         </div>
         <div className="text-sm text-purple-soft">
           <p>
-            Two systems, one store: the provider portal is a thin client; Operations is the LIMS/MOM
-            for MFR, compounding records, BUD, inventory, and environment logs.
+            Three pages from one login: Provider, Operations, and Quality. The pharmacist account
+            can open all three.
           </p>
-          <Link href="/ops" className="mt-3 inline-block underline underline-offset-4">
-            Open Operations
+          <Link href="/login" className="mt-3 inline-block underline underline-offset-4">
+            Main login
           </Link>
         </div>
       </div>

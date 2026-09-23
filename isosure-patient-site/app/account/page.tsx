@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { canAccessProvider, providerIdentity, staffName } from "@/lib/auth";
 import { greetingName, formatDate, formatMoney, orderNumber, timeOfDayGreeting } from "@/lib/format";
 import { PROVIDER_STATUS_LABEL } from "@/lib/operations";
 import { formatDob, patientDisplayName } from "@/lib/patients";
@@ -14,30 +15,38 @@ export default function AccountPage() {
     return <div className="mx-auto max-w-6xl px-4 py-16 text-ink-soft">Loading provider portal…</div>;
   }
 
-  if (!user || user.role !== "doctor") {
+  if (!user || !canAccessProvider(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Provider login required</h1>
         <Link href="/login" className="mt-5 inline-block rounded-lg bg-purple-deep px-5 py-2.5 text-sm font-semibold text-white">
-          Prescriber / facility login
+          Main login
         </Link>
       </div>
     );
   }
 
-  const greeting = `${timeOfDayGreeting()}, ${greetingName(user.prescriberName)}`;
+  const identity = providerIdentity(user);
+  const greeting = `${timeOfDayGreeting()}, ${greetingName(staffName(user))}`;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
       <section className="flex flex-col justify-between gap-4 border-b border-line pb-8 md:flex-row md:items-end">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">
-            Provider portal · {user.loginKind === "facility" ? "Facility" : "Prescriber"}
+            Provider portal · {identity.loginKind === "facility" ? "Facility" : "Prescriber"}
           </p>
           <h1 className="mt-2 text-3xl font-semibold">{greeting}</h1>
-          <p className="mt-2 text-ink-soft">{user.practiceName}</p>
+          <p className="mt-2 text-ink-soft">{identity.practiceName}</p>
         </div>
-        <button type="button" onClick={signOut} className="w-fit rounded-lg border border-line px-4 py-2 text-sm">
+        <button
+          type="button"
+          onClick={() => {
+            signOut();
+            window.location.href = "/login";
+          }}
+          className="w-fit rounded-lg border border-line px-4 py-2 text-sm"
+        >
           Sign out
         </button>
       </section>

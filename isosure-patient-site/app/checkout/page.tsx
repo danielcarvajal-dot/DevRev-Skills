@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { canAccessProvider, providerIdentity } from "@/lib/auth";
 import { formatMoney } from "@/lib/format";
 import { DOCUMENT_KIND_LABEL } from "@/lib/operations";
 import { useStore } from "@/lib/store";
@@ -37,16 +38,17 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!user || user.role !== "doctor") {
+  if (!user || !canAccessProvider(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Provider login required</h1>
         <Link href="/login" className="mt-4 inline-block rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white">
-          Sign in
+          Main login
         </Link>
       </div>
     );
   }
+  const identity = providerIdentity(user);
 
   function onFiles(files: FileList | null) {
     if (!files) return;
@@ -95,9 +97,9 @@ export default function CheckoutPage() {
           <section className="rounded-xl border border-line bg-paper p-5">
             <p className="font-semibold">Prescriber</p>
             <p className="mt-1 text-sm">
-              {user.prescriberName} · {user.practiceName}
+              {identity.prescriberName} · {identity.practiceName}
               <span className="block text-ink-soft">
-                NPI {user.npi || "—"} · DEA {user.dea || "—"}
+                NPI {identity.npi || "—"} · DEA {identity.dea || "—"}
               </span>
             </p>
             <label className="mt-4 block text-sm">
