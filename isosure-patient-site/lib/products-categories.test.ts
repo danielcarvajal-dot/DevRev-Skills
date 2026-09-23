@@ -18,6 +18,7 @@ test("formulary uses Hormones, Pain Management, Dermatology, Weight Management, 
   assert.equal(PRODUCTS.find((p) => p.id === "tretinoin")?.category, "Dermatology");
   assert.equal(PRODUCTS.find((p) => p.id === "semaglutide-injection")?.category, "Weight Management");
   assert.equal(PRODUCTS.find((p) => p.id === "sildenafil-troche")?.category, "Sexual Health");
+  assert.equal(PRODUCTS.find((p) => p.id === "testosterone-cypionate")?.category, "Hormones");
 });
 
 test("legacy category names remap onto the new list", () => {

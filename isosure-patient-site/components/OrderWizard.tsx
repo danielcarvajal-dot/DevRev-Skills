@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FormulaPicker } from "@/components/FormulaPicker";
 import { PatientProfileForm } from "@/components/PatientProfileForm";
 import { canAccessProvider, providerIdentity } from "@/lib/auth";
+import { formulaByProductId, formulaForProduct, formulasFrom } from "@/lib/formulas";
 import { isCompletePatientProfile } from "@/lib/patient-profile";
 import { formatClinicCard, isCompleteProviderProfile } from "@/lib/provider-profile";
 import { canSubmitOrder, evaluateOrderAlerts } from "@/lib/order-alerts";
-import { fieldsForWorkflow, orderableMeta, searchOrderables } from "@/lib/orderables";
+import { fieldsForWorkflow, orderableMeta } from "@/lib/orderables";
 import {
   formatDob,
   patientDisplayName,
@@ -61,8 +63,9 @@ export function OrderWizard() {
   const [patientId, setPatientId] = useState<string | null>(params.get("patient"));
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
-  const [medQuery, setMedQuery] = useState("");
-  const [familySlug, setFamilySlug] = useState<string | null>(null);
+  const [category, setCategory] = useState("Hormones");
+  const [medication, setMedication] = useState("");
+  const [showIngredients, setShowIngredients] = useState(false);
   const [rx, setRx] = useState<Partial<Prescription>>(emptyRx);
   const [ack, setAck] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -76,7 +79,11 @@ export function OrderWizard() {
     setAck(existingDraft.acknowledgedAlertIds);
     if (existingDraft.prescription.productId) {
       const nextProduct = products.find((item) => item.id === existingDraft.prescription.productId);
-      if (nextProduct) setFamilySlug(orderableMeta(nextProduct).familySlug);
+      if (nextProduct) {
+        const formula = formulaForProduct(nextProduct);
+        setCategory(formula.category);
+        setMedication(formula.medication);
+      }
       setStep("prescription");
     }
   }
@@ -87,8 +94,8 @@ export function OrderWizard() {
   const meta = product ? orderableMeta(product) : null;
 
   const matches = searchPatients(patients, query);
-  const families = searchOrderables(products, medQuery);
-  const selectedFamily = families.find((item) => item.slug === familySlug) || null;
+  const formulas = formulasFrom(products);
+  const selectedFormula = formulaByProductId(formulas, rx.productId);
   const alerts = evaluateOrderAlerts({ patient, product, dose, prescription: rx, orders });
 
   function persistDraft() {
@@ -106,7 +113,9 @@ export function OrderWizard() {
     if (!next) return;
     const info = orderableMeta(next);
     const nextDose = next.doses.find((item) => item.id === nextDoseId) || next.doses[0];
-    setFamilySlug(info.familySlug);
+    const formula = formulaForProduct(next);
+    setCategory(formula.category);
+    setMedication(formula.medication);
     setRx((prev) => ({
       ...prev,
       productId: next.id,
@@ -120,6 +129,26 @@ export function OrderWizard() {
       doseAmount: info.workflowKind === "injection" ? prev.doseAmount || "" : "",
       volumeMl: info.workflowKind === "injection" ? prev.volumeMl || "" : "",
     }));
+    setAck([]);
+  }
+
+  function chooseCategory(nextCategory: string) {
+    setCategory(nextCategory);
+    setMedication("");
+    setShowIngredients(false);
+    setRx((prev) => ({ ...emptyRx, notes: prev.notes, refills: prev.refills, daw: prev.daw }));
+    setAck([]);
+  }
+
+  function chooseMedication(nextMedication: string) {
+    setMedication(nextMedication);
+    setShowIngredients(false);
+    const matches = formulas.filter((item) => item.category === category && item.medication === nextMedication);
+    if (matches.length === 1) {
+      applyProduct(matches[0]!.productId);
+      return;
+    }
+    setRx((prev) => ({ ...emptyRx, notes: prev.notes, refills: prev.refills, daw: prev.daw }));
     setAck([]);
   }
 
@@ -236,7 +265,7 @@ export function OrderWizard() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-mid">New medication order</p>
         <h1 className="mt-2 text-3xl font-semibold">Start with the patient, then the medication</h1>
         <p className="mt-2 text-sm text-ink-soft">
-          You prescribe the product. Operations maps it to the formula — lots, excipients, and process stay in the lab.
+          Choose a category to see every medication in that list, then pick the formulation and the strengths this pharmacy currently offers.
         </p>
       </div>
 
@@ -363,78 +392,49 @@ export function OrderWizard() {
       ) : null}
 
       {step === "medication" ? (
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold">What would you like to order?</h2>
-          <label className="block text-sm">
-            Search medication
-            <input
-              className="mt-1 w-full rounded-lg border border-line px-3 py-2"
-              placeholder="Search by medication, ingredient, dosage form…"
-              value={medQuery}
-              onChange={(e) => setMedQuery(e.target.value)}
-            />
-          </label>
-          <div className="grid gap-3 md:grid-cols-2">
-            {families.map((family) => (
-              <button
-                key={family.slug}
-                type="button"
-                className={`rounded-xl border p-4 text-left ${familySlug === family.slug ? "border-purple-mid bg-purple-soft/50" : "border-line bg-paper"}`}
-                onClick={() => {
-                  setFamilySlug(family.slug);
-                  if (family.products.length === 1) applyProduct(family.products[0]!.id);
-                }}
-              >
-                <p className="font-semibold">{family.name}</p>
-                <p className="mt-1 text-sm text-ink-soft">{family.forms.join(" · ")}</p>
-              </button>
-            ))}
-          </div>
-          {selectedFamily ? (
-            <div className="rounded-xl border border-line bg-paper p-4">
-              <p className="font-semibold">{selectedFamily.name}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {selectedFamily.products.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`rounded-lg border px-3 py-1.5 text-sm ${item.id === product?.id ? "border-purple-mid bg-purple-soft font-semibold" : "border-line"}`}
-                    onClick={() => applyProduct(item.id)}
-                  >
-                    {item.form}
-                  </button>
-                ))}
-              </div>
-              {product ? (
-                <div className="mt-4">
-                  <p className="text-sm font-semibold">Strength</p>
-                  <div className="mt-2 flex flex-wrap gap-3">
-                    {product.doses.map((item) => (
-                      <label key={item.id} className="inline-flex items-center gap-2 text-sm">
-                        <input type="radio" name="strength" checked={rx.doseId === item.id} onChange={() => applyProduct(product.id, item.id)} />
-                        {item.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
+        <FormulaPicker
+          formulas={formulas}
+          category={category}
+          medication={medication}
+          selected={selectedFormula}
+          doseId={rx.doseId || ""}
+          showIngredients={showIngredients}
+          onCategory={chooseCategory}
+          onMedication={chooseMedication}
+          onFormulation={(productId) => applyProduct(productId)}
+          onStrength={(nextDoseId) => {
+            if (product) applyProduct(product.id, nextDoseId);
+          }}
+          onToggleIngredients={() => setShowIngredients((open) => !open)}
+        />
       ) : null}
 
       {step === "prescription" && product && dose && meta ? (
         <section className="grid gap-4 lg:grid-cols-2">
           <article className="rounded-xl border border-line bg-paper p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Product</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Formula</p>
             <h2 className="mt-1 text-xl font-semibold">What the pharmacy is making</h2>
-            <p className="mt-3 text-lg font-semibold">{meta.family}</p>
-            <p className="text-sm text-ink-soft">
-              {product.form} · {dose.strength}
-            </p>
-            <p className="mt-3 text-sm text-ink-soft">
-              Operations will map this prescribable product to the current formula version. Formula numbers, API lots, excipients, and process instructions are not shown here.
-            </p>
+            <dl className="mt-3 space-y-1 text-sm">
+              <div className="flex justify-between gap-3"><dt className="text-ink-soft">Category</dt><dd>{selectedFormula?.category || product.category}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-ink-soft">Medication</dt><dd>{selectedFormula?.medication || meta.family}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-ink-soft">Formulation</dt><dd>{selectedFormula?.formulation || product.shortName}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-ink-soft">Strength</dt><dd>{dose.strength}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-ink-soft">Dosage form</dt><dd>{selectedFormula?.dosageForm || product.form}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-ink-soft">Route</dt><dd>{selectedFormula?.route || "—"}</dd></div>
+            </dl>
+            {selectedFormula ? (
+              <details className="mt-3 rounded-lg border border-line bg-bg px-3 py-2 text-sm">
+                <summary className="cursor-pointer font-semibold">See ingredients inside this formula</summary>
+                <ul className="mt-2 space-y-1">
+                  {selectedFormula.ingredients.map((item) => (
+                    <li key={`${item.role}-${item.name}`} className="flex justify-between gap-3">
+                      <span>{item.name}</span>
+                      <span className="text-ink-soft">{item.role}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </article>
           <article className="space-y-3 rounded-xl border border-line bg-paper p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-mid">Prescription</p>
@@ -494,7 +494,8 @@ export function OrderWizard() {
                 <strong>{patientDisplayName(patient)}</strong> · DOB {formatDob(patient.dob)}
               </p>
               <p className="mt-2">
-                {product.shortName} · {dose.label}
+                {selectedFormula?.formulation || product.shortName} · {dose.label}
+                {selectedFormula ? ` · ${selectedFormula.dosageForm} · ${selectedFormula.route}` : ""}
               </p>
               <p className="text-ink-soft">{rx.directions}</p>
               <p className="text-ink-soft">

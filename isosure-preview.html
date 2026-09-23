@@ -142,7 +142,8 @@ const LEGACY_CATEGORIES = {
 const CATEGORY_BY_PRODUCT_ID = {
   "sildenafil-troche":"Sexual Health","ldn-caps":"Pain Management","melatonin-troche":"Hormones",
   "omeprazole-susp":"Pain Management",glutathione:"Weight Management","nad-spray":"Weight Management",
-  "semaglutide-injection":"Weight Management","semaglutide-troche":"Weight Management","semaglutide-capsule":"Weight Management"
+  "semaglutide-injection":"Weight Management","semaglutide-troche":"Weight Management","semaglutide-capsule":"Weight Management",
+  "testosterone-cypionate":"Hormones"
 };
 function normalizeCategory(category, productId) {
   if (productId && CATEGORY_BY_PRODUCT_ID[productId]) return CATEGORY_BY_PRODUCT_ID[productId];
@@ -153,7 +154,8 @@ function normalizeCategory(category, productId) {
 const DEFAULT_PRODUCTS = [
   {id:"estradiol-cream",name:"IsoBalance Estradiol Cream",shortName:"Estradiol Cream",category:"Hormones",form:"Cream",summary:"Bioidentical estradiol cream for transdermal hormone support.",doses:[{id:"e2-025",label:"0.25 mg/g",price:48},{id:"e2-05",label:"0.5 mg/g",price:56},{id:"e2-1",label:"1 mg/g",price:64}]},
   {id:"progesterone-caps",name:"IsoCalm Progesterone Capsules",shortName:"Progesterone Capsules",category:"Hormones",form:"Capsule",family:"Progesterone",startingDoseMg:100,summary:"Micronized progesterone for evening hormone balance.",doses:[{id:"p4-50",label:"50 mg",price:42},{id:"p4-100",label:"100 mg",price:52},{id:"p4-200",label:"200 mg",price:68}]},
-  {id:"testosterone-gel",name:"IsoVigor Testosterone Gel",shortName:"Testosterone Gel",category:"Hormones",form:"Gel",summary:"Quick-dry testosterone gel in measured daily strengths.",doses:[{id:"t-10",label:"10 mg/mL",price:62},{id:"t-20",label:"20 mg/mL",price:74},{id:"t-50",label:"50 mg/mL",price:88}]},
+  {id:"testosterone-gel",name:"IsoVigor Testosterone Gel",shortName:"Testosterone Gel",category:"Hormones",form:"Gel",family:"Testosterone",summary:"Quick-dry testosterone gel in measured daily strengths.",doses:[{id:"t-10",label:"10 mg/mL",price:62},{id:"t-20",label:"20 mg/mL",price:74},{id:"t-50",label:"50 mg/mL",price:88}]},
+  {id:"testosterone-cypionate",name:"IsoVigor Testosterone Cypionate",shortName:"Testosterone Cypionate",category:"Hormones",form:"Injection",family:"Testosterone",requireWeight:false,startingDoseMg:100,summary:"Oil-based testosterone cypionate injection.",doses:[{id:"tcyp-200",label:"200 mg/mL",price:78},{id:"tcyp-100",label:"100 mg/mL",price:68}],ingredients:[{name:"Testosterone Cypionate USP",role:"API"},{name:"Cottonseed oil",role:"base"},{name:"Benzyl alcohol",role:"excipient"}],route:"IM",formulation:"Testosterone Cypionate"},
   {id:"thyroid-combo",name:"IsoThyroid T3/T4 Capsules",shortName:"T3/T4 Capsules",category:"Hormones",form:"Capsule",summary:"Custom liothyronine and levothyroxine ratios.",doses:[{id:"th-5-25",label:"5 / 25 mcg",price:38},{id:"th-10-50",label:"10 / 50 mcg",price:44},{id:"th-15-75",label:"15 / 75 mcg",price:52}]},
   {id:"ketoprofen-cream",name:"IsoEase Ketoprofen Cream",shortName:"Ketoprofen Cream",category:"Pain Management",form:"Cream",summary:"High-strength topical NSAID for joint and muscle pain.",doses:[{id:"keto-10",label:"10%",price:46},{id:"keto-15",label:"15%",price:54},{id:"keto-20",label:"20%",price:62}]},
   {id:"gabapentin-topical",name:"IsoNerve Gabapentin Topical",shortName:"Gabapentin Topical",category:"Pain Management",form:"Topical",summary:"Targeted gabapentin gel for neuropathic pain.",doses:[{id:"gaba-6",label:"6%",price:58},{id:"gaba-10",label:"10%",price:68}]},
@@ -177,10 +179,62 @@ const DEFAULT_PRODUCTS = [
 ];
 
 function emptyWizard() {
-  return {draftId:crypto.randomUUID(),step:"patient",q:"",medq:"",family:"",productId:"",doseId:"",directions:"",quantity:"",unit:"",refills:0,daw:false,notes:"",doseAmount:"",volumeMl:"",ack:[],adding:false};
+  return {draftId:crypto.randomUUID(),step:"patient",q:"",medq:"",category:"Hormones",family:"",productId:"",doseId:"",directions:"",quantity:"",unit:"",refills:0,daw:false,notes:"",doseAmount:"",volumeMl:"",ack:[],adding:false,showIngredients:false};
 }
 function familyOf(p) {
   return p.family || (p.shortName||p.name).replace(/\s+(Cream|Gel|Capsules?|Troches?|Suspension|Nasal spray|Topical|Compound|Spray|Injection|Suppositor(?:y|ies))$/i,"").trim();
+}
+const FORMULA_META = {
+  "estradiol-cream":{formulation:"Estradiol Cream",route:"Transdermal",ingredients:[{name:"Estradiol USP",role:"API"},{name:"VersaBase cream",role:"base"}]},
+  "progesterone-caps":{formulation:"Micronized Progesterone Capsules",route:"Oral",ingredients:[{name:"Progesterone USP micronized",role:"API"},{name:"Sunflower oil capsule fill",role:"base"}]},
+  "progesterone-cream":{formulation:"Progesterone Cream",route:"Transdermal",ingredients:[{name:"Progesterone USP micronized",role:"API"},{name:"VersaBase cream",role:"base"}]},
+  "progesterone-supp":{formulation:"Progesterone Suppositories",route:"Vaginal",ingredients:[{name:"Progesterone USP micronized",role:"API"},{name:"Fatty acid suppository base",role:"base"}]},
+  "testosterone-gel":{formulation:"Testosterone Gel",route:"Transdermal",ingredients:[{name:"Testosterone USP",role:"API"},{name:"Alcohol hydrogel base",role:"base"}]},
+  "testosterone-cypionate":{formulation:"Testosterone Cypionate",route:"IM",ingredients:[{name:"Testosterone Cypionate USP",role:"API"},{name:"Cottonseed oil",role:"base"},{name:"Benzyl alcohol",role:"excipient"}]},
+  "thyroid-combo":{formulation:"T3/T4 Combination Capsules",route:"Oral",ingredients:[{name:"Liothyronine sodium USP",role:"API"},{name:"Levothyroxine sodium USP",role:"API"}]},
+  "melatonin-troche":{formulation:"Melatonin Troches",route:"Buccal",ingredients:[{name:"Melatonin USP",role:"API"}]},
+  "dhea-caps":{formulation:"DHEA Capsules",route:"Oral",ingredients:[{name:"DHEA USP",role:"API"}]},
+  pregnenolone:{formulation:"Pregnenolone Capsules",route:"Oral",ingredients:[{name:"Pregnenolone USP",role:"API"}]},
+  "ketoprofen-cream":{formulation:"Ketoprofen Cream",route:"Topical",ingredients:[{name:"Ketoprofen USP",role:"API"}]},
+  "gabapentin-topical":{formulation:"Gabapentin Topical",route:"Topical",ingredients:[{name:"Gabapentin USP",role:"API"}]},
+  "diclofenac-gel":{formulation:"Diclofenac Gel",route:"Topical",ingredients:[{name:"Diclofenac sodium USP",role:"API"}]},
+  "ldn-caps":{formulation:"Low-Dose Naltrexone Capsules",route:"Oral",ingredients:[{name:"Naltrexone HCl USP",role:"API"}]},
+  "omeprazole-susp":{formulation:"Pediatric Omeprazole Suspension",route:"Oral",ingredients:[{name:"Omeprazole USP",role:"API"}]},
+  hydroquinone:{formulation:"Hydroquinone Cream",route:"Topical",ingredients:[{name:"Hydroquinone USP",role:"API"}]},
+  tretinoin:{formulation:"Tretinoin Cream",route:"Topical",ingredients:[{name:"Tretinoin USP",role:"API"}]},
+  minoxidil:{formulation:"Minoxidil Compound",route:"Topical",ingredients:[{name:"Minoxidil USP",role:"API"}]},
+  "sildenafil-troche":{formulation:"Sildenafil Troches",route:"Buccal",ingredients:[{name:"Sildenafil citrate USP",role:"API"}]},
+  glutathione:{formulation:"Glutathione Capsules",route:"Oral",ingredients:[{name:"Glutathione reduced USP",role:"API"}]},
+  "nad-spray":{formulation:"NAD+ Nasal Spray",route:"Intranasal",ingredients:[{name:"NAD+",role:"API"}]},
+  "semaglutide-injection":{formulation:"Semaglutide + B12 Injection",route:"Subcutaneous",ingredients:[{name:"Semaglutide",role:"API"},{name:"Cyanocobalamin (B12)",role:"API"}]},
+  "semaglutide-troche":{formulation:"Semaglutide Troches",route:"Buccal",ingredients:[{name:"Semaglutide",role:"API"}]},
+  "semaglutide-capsule":{formulation:"Semaglutide Capsules",route:"Oral",ingredients:[{name:"Semaglutide",role:"API"}]}
+};
+function inferRoute(form) {
+  const value = String(form||"").toLowerCase();
+  if (value.includes("inject")) return "IM";
+  if (value.includes("suppositor")) return "Vaginal";
+  if (value.includes("spray") || value.includes("nasal")) return "Intranasal";
+  if (value.includes("troche")) return "Buccal";
+  if (value.includes("capsule") || value.includes("suspension")) return "Oral";
+  if (value.includes("cream") || value.includes("gel")) return "Transdermal";
+  return "Topical";
+}
+function formulaOf(p) {
+  const extras = FORMULA_META[p.id] || {};
+  return {
+    productId: p.id,
+    category: p.category || "Hormones",
+    medication: familyOf(p),
+    formulation: extras.formulation || p.formulation || p.shortName,
+    dosageForm: p.form,
+    route: extras.route || p.route || inferRoute(p.form),
+    strengths: p.doses || [],
+    ingredients: extras.ingredients || p.ingredients || [{name:familyOf(p),role:"API"}]
+  };
+}
+function formulasFromProducts() {
+  return (state.products||[]).map(formulaOf);
 }
 function isInjection(p) { return /inject/i.test(p.form||""); }
 function dobFmt(iso) {
@@ -822,7 +876,7 @@ function wizardAlerts() {
   }
   if (!String(w.directions||"").trim()) alerts.push({id:"missing-directions",severity:"block",title:"Missing information",body:"Directions are required for this prescription."});
   if (!(Number(w.quantity)>0)) alerts.push({id:"missing-quantity",severity:"block",title:"Missing information",body:"Enter a quantity greater than zero."});
-  if ((prod.requireWeight || isInjection(prod)) && patient && !String(patient.weightKg||"").trim()) {
+  if (prod.requireWeight && patient && !String(patient.weightKg||"").trim()) {
     alerts.push({id:"missing-weight",severity:"block",title:"Missing information",body:"Patient weight is required for this medication."});
   }
   if (isInjection(prod)) {
@@ -850,6 +904,11 @@ function wizardContinue(next) {
     const err = p ? patientProfileErrors(p) : {patient:"Select or add a patient."};
     if (Object.keys(err).length) { alert(Object.values(err)[0]); return; }
   }
+  if (state.wizard.step === "medication") {
+    const p = product(state.wizard.productId);
+    const d = p && doseOf(p, state.wizard.doseId);
+    if (!p || !d) { alert("Choose a medication, formulation, and strength."); return; }
+  }
   setWizard({step: next});
 }
 function setWizard(patch) {
@@ -861,18 +920,29 @@ function pickProduct(productId, doseId) {
   const d = p && (doseOf(p, doseId) || p.doses[0]);
   const defaults = {
     "progesterone-caps": {directions:"Take 1 capsule by mouth at bedtime",quantity:30,unit:"capsules"},
-    "semaglutide-injection": {directions:"Inject the prescribed dose subcutaneously once weekly",quantity:2,unit:"mL"}
+    "semaglutide-injection": {directions:"Inject the prescribed dose subcutaneously once weekly",quantity:2,unit:"mL"},
+    "testosterone-cypionate": {directions:"Inject the prescribed volume intramuscularly once weekly",quantity:10,unit:"mL"}
   };
   const preset = defaults[productId] || {directions: state.wizard.directions || "Take as directed", quantity: state.wizard.quantity || 30, unit: /capsule/i.test(p.form)?"capsules":/troche/i.test(p.form)?"troches":isInjection(p)?"mL":"grams"};
+  const formula = formulaOf(p);
   setWizard({
-    family: familyOf(p),
+    category: formula.category,
+    family: formula.medication,
     productId: p.id,
     doseId: d.id,
     directions: state.wizard.directions || preset.directions,
     quantity: state.wizard.quantity || preset.quantity,
-    unit: preset.unit,
+    unit: /inject/i.test(p.form)?"mL":preset.unit,
     ack: []
   });
+}
+function pickCategory(category) {
+  setWizard({category, family:"", productId:"", doseId:"", showIngredients:false, ack:[]});
+}
+function pickMedication(medication) {
+  const matches = formulasFromProducts().filter(f => f.category===state.wizard.category && f.medication===medication);
+  if (matches.length===1) { pickProduct(matches[0].productId); return; }
+  setWizard({family:medication, productId:"", doseId:"", showIngredients:false, ack:[]});
 }
 function savePatientField(id, field, value) {
   const p = state.patients.find(x => x.id===id);
@@ -1029,11 +1099,10 @@ function orderNew() {
   const patient = (state.patients||[]).find(p => p.id===w.patientId);
   const prod = product(w.productId);
   const dose = prod && doseOf(prod, w.doseId);
-  const fams = families().filter(f => {
-    const blob = (f.name+" "+f.forms.join(" ")+f.products.map(p=>p.name+" "+p.summary).join(" ")).toLowerCase();
-    return !w.medq || blob.includes(w.medq.toLowerCase());
-  });
-  const selectedFam = fams.find(f => f.name===w.family) || (prod && fams.find(f => f.name===familyOf(prod)));
+  const allFormulas = formulasFromProducts();
+  const selectedFormula = prod ? formulaOf(prod) : null;
+  const medsInCategory = [...new Set(allFormulas.filter(f => f.category===(w.category||"Hormones")).map(f => f.medication))].sort();
+  const formsInMed = allFormulas.filter(f => f.category===(w.category||"Hormones") && f.medication===(w.family||selectedFormula?.medication));
   const alerts = wizardAlerts();
   const nav = steps.map((s,i)=>`<button class="btn ${w.step===s?"":"ghost"}" onclick="setWizard({step:'${s}'})">${i+1}. ${labels[s]}</button>`).join(" ");
   let body = "";
@@ -1056,19 +1125,52 @@ function orderNew() {
       ${w.adding ? htmlPatientForm() : ""}`;
   } else if (w.step==="medication") {
     body = `
-      <h2>What would you like to order?</h2>
-      <input placeholder="Search by medication, ingredient, dosage form…" value="${w.medq||""}" oninput="state.wizard.medq=this.value;save();route()">
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:.8rem">
-        ${fams.map(f => `<div class="tile" onclick="pickProduct('${f.products[0].id}')"><strong>${f.name}</strong><p class="muted">${f.forms.join(" · ")}</p></div>`).join("")}
-      </div>
-      ${selectedFam ? `<div class="panel pad" style="margin-top:.8rem">
-        <p><strong>${selectedFam.name}</strong></p>
-        <div class="forms">${selectedFam.products.map(p => `<button class="${prod&&prod.id===p.id?"on":""}" onclick="pickProduct('${p.id}')">${p.form}</button>`).join("")}</div>
-        ${prod ? `<p style="margin-top:.8rem">Strength</p><div class="doses">${prod.doses.map(d => `<label><input type="radio" name="str" ${w.doseId===d.id?"checked":""} onchange="pickProduct('${prod.id}','${d.id}')"> ${d.label}</label>`).join("")}</div>` : ""}
-      </div>` : ""}`;
+      <article class="panel pad">
+        <p class="kicker">Formula selection</p>
+        <h2>What would you like to order?</h2>
+        <p class="muted">All medications in the selected category appear here, with the strengths this pharmacy currently offers.</p>
+        <label>Category
+          <select onchange="pickCategory(this.value)">
+            ${CATEGORIES.map(c=>`<option ${c===(w.category||"Hormones")?"selected":""}>${c}</option>`).join("")}
+          </select>
+        </label>
+        <label>Medication
+          <select onchange="pickMedication(this.value)">
+            <option value="">Select a medication</option>
+            ${medsInCategory.map(m=>`<option ${m===(w.family||"")?"selected":""}>${m}</option>`).join("")}
+          </select>
+        </label>
+        <label>Formulation
+          <select ${formsInMed.length?"":"disabled"} onchange="pickProduct(this.value)">
+            <option value="">Select a formulation</option>
+            ${formsInMed.map(f=>`<option value="${f.productId}" ${prod&&prod.id===f.productId?"selected":""}>${f.formulation}</option>`).join("")}
+          </select>
+        </label>
+        <label>Strength
+          <select ${prod?"":"disabled"} onchange="pickProduct('${prod?prod.id:""}', this.value)">
+            <option value="">${prod?"Select a strength":"Select a formulation first"}</option>
+            ${(prod?prod.doses:[]).map(d=>`<option value="${d.id}" ${w.doseId===d.id?"selected":""}>${d.label}</option>`).join("")}
+          </select>
+        </label>
+        <p class="muted" style="margin:.2rem 0 0">Strengths currently offered for this formula.</p>
+        <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:.6rem">
+          <p><span class="kicker">Dosage form</span><br>${selectedFormula?selectedFormula.dosageForm:"—"}</p>
+          <p><span class="kicker">Route (dosage form)</span><br>${selectedFormula?selectedFormula.route:"—"}</p>
+        </div>
+        ${selectedFormula?`<p style="margin-top:.8rem"><button class="btn ghost" type="button" onclick="setWizard({showIngredients:!state.wizard.showIngredients})">${w.showIngredients?"Hide ingredients":"See ingredients inside this formula"}</button></p>
+          ${w.showIngredients?`<ul>${selectedFormula.ingredients.map(i=>`<li>${i.name} <span class="muted">${i.role}</span></li>`).join("")}</ul>`:""}`:""}
+      </article>`;
   } else if (w.step==="prescription" && prod && dose) {
     body = `<div class="split">
-      <article class="panel pad"><p class="kicker">Product</p><h2>What the pharmacy is making</h2><p><strong>${familyOf(prod)}</strong></p><p class="muted">${prod.form} · ${dose.label}</p><p class="muted">Operations maps this product to the current formula. Formula numbers, API lots, and process stay in the lab.</p></article>
+      <article class="panel pad"><p class="kicker">Formula</p><h2>What the pharmacy is making</h2>
+        <p>Category · ${selectedFormula?selectedFormula.category:prod.category}</p>
+        <p>Medication · ${selectedFormula?selectedFormula.medication:familyOf(prod)}</p>
+        <p>Formulation · ${selectedFormula?selectedFormula.formulation:prod.shortName}</p>
+        <p>Strength · ${dose.label}</p>
+        <p>Dosage form · ${selectedFormula?selectedFormula.dosageForm:prod.form}</p>
+        <p>Route · ${selectedFormula?selectedFormula.route:"—"}</p>
+        <details class="extra"><summary>See ingredients inside this formula</summary><ul>${(selectedFormula?selectedFormula.ingredients:[]).map(i=>`<li>${i.name} · ${i.role}</li>`).join("")}</ul></details>
+      </article>
       <article class="panel pad">
         <p class="kicker">Prescription</p><h2>What you are ordering for this patient</h2>
         <p>${prod.shortName} · ${dose.label}</p>
@@ -1093,7 +1195,7 @@ function orderNew() {
   return `
     <p class="kicker">New medication order</p>
     <h1>Start with the patient, then the medication</h1>
-    <p class="muted">You prescribe the product. Operations maps it to the formula.</p>
+    <p class="muted">Choose a category to see every medication in that list, then pick the formulation and the strengths this pharmacy currently offers.</p>
     <div class="dash-links" style="margin:1rem 0">${nav}</div>
     ${body}
     <p style="margin-top:1rem">

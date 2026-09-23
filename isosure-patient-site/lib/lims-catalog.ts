@@ -34,6 +34,8 @@ const INGREDIENT_ROWS: Omit<Ingredient, "reorderPoint">[] = [
   { id: "parabens", name: "Methylparaben / propylparaben blend", cas: "", nioshTable: null, hazardous: false, controlledSchedule: null, defaultPotencyPct: 100, unit: "g" },
   { id: "ns-water", name: "Sterile water for irrigation", cas: "7732-18-5", nioshTable: null, hazardous: false, controlledSchedule: null, defaultPotencyPct: 100, unit: "mL" },
   { id: "nasal-vehicle", name: "Isotonic nasal vehicle", cas: "", nioshTable: null, hazardous: false, controlledSchedule: null, defaultPotencyPct: 100, unit: "mL" },
+  { id: "cottonseed-oil", name: "Cottonseed oil", cas: "8001-29-4", nioshTable: null, hazardous: false, controlledSchedule: null, defaultPotencyPct: 100, unit: "mL" },
+  { id: "benzyl-alcohol", name: "Benzyl alcohol", cas: "100-51-6", nioshTable: null, hazardous: false, controlledSchedule: null, defaultPotencyPct: 100, unit: "mL" },
 ];
 
 const REORDER_POINT: Record<string, number> = {
@@ -240,6 +242,38 @@ export const MFRS: MasterFormulationRecord[] = [
     storage: "Refrigerate 2–8 °C (unpreserved aqueous)",
     labeling: ["C-III", "Hazardous drug — USP <800>", "Keep out of reach of children"],
     hdPrecautions: "NIOSH Table 2 + schedule III. C-PEC, PPE, CS vault.",
+    stabilityDays: null,
+  },
+  {
+    id: "mfr-tcyp-200",
+    productId: "testosterone-cypionate",
+    doseId: "tcyp-200",
+    title: "Testosterone Cypionate 200 mg/mL injection — MFR-797-011",
+    uspChapter: "797",
+    vehicle: "nonaqueous-liquid",
+    sterileCategory: 2,
+    startingComponentsSterile: false,
+    preserved: true,
+    refrigerated: false,
+    dosageForm: "Injection",
+    strength: "200 mg/mL",
+    batchSize: 10,
+    batchUnit: "mL",
+    ingredients: [
+      { ingredientId: "testosterone", quantity: 2.0, unit: "g", role: "API" },
+      { ingredientId: "cottonseed-oil", quantity: 7.6, unit: "mL", role: "base" },
+      { ingredientId: "benzyl-alcohol", quantity: 0.4, unit: "mL", role: "excipient" },
+    ],
+    procedure: [
+      "C-III controlled substance. Two-person count-in from vault.",
+      "Compound as a Category 2 CSP in ISO 5 PEC.",
+      "Dissolve testosterone cypionate in cottonseed oil with benzyl alcohol. QS 10 mL. Filter 0.22 µm into sterile vial.",
+    ],
+    qualityChecks: ["Clear oil solution", "Filter integrity", "DEA / CSOS log complete"],
+    container: "10 mL multi-dose sterile vial",
+    storage: "CRT 20–25 °C. Protect from light.",
+    labeling: ["C-III", "For intramuscular use", "Hazardous drug — USP <800>"],
+    hdPrecautions: "NIOSH Table 2 + schedule III. ISO 5, PPE, CS vault.",
     stabilityDays: null,
   },
   {

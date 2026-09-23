@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/recommendations.test.ts lib/bud.test.ts lib/lims.test.ts lib/order-alerts.test.ts lib/ops-floor.test.ts lib/auth.test.ts lib/provider-profile.test.ts lib/patient-profile.test.ts lib/products-categories.test.ts"
+    "test": "tsx --test lib/recommendations.test.ts lib/bud.test.ts lib/lims.test.ts lib/order-alerts.test.ts lib/ops-floor.test.ts lib/auth.test.ts lib/provider-profile.test.ts lib/patient-profile.test.ts lib/products-categories.test.ts lib/formulas.test.ts"
   },
   "dependencies": {
     "next": "16.3.2",
