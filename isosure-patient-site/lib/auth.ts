@@ -1,3 +1,4 @@
+import { hawthorneAddress, hawthorneClinicCard } from "./provider-profile";
 import type { Doctor, PharmacistUser, PharmacyUser, QualityUser, SessionUser } from "./types";
 
 export type Portal = "ops" | "provider" | "qa";
@@ -84,7 +85,9 @@ export function staffLabel(user: SessionUser | null | undefined) {
   return user.pharmacyName;
 }
 
-export function providerIdentity(user: SessionUser): Pick<Doctor, "practiceName" | "prescriberName" | "npi" | "dea" | "loginKind"> {
+export function providerIdentity(
+  user: SessionUser,
+): Pick<Doctor, "practiceName" | "prescriberName" | "npi" | "dea" | "loginKind" | "address" | "phone" | "stateLicense" | "clinicCard"> {
   if (user.role === "doctor") {
     return {
       practiceName: user.practiceName,
@@ -92,6 +95,10 @@ export function providerIdentity(user: SessionUser): Pick<Doctor, "practiceName"
       npi: user.npi,
       dea: user.dea,
       loginKind: user.loginKind,
+      address: user.address,
+      phone: user.phone,
+      stateLicense: user.stateLicense,
+      clinicCard: user.clinicCard,
     };
   }
   return {
@@ -100,6 +107,10 @@ export function providerIdentity(user: SessionUser): Pick<Doctor, "practiceName"
     npi: "",
     dea: "",
     loginKind: "prescriber",
+    address: hawthorneAddress(),
+    phone: "",
+    stateLicense: "",
+    clinicCard: null,
   };
 }
 
@@ -124,10 +135,13 @@ export function demoProviderUser(): Doctor {
     loginKind: "prescriber",
     practiceName: "Hawthorne Family Medicine",
     prescriberName: "Hannah Kitner, NP",
-    npi: "1234567890",
-    dea: "BK1234563",
-    email: "hkitner-provider@hawthornefm.example",
+    address: hawthorneAddress(),
     phone: "(503) 555-0148",
+    npi: "1234567890",
+    stateLicense: "OR-NP-18442",
+    dea: "BK1234563",
+    clinicCard: hawthorneClinicCard("Hannah Kitner"),
+    email: "hkitner-provider@hawthornefm.example",
     createdAt: new Date().toISOString(),
   };
 }

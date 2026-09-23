@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { canAccessProvider, providerIdentity } from "@/lib/auth";
+import { isCompleteProviderProfile } from "@/lib/provider-profile";
 import { canSubmitOrder, evaluateOrderAlerts } from "@/lib/order-alerts";
 import { fieldsForWorkflow, orderableMeta, searchOrderables } from "@/lib/orderables";
 import {
@@ -211,6 +212,19 @@ export function OrderWizard() {
         <h1 className="text-3xl font-semibold">Provider login required</h1>
         <Link href="/login" className="mt-5 inline-block rounded-lg bg-purple-deep px-5 py-2.5 text-sm font-semibold text-white">
           Main login
+        </Link>
+      </div>
+    );
+  }
+  if (user.role === "doctor" && !isCompleteProviderProfile(user)) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <h1 className="text-3xl font-semibold">Complete your provider profile</h1>
+        <p className="mt-2 text-ink-soft">
+          A clinic card on file is required. Clinic and patient price will be different.
+        </p>
+        <Link href="/provider/register" className="mt-5 inline-block rounded-lg bg-purple-deep px-5 py-2.5 text-sm font-semibold text-white">
+          Complete profile
         </Link>
       </div>
     );

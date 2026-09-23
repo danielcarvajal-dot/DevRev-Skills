@@ -76,6 +76,14 @@ export type CartItem = {
   quantity: number;
 };
 
+export type ClinicCard = {
+  nameOnCard: string;
+  brand: string;
+  last4: string;
+  expMonth: string;
+  expYear: string;
+};
+
 export type Doctor = {
   id: string;
   role: "doctor";
@@ -83,10 +91,13 @@ export type Doctor = {
   loginKind: ProviderLoginKind;
   practiceName: string;
   prescriberName: string;
-  npi: string;
-  dea: string;
-  email: string;
+  address: Address;
   phone: string;
+  npi: string;
+  stateLicense: string;
+  dea: string;
+  clinicCard: ClinicCard | null;
+  email: string;
   createdAt: string;
 };
 

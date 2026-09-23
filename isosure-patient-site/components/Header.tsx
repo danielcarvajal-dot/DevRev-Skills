@@ -49,6 +49,11 @@ export function Header() {
               <Link href="/account" className="hover:text-purple">
                 Orders
               </Link>
+              {user?.role === "doctor" ? (
+                <Link href="/provider/profile" className="hover:text-purple">
+                  Profile
+                </Link>
+              ) : null}
               <Link href="/account#drafts" className="hover:text-purple">
                 Drafts
                 {ready && drafts.length > 0 ? (

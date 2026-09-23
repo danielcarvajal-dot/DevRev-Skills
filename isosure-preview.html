@@ -218,7 +218,7 @@ function route() {
   const [name, qs] = raw.split("?");
   const params = Object.fromEntries(new URLSearchParams(qs || ""));
   chrome();
-  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients, qa, hub, "order-new": orderNew, patients: patientsView};
+  const views = {home, catalog, cart, checkout, login, practice, pharmacy, formulary, order, notifications, documents, refills, ops, mfrs, mfr, batch, inventory, environment, ingredients, qa, hub, "order-new": orderNew, patients: patientsView, "provider-register": providerRegister, "provider-profile": providerRegister};
   document.getElementById("app").innerHTML = (views[name] || home)(params);
 }
 function chrome() {
@@ -232,7 +232,7 @@ function chrome() {
   const links = [];
   if (u?.role === "rph") links.push(`<a href="#hub">Desk</a>`);
   if (canAccessOps(u)) links.push(`<a href="#ops">Lab</a><a href="#pharmacy">Intake</a><a href="#inventory">Inventory</a>`);
-  if (canAccessProvider(u)) links.push(`<a href="#order-new">New order</a><a href="#patients">Patients</a><a href="#practice">Orders</a><a href="#practice">Drafts${drafts?` (${drafts})`:""}</a><a href="#notifications">Messages${unread?` (${unread})`:""}</a>`);
+  if (canAccessProvider(u)) links.push(`<a href="#order-new">New order</a><a href="#patients">Patients</a><a href="#practice">Orders</a><a href="#practice">Drafts${drafts?` (${drafts})`:""}</a>${u.role==="doctor"?`<a href="#provider-profile">Profile</a>`:""}<a href="#notifications">Messages${unread?` (${unread})`:""}</a>`);
   if (canAccessQa(u)) links.push(`<a href="#qa">Quality</a>`);
   document.getElementById("nav").innerHTML = links.join("");
 }
@@ -367,9 +367,32 @@ function staffLabel(u) {
   if (u.role==="pharmacy" || u.role==="rph") return u.pharmacyName || "ISOSure Compounding Lab";
   return "Quality";
 }
+function hawthorneAddress() { return {line1:"418 Hawthorne Blvd",line2:"Suite 2",city:"Portland",state:"OR",zip:"97214"}; }
+function hawthorneCard(name) { return {nameOnCard:name||"Hannah Kitner",brand:"Visa",last4:"4242",expMonth:"12",expYear:"28"}; }
+function completeDoctor(partial) {
+  return Object.assign({role:"doctor",address:hawthorneAddress(),stateLicense:"OR-NP-18442",clinicCard:hawthorneCard(partial.prescriberName)}, partial);
+}
+function profileErrors(d) {
+  const err = {};
+  if (!d.prescriberName) err.prescriberName = "Name is required.";
+  if (!d.practiceName) err.practiceName = "Practice name is required.";
+  const a = d.address || {};
+  if (!a.line1 || !a.city || !/^[A-Za-z]{2}$/.test(a.state||"") || !/^\d{5}/.test(a.zip||"")) err.address = "Address is required.";
+  if (String(d.phone||"").replace(/\D/g,"").length < 10) err.phone = "Phone # is required.";
+  if (!/^\d{10}$/.test(String(d.npi||"").replace(/\D/g,""))) err.npi = "NPI must be 10 digits.";
+  if (!d.stateLicense) err.stateLicense = "State license is required.";
+  if (!/^[A-Za-z]{2}\d{7}$/.test(String(d.dea||"").replace(/[\s-]/g,""))) err.dea = "DEA # must be 2 letters and 7 digits.";
+  if (!d.clinicCard || !d.clinicCard.last4) err.clinicCard = "Clinic card on file is required. Clinic and patient price will be different.";
+  return err;
+}
+function tokenizeCard(f) {
+  const n = String(f.cardNumber.value||"").replace(/\D/g,"");
+  if (n.length < 13) return null;
+  return {nameOnCard:f.cardName.value, brand:n[0]==="4"?"Visa":"Card", last4:n.slice(-4), expMonth:String(f.expMonth.value).padStart(2,"0"), expYear:String(f.expYear.value).slice(-2)};
+}
 function userForAccount(account) {
   if (account.portal==="ops") return {role:"pharmacy",username:"hkitner-Ops",pharmacyName:"ISOSure Compounding Lab",contactName:"Hannah Kitner",email:"hkitner-ops@isosure.example",phone:"(800) 555-4767"};
-  if (account.portal==="provider") return {role:"doctor",username:"hkitner-Provider",loginKind:"prescriber",practiceName:"Hawthorne Family Medicine",prescriberName:"Hannah Kitner, NP",npi:"1234567890",dea:"BK1234563",email:"hkitner-provider@hawthornefm.example",phone:"(503) 555-0148"};
+  if (account.portal==="provider") return completeDoctor({username:"hkitner-Provider",loginKind:"prescriber",practiceName:"Hawthorne Family Medicine",prescriberName:"Hannah Kitner, NP",npi:"1234567890",dea:"BK1234563",email:"hkitner-provider@hawthornefm.example",phone:"(503) 555-0148",stateLicense:"OR-NP-18442"});
   if (account.portal==="qa") return {role:"qa",username:"hkitner-QA",displayName:"Hannah Kitner",email:"hkitner-qa@isosure.example"};
   return {role:"rph",username:"hkitner-RPh",displayName:"Hannah Kitner, RPh",pharmacyName:"ISOSure Compounding Lab",email:"hkitner-rph@isosure.example"};
 }
@@ -581,7 +604,8 @@ function login() {
     <div class="panel pad" style="max-width:28rem;margin:0 auto">
       <p class="kicker">Login examples</p>
       ${LOGIN_ACCOUNTS.map(a => `<button type="button" class="btn ghost" style="width:100%;margin:.4rem 0;text-align:left" onclick="signInUsername('${a.username}')"><strong>${a.username}</strong> · ${a.label}<br><span class="muted">${a.description}</span></button>`).join("")}
-    </div>`;
+    </div>
+    <p class="muted" style="text-align:center;margin-top:1rem">New practice? <a href="#provider-register">Create a provider profile</a></p>`;
 }
 function hub() {
   if (!state.user || state.user.role!=="rph") return `<h1>Pharmacist sign-in required</h1><button class="btn" onclick="go('login')">Main login</button>`;
@@ -617,11 +641,74 @@ function qa() {
     ${holds.map(l=>`<article class="panel pad" style="margin:.5rem 0"><strong>${l.lotNumber}</strong><p class="muted">${l.quarantine?"Quarantine":"Expired"} · ${l.manufacturer||l.supplier||""}</p></article>`).join("")}
     <p style="margin-top:1rem"><button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button></p>`;
 }
+function providerRegister() {
+  const u = state.user && state.user.role === "doctor" ? state.user : null;
+  const a = u && u.address ? u.address : {line1:"",line2:"",city:"",state:"",zip:""};
+  const card = u && u.clinicCard;
+  return `
+    <p class="kicker">Provider portal</p>
+    <h1>${u ? "Edit provider profile" : "Create provider profile"}</h1>
+    <p class="muted">Name, practice name, address, phone, NPI, state license, DEA, and a clinic card on file are required. Clinic and patient price will be different.</p>
+    <form class="panel pad grid" style="max-width:36rem;margin-top:1rem" onsubmit="return signDoctor(event)">
+      <label>Account type
+        <select name="loginKind">
+          <option value="prescriber" ${!u || u.loginKind!=="facility"?"selected":""}>Prescriber</option>
+          <option value="facility" ${u && u.loginKind==="facility"?"selected":""}>Facility</option>
+        </select>
+      </label>
+      <label>Name <input name="prescriberName" required value="${u?u.prescriberName:""}" placeholder="Hannah Kitner, NP"></label>
+      <label>Practice name <input name="practiceName" required value="${u?u.practiceName:""}" placeholder="Hawthorne Family Medicine"></label>
+      <label>Address <input name="line1" required value="${a.line1||""}" placeholder="Street address"></label>
+      <input name="line2" value="${a.line2||""}" placeholder="Suite / unit (optional)">
+      <div class="grid" style="grid-template-columns:1fr 80px 120px">
+        <input name="city" required value="${a.city||""}" placeholder="City">
+        <input name="st" required value="${a.state||""}" placeholder="ST" maxlength="2">
+        <input name="zip" required value="${a.zip||""}" placeholder="ZIP">
+      </div>
+      <label>Phone # <input name="phone" required value="${u?u.phone:""}" placeholder="(503) 555-0148"></label>
+      <label>NPI <input name="npi" required value="${u?u.npi:""}" placeholder="1234567890" maxlength="10"></label>
+      <label>State license <input name="stateLicense" required value="${u?u.stateLicense||"":""}" placeholder="OR-NP-18442"></label>
+      <label>DEA # <input name="dea" required value="${u?u.dea:""}" placeholder="BK1234563"></label>
+      <label>Office email <input name="email" type="email" value="${u?u.email||"":""}" placeholder="orders@practice.example"></label>
+      <div class="panel pad">
+        <strong>Clinic card on file</strong>
+        <p class="muted">Clinic and patient price will be different.</p>
+        ${card ? `<p>On file: ${card.brand} •••• ${card.last4} · exp ${card.expMonth}/${card.expYear}</p>` : ""}
+        <label>Name on card <input name="cardName" ${card?"":"required"} value="${card?card.nameOnCard:""}"></label>
+        <label>Card number <input name="cardNumber" ${card?"":"required"} placeholder="${card?"Leave blank to keep the card on file":"4242424242424242"}"></label>
+        <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+          <input name="expMonth" ${card?"":"required"} placeholder="MM" value="${card?card.expMonth:""}">
+          <input name="expYear" ${card?"":"required"} placeholder="YY" value="${card?card.expYear:""}">
+          <input name="cvc" ${card?"":"required"} placeholder="CVC">
+        </div>
+      </div>
+      <p id="profileErr" class="danger"></p>
+      <button class="btn" type="submit">${u?"Save provider profile":"Create provider profile"}</button>
+    </form>
+    <p class="muted" style="margin-top:1rem"><a href="#login">Main login</a></p>`;
+}
 function signDoctor(e) {
   e.preventDefault();
   const f = e.target;
-  const loginKind = f.loginKind.value || "prescriber";
-  state.user = {role:"doctor", loginKind, practiceName:f.practiceName.value, prescriberName:f.prescriberName.value, npi:f.npi.value, dea:f.dea.value, email:f.email.value, phone:f.phone.value};
+  const existing = state.user && state.user.role === "doctor" ? state.user : null;
+  const card = tokenizeCard(f) || (existing && existing.clinicCard) || null;
+  const next = {
+    role:"doctor",
+    loginKind: f.loginKind.value || "prescriber",
+    practiceName: f.practiceName.value,
+    prescriberName: f.prescriberName.value,
+    address: {line1:f.line1.value, line2:f.line2.value, city:f.city.value, state:f.st.value.toUpperCase(), zip:f.zip.value},
+    phone: f.phone.value,
+    npi: f.npi.value.replace(/\D/g,""),
+    stateLicense: f.stateLicense.value,
+    dea: f.dea.value.replace(/[\s-]/g,"").toUpperCase(),
+    email: f.email.value,
+    clinicCard: card
+  };
+  const err = profileErrors(next);
+  const box = document.getElementById("profileErr");
+  if (Object.keys(err).length) { if (box) box.textContent = Object.values(err)[0]; return false; }
+  state.user = Object.assign({}, existing||{}, next);
   save(); go("practice"); return false;
 }
 function signPharmacy(e) {
@@ -631,12 +718,12 @@ function signPharmacy(e) {
   save(); go("ops"); return false;
 }
 function loadDoctor() {
-  state.user = {role:"doctor", loginKind:"prescriber", practiceName:"Hawthorne Family Medicine", prescriberName:"Dr. Maya Ellison, MD", npi:"1234567890", dea:"BE1234563", email:"orders@hawthornefm.example", phone:"(503) 555-0148"};
+  state.user = completeDoctor({loginKind:"prescriber", practiceName:"Hawthorne Family Medicine", prescriberName:"Dr. Maya Ellison, MD", npi:"1234567890", dea:"BE1234563", email:"orders@hawthornefm.example", phone:"(503) 555-0148", stateLicense:"OR-MD-22109", clinicCard:hawthorneCard("Maya Ellison")});
   seedPortalIfEmpty();
   save(); go("practice");
 }
 function loadFacility() {
-  state.user = {role:"doctor", loginKind:"facility", practiceName:"Riverside Women's Clinic", prescriberName:"Clinic orders desk", npi:"1987654321", dea:"BR1987654", email:"orders@riversidewc.example", phone:"(503) 555-0190"};
+  state.user = completeDoctor({loginKind:"facility", practiceName:"Riverside Women's Clinic", prescriberName:"Clinic orders desk", npi:"1987654321", dea:"BR1987654", email:"orders@riversidewc.example", phone:"(503) 555-0190", stateLicense:"OR-CL-44012", address:{line1:"910 Water Ave",line2:"",city:"Portland",state:"OR",zip:"97214"}, clinicCard:hawthorneCard("Riverside Women's Clinic")});
   seedPortalIfEmpty();
   save(); go("practice");
 }
@@ -658,6 +745,7 @@ function practice() {
         <p class="kicker">Provider portal · ${kind}</p>
         <h1>${timeGreeting()}, ${greetingName(staffName(state.user))}</h1>
         <p class="muted">${practiceName}</p>
+        ${state.user.role==="doctor" ? `<p class="muted">NPI ${state.user.npi||"—"} · License ${state.user.stateLicense||"—"} · DEA ${state.user.dea||"—"}<br>${state.user.clinicCard?`${state.user.clinicCard.brand} •••• ${state.user.clinicCard.last4}`:"No clinic card"}. Clinic and patient price will be different. <a href="#provider-profile">Edit profile</a></p>` : ""}
       </div>
       <button class="btn ghost" onclick="state.user=null;save();go('login')">Sign out</button>
     </div>

@@ -99,8 +99,14 @@ export default function CheckoutPage() {
             <p className="mt-1 text-sm">
               {identity.prescriberName} · {identity.practiceName}
               <span className="block text-ink-soft">
-                NPI {identity.npi || "—"} · DEA {identity.dea || "—"}
+                NPI {identity.npi || "—"} · License {identity.stateLicense || "—"} · DEA {identity.dea || "—"}
               </span>
+              {identity.clinicCard ? (
+                <span className="mt-1 block text-ink-soft">
+                  Clinic card {identity.clinicCard.brand} •••• {identity.clinicCard.last4}. Clinic and
+                  patient price will be different.
+                </span>
+              ) : null}
             </p>
             <label className="mt-4 block text-sm">
               Patient name

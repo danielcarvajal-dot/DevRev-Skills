@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { ProviderGate } from "@/components/ProviderGate";
 import { canAccessProvider, providerIdentity, staffName } from "@/lib/auth";
 import { greetingName, formatDate, formatMoney, orderNumber, timeOfDayGreeting } from "@/lib/format";
 import { PROVIDER_STATUS_LABEL } from "@/lib/operations";
 import { formatDob, patientDisplayName } from "@/lib/patients";
+import { formatAddress, formatClinicCard } from "@/lib/provider-profile";
 import { orderableMeta } from "@/lib/orderables";
 import { useStore } from "@/lib/store";
 
@@ -30,6 +32,7 @@ export default function AccountPage() {
   const greeting = `${timeOfDayGreeting()}, ${greetingName(staffName(user))}`;
 
   return (
+    <ProviderGate>
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
       <section className="flex flex-col justify-between gap-4 border-b border-line pb-8 md:flex-row md:items-end">
         <div>
@@ -38,6 +41,13 @@ export default function AccountPage() {
           </p>
           <h1 className="mt-2 text-3xl font-semibold">{greeting}</h1>
           <p className="mt-2 text-ink-soft">{identity.practiceName}</p>
+          {user.role === "doctor" ? (
+            <p className="mt-1 text-sm text-ink-soft">
+              {formatAddress(identity.address)} · NPI {identity.npi} · License {identity.stateLicense} · DEA{" "}
+              {identity.dea}
+              <span className="block">{formatClinicCard(identity.clinicCard)}. Clinic and patient price will be different.</span>
+            </p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -50,6 +60,13 @@ export default function AccountPage() {
           Sign out
         </button>
       </section>
+      {user.role === "doctor" ? (
+        <p className="text-sm">
+          <Link href="/provider/profile" className="underline underline-offset-4">
+            Edit provider profile
+          </Link>
+        </p>
+      ) : null}
 
       <Link
         href="/order/new"
@@ -145,5 +162,6 @@ export default function AccountPage() {
         <p className="text-sm text-ink-soft">Latest from Operations: {notifications[0].title}</p>
       ) : null}
     </div>
+    </ProviderGate>
   );
 }
