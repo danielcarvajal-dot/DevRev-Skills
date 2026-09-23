@@ -179,7 +179,7 @@ function loadState(): Persisted {
       cart: parsed.cart ?? [],
       orders: parsed.orders ?? [],
       products: mergeFormulary(parsed.products),
-      patients: parsed.patients ?? [],
+      patients: (parsed.patients ?? []).map(hydratePatient),
       drafts: parsed.drafts ?? [],
       scripts: parsed.scripts ?? [],
       documents: parsed.documents ?? [],
@@ -216,6 +216,21 @@ function mergeIngredients(stored: Ingredient[] | undefined) {
       ? { ...item, ...existing, reorderPoint: existing.reorderPoint ?? item.reorderPoint }
       : item;
   });
+}
+
+function hydratePatient(patient: Patient): Patient {
+  return {
+    ...patient,
+    allergies: patient.allergies ?? "",
+    card: patient.card ?? null,
+    address: {
+      line1: patient.address?.line1 || "",
+      line2: patient.address?.line2 || "",
+      city: patient.address?.city || "",
+      state: patient.address?.state || "",
+      zip: patient.address?.zip || "",
+    },
+  };
 }
 
 function hydrateLot(lot: InventoryLot): InventoryLot {

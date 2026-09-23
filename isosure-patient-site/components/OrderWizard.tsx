@@ -3,19 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PatientProfileForm } from "@/components/PatientProfileForm";
 import { canAccessProvider, providerIdentity } from "@/lib/auth";
-import { isCompleteProviderProfile } from "@/lib/provider-profile";
+import { isCompletePatientProfile } from "@/lib/patient-profile";
+import { formatClinicCard, isCompleteProviderProfile } from "@/lib/provider-profile";
 import { canSubmitOrder, evaluateOrderAlerts } from "@/lib/order-alerts";
 import { fieldsForWorkflow, orderableMeta, searchOrderables } from "@/lib/orderables";
 import {
-  emptyPatientDraft,
   formatDob,
   patientDisplayName,
   searchPatients,
   sexLabel,
 } from "@/lib/patients";
 import { useStore } from "@/lib/store";
-import type { Patient, Prescription, Sex } from "@/lib/types";
+import type { Patient, Prescription } from "@/lib/types";
 
 type Step = "patient" | "medication" | "prescription" | "review";
 
@@ -60,7 +61,6 @@ export function OrderWizard() {
   const [patientId, setPatientId] = useState<string | null>(params.get("patient"));
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
-  const [newPatient, setNewPatient] = useState(emptyPatientDraft());
   const [medQuery, setMedQuery] = useState("");
   const [familySlug, setFamilySlug] = useState<string | null>(null);
   const [rx, setRx] = useState<Partial<Prescription>>(emptyRx);
@@ -128,19 +128,14 @@ export function OrderWizard() {
     upsertPatient({ ...patient, ...patch, address: { ...patient.address, ...(patch.address || {}) } });
   }
 
-  function createPatient() {
-    if (!newPatient.firstName.trim() || !newPatient.lastName.trim() || !newPatient.dob) {
-      setError("First name, last name, and date of birth are required.");
-      return;
-    }
+  function createPatient(profile: Omit<Patient, "id" | "createdAt">) {
     const created = upsertPatient({
-      ...newPatient,
+      ...profile,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     });
     setPatientId(created.id);
     setAdding(false);
-    setNewPatient(emptyPatientDraft());
     setError("");
   }
 
@@ -150,6 +145,10 @@ export function OrderWizard() {
     if (step === "patient") {
       if (!patient) {
         setError("Select or add a patient to continue.");
+        return;
+      }
+      if (!isCompletePatientProfile(patient)) {
+        setError("Complete the patient profile: name, DOB, address, phone, allergies, and a card on file.");
         return;
       }
       setStep("medication");
@@ -272,39 +271,41 @@ export function OrderWizard() {
               <p className="text-sm text-ink-soft">
                 {sexLabel(patient.sex)}
                 {patient.phone ? ` · ${patient.phone}` : ""}
+                {patient.allergies ? ` · Allergies: ${patient.allergies}` : ""}
               </p>
+              <p className="text-sm text-ink-soft">{formatClinicCard(patient.card)}. Clinic and patient price will be different.</p>
               <button type="button" className="mt-3 text-sm underline underline-offset-4" onClick={() => setPatientId(null)}>
                 Change patient
               </button>
               <div className="mt-4 space-y-2">
-                <p className="text-sm font-semibold">Additional information</p>
-                <details className="rounded-lg border border-line px-3 py-2">
-                  <summary className="cursor-pointer text-sm">Allergies</summary>
+                <p className="text-sm font-semibold">Required profile</p>
+                <label className="block text-sm">
+                  Allergies
                   <textarea
-                    className="mt-2 w-full rounded-lg border border-line px-3 py-2 text-sm"
+                    required
+                    className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm"
                     rows={2}
                     value={patient.allergies}
                     onChange={(e) => savePatientEdits({ allergies: e.target.value })}
-                    placeholder="e.g. penicillin, progesterone"
+                    placeholder="e.g. penicillin, or NKDA"
                   />
-                </details>
-                <details className="rounded-lg border border-line px-3 py-2">
-                  <summary className="cursor-pointer text-sm">Contact information</summary>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="Phone" value={patient.phone} onChange={(e) => savePatientEdits({ phone: e.target.value })} />
-                    <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="Email" value={patient.email} onChange={(e) => savePatientEdits({ email: e.target.value })} />
+                </label>
+                <label className="block text-sm">
+                  Phone #
+                  <input className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm" placeholder="Phone" value={patient.phone} onChange={(e) => savePatientEdits({ phone: e.target.value })} />
+                </label>
+                <fieldset className="space-y-2">
+                  <legend className="text-sm">Address</legend>
+                  <input className="w-full rounded-lg border border-line px-3 py-2 text-sm" placeholder="Address" value={patient.address.line1} onChange={(e) => savePatientEdits({ address: { ...patient.address, line1: e.target.value } })} />
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="City" value={patient.address.city} onChange={(e) => savePatientEdits({ address: { ...patient.address, city: e.target.value } })} />
+                    <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="ST" value={patient.address.state} onChange={(e) => savePatientEdits({ address: { ...patient.address, state: e.target.value } })} />
+                    <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="ZIP" value={patient.address.zip} onChange={(e) => savePatientEdits({ address: { ...patient.address, zip: e.target.value } })} />
                   </div>
-                </details>
+                </fieldset>
                 <details className="rounded-lg border border-line px-3 py-2">
-                  <summary className="cursor-pointer text-sm">Shipping address</summary>
-                  <div className="mt-2 grid gap-2">
-                    <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="Address" value={patient.address.line1} onChange={(e) => savePatientEdits({ address: { ...patient.address, line1: e.target.value } })} />
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="City" value={patient.address.city} onChange={(e) => savePatientEdits({ address: { ...patient.address, city: e.target.value } })} />
-                      <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="State" value={patient.address.state} onChange={(e) => savePatientEdits({ address: { ...patient.address, state: e.target.value } })} />
-                      <input className="rounded-lg border border-line px-3 py-2 text-sm" placeholder="ZIP" value={patient.address.zip} onChange={(e) => savePatientEdits({ address: { ...patient.address, zip: e.target.value } })} />
-                    </div>
-                  </div>
+                  <summary className="cursor-pointer text-sm">Email</summary>
+                  <input className="mt-2 w-full rounded-lg border border-line px-3 py-2 text-sm" placeholder="Email" value={patient.email} onChange={(e) => savePatientEdits({ email: e.target.value })} />
                 </details>
                 <details className="rounded-lg border border-line px-3 py-2">
                   <summary className="cursor-pointer text-sm">Relevant clinical information</summary>
@@ -348,22 +349,12 @@ export function OrderWizard() {
                 + Add new patient
               </button>
               {adding ? (
-                <div className="space-y-3 rounded-xl border border-line bg-paper p-4">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <input className="rounded-lg border border-line px-3 py-2" placeholder="First name" value={newPatient.firstName} onChange={(e) => setNewPatient({ ...newPatient, firstName: e.target.value })} />
-                    <input className="rounded-lg border border-line px-3 py-2" placeholder="Last name" value={newPatient.lastName} onChange={(e) => setNewPatient({ ...newPatient, lastName: e.target.value })} />
-                    <input className="rounded-lg border border-line px-3 py-2" type="date" value={newPatient.dob} onChange={(e) => setNewPatient({ ...newPatient, dob: e.target.value })} />
-                    <select className="rounded-lg border border-line px-3 py-2" value={newPatient.sex} onChange={(e) => setNewPatient({ ...newPatient, sex: e.target.value as Sex })}>
-                      <option value="unspecified">Sex (optional)</option>
-                      <option value="female">Female</option>
-                      <option value="male">Male</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <p className="text-sm text-ink-soft">Phone, email, address, allergies, and clinical details can wait until after the patient is selected.</p>
-                  <button type="button" className="rounded-lg bg-purple-deep px-4 py-2 text-sm font-semibold text-white" onClick={createPatient}>
-                    Save patient
-                  </button>
+                <div className="rounded-xl border border-line bg-paper p-4">
+                  <p className="mb-3 text-sm text-ink-soft">
+                    First/last name, DOB, address, phone, allergies, and a card on file are required.
+                    Clinic and patient price will be different.
+                  </p>
+                  <PatientProfileForm submitLabel="Save patient" onSave={createPatient} />
                 </div>
               ) : null}
             </>

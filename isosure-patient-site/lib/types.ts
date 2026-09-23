@@ -185,6 +185,7 @@ export type Patient = {
   email: string;
   address: Address;
   allergies: string;
+  card: ClinicCard | null;
   clinicalNotes: string;
   weightKg: string;
   createdAt: string;

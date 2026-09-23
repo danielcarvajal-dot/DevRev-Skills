@@ -8,6 +8,7 @@ import type {
   RefillRequest,
 } from "./types";
 import { EMPTY_ADDRESS } from "./patients";
+import { demoPatientCard } from "./patient-profile";
 import { hawthorneAddress, hawthorneClinicCard } from "./provider-profile";
 
 export function demoDoctor(): Doctor {
@@ -78,6 +79,7 @@ export function seedDemoPatients(): Patient[] {
       email: "avery.nguyen@example.com",
       address: { line1: "88 Division St", line2: "", city: "Portland", state: "OR", zip: "97214" },
       allergies: "Penicillin",
+      card: demoPatientCard("Avery Nguyen", "1111"),
       clinicalNotes: "On estradiol + progesterone HRT.",
       weightKg: "68",
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
@@ -92,6 +94,7 @@ export function seedDemoPatients(): Patient[] {
       email: "sam.rivera@example.com",
       address: { line1: "12 Belmont Ave", line2: "", city: "Portland", state: "OR", zip: "97215" },
       allergies: "Naltrexone",
+      card: demoPatientCard("Sam Rivera", "2222"),
       clinicalNotes: "LDN for inflammatory symptoms.",
       weightKg: "91",
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 90).toISOString(),
@@ -105,7 +108,8 @@ export function seedDemoPatients(): Patient[] {
       phone: "(503) 555-0144",
       email: "lee.park@example.com",
       address: { ...EMPTY_ADDRESS, line1: "410 Hawthorne Blvd", city: "Portland", state: "OR", zip: "97214" },
-      allergies: "",
+      allergies: "NKDA",
+      card: demoPatientCard("Lee Park", "3333"),
       clinicalNotes: "Ketoprofen cream for knee pain.",
       weightKg: "62",
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
@@ -119,7 +123,8 @@ export function seedDemoPatients(): Patient[] {
       phone: "(503) 555-0188",
       email: "john.smith@example.com",
       address: { line1: "220 Stark St", line2: "Apt 4", city: "Portland", state: "OR", zip: "97204" },
-      allergies: "",
+      allergies: "NKDA",
+      card: demoPatientCard("John Smith", "4444"),
       clinicalNotes: "",
       weightKg: "",
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
