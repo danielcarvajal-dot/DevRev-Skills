@@ -1,3 +1,4 @@
+import { normalizeCategory } from "./products";
 import type { Product } from "./types";
 
 function slugify(value: string) {
@@ -27,7 +28,7 @@ export function productFromPartial(input: Partial<Product> & { name: string }): 
     slug: input.slug || id,
     name,
     shortName: input.shortName || name,
-    category: input.category || "Wellness",
+    category: normalizeCategory(input.category, input.id),
     form: input.form || "Capsule",
     summary: input.summary || "",
     description: input.description || input.summary || "",
@@ -101,6 +102,6 @@ function splitCsv(line: string) {
 }
 
 export const SAMPLE_CSV = `name,shortName,category,form,doses,summary
-IsoBalance Estradiol Cream,Estradiol Cream,Hormone Therapy,Cream,0.25 mg/g:48|0.5 mg/g:56|1 mg/g:64,Bioidentical estradiol cream
-IsoCalm Progesterone Capsules,Progesterone Capsules,Women's Health,Capsule,50 mg:42|100 mg:52|200 mg:68,Micronized progesterone capsules
+IsoBalance Estradiol Cream,Estradiol Cream,Hormones,Cream,0.25 mg/g:48|0.5 mg/g:56|1 mg/g:64,Bioidentical estradiol cream
+IsoCalm Progesterone Capsules,Progesterone Capsules,Hormones,Capsule,50 mg:42|100 mg:52|200 mg:68,Micronized progesterone capsules
 `;

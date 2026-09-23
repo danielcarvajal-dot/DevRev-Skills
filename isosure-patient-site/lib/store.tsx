@@ -159,7 +159,14 @@ const StoreContext = createContext<StoreValue | null>(null);
 
 function mergeFormulary(stored: Product[] | undefined) {
   if (!stored?.length) return DEFAULT_FORMULARY;
-  const byId = new Map(stored.map((item) => [item.id, productFromPartial(item)]));
+  const defaults = new Map(DEFAULT_FORMULARY.map((item) => [item.id, item]));
+  const byId = new Map(
+    stored.map((item) => {
+      const next = productFromPartial(item);
+      const def = defaults.get(item.id);
+      return [item.id, def ? { ...next, category: def.category } : next];
+    }),
+  );
   for (const product of DEFAULT_FORMULARY) {
     if (!byId.has(product.id)) byId.set(product.id, product);
   }

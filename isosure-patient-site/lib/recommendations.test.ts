@@ -14,7 +14,7 @@ test("suggests complementary compounds from purchase history", () => {
 
 test("explains why a complement is suggested", () => {
   const reason = reasonForSuggestion(
-    { id: "dhea-caps", shortName: "DHEA Capsules", category: "Hormone Therapy", tags: ["hrt"] } as never,
+    { id: "dhea-caps", shortName: "DHEA Capsules", category: "Hormones", tags: ["hrt"] } as never,
     seedDemoOrders(),
   );
   assert.match(reason, /paired|refill|Related|Popular/i);
